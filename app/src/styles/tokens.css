@@ -1,0 +1,73 @@
+/* Дизайн-токены. Весь стиль приложения меняется здесь. */
+
+@font-face {
+  font-family: "UthmanicHafs";
+  src: url("https://static.qurancdn.com/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "SurahNames";
+  src: url("https://static.qurancdn.com/fonts/quran/surah-names/v1/sura_names.woff2") format("woff2");
+  font-display: block;
+}
+
+:root,
+[data-theme="dark"] {
+  --bg: #0E1110;
+  --surface: #1A1F1D;
+  --surface-2: #242A27;
+  --surface-3: #2E3531;
+  --emerald: #1F8A5B;
+  --emerald-bright: #34C27F;
+  --on-emerald: #F2F1EC;
+  --gold: #D9A441;
+  --gold-ink: #D9A441;
+  --on-gold: #1B1406;
+  --text: #F2F1EC;
+  --text-2: #9AA39E;
+  --line: rgba(255, 255, 255, .07);
+  --highlight: rgba(52, 194, 127, .10);
+  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  --glass: rgba(26, 31, 29, .94);
+  --paper: #131716;
+  --tj-grey: #7E8783; --tj-madda: #6F9BFF; --tj-madda-2: #8C8CFF; --tj-qalqala: #FF5A5F;
+  --tj-ikhfa: #D06BE0; --tj-idgham: #3CC58F; --tj-idgham-2: #6CCB3A; --tj-ghunna: #FF9A4D; --tj-iqlab: #4FD0FF;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #F6F4EE;
+  --surface: #FFFFFF;
+  --surface-2: #EEEBE2;
+  --surface-3: #E3DFD3;
+  --emerald: #146C47;
+  --emerald-bright: #146C47;
+  --on-emerald: #FFFFFF;
+  --gold: #D6A546;
+  --gold-ink: #8A5E0F;
+  --on-gold: #1B1406;
+  --text: #141816;
+  --text-2: #5E6661;
+  --line: rgba(0, 0, 0, .07);
+  --highlight: rgba(20, 108, 71, .08);
+  --shadow: 0 10px 30px rgba(20, 24, 22, .12);
+  --glass: rgba(255, 255, 255, .95);
+  --paper: #FBF7EC;
+  --tj-grey: #A3A3A3; --tj-madda: #2F5FE0; --tj-madda-2: #4050FF; --tj-qalqala: #D2000A;
+  --tj-ikhfa: #9400A8; --tj-idgham: #16876A; --tj-idgham-2: #3E8A00; --tj-ghunna: #E86A00; --tj-iqlab: #0A9FDB;
+  color-scheme: light;
+}
+
+:root {
+  --r-tile: 28px;
+  --r-card: 22px;
+  --r-btn: 18px;
+  --r-pill: 999px;
+  --font-ui: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-quran: "UthmanicHafs", "Amiri Quran", serif;
+  --ar-size: 28px;
+  --tr-size: 16px;
+  --safe-top: var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --content-top: calc(var(--safe-top) + var(--tg-content-safe-area-inset-top, 0px));
+}

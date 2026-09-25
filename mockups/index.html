@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Макет «Коран и Сунна»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===== Шрифты Корана (Комплекс короля Фахда, через CDN Quran.com; в приложении — храним у себя) ===== */
+@font-face { font-family: "UthmanicHafs"; src: url("https://static.qurancdn.com/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "QPC-p292"; src: url("https://static.qurancdn.com/fonts/quran/hafs/v2/woff2/p292.woff2") format("woff2"); }
+@font-face { font-family: "QPC-p293"; src: url("https://static.qurancdn.com/fonts/quran/hafs/v2/woff2/p293.woff2") format("woff2"); }
+@font-face { font-family: "QPC-p294"; src: url("https://static.qurancdn.com/fonts/quran/hafs/v2/woff2/p294.woff2") format("woff2"); }
+@font-face { font-family: "QPCT-p292"; src: url("https://verses.quran.foundation/fonts/quran/hafs/v4/colrv1/woff2/p292.woff2") format("woff2"); }
+@font-face { font-family: "QPCT-p293"; src: url("https://verses.quran.foundation/fonts/quran/hafs/v4/colrv1/woff2/p293.woff2") format("woff2"); }
+@font-face { font-family: "QPCT-p294"; src: url("https://verses.quran.foundation/fonts/quran/hafs/v4/colrv1/woff2/p294.woff2") format("woff2"); }
+@font-palette-values --tjdark-292 { font-family: "QPCT-p292"; base-palette: 1; }
+@font-palette-values --tjdark-293 { font-family: "QPCT-p293"; base-palette: 1; }
+@font-palette-values --tjdark-294 { font-family: "QPCT-p294"; base-palette: 1; }
+@font-face { font-family: "SurahNames"; src: url("https://static.qurancdn.com/fonts/quran/surah-names/v1/sura_names.woff2") format("woff2"); }
+/* ===== Токены: весь стиль приложения меняется здесь ===== */
+:root, [data-theme="dark"] {
+  --bg: #0E1110;
+  --surface: #1A1F1D;
+  --surface-2: #242A27;
+  --surface-3: #2E3531;
+  --emerald: #1F8A5B;
+  --emerald-bright: #34C27F;
+  --on-emerald: #F2F1EC;
+  --gold: #D9A441;
+  --gold-ink: #D9A441;
+  --on-gold: #1B1406;
+  --text: #F2F1EC;
+  --text-2: #9AA39E;
+  --line: rgba(255,255,255,.07);
+  --highlight: rgba(52,194,127,.10);
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+  --glass: rgba(26,31,29,.94);
+  --paper: #131716;
+  --page: #070908;
+  --tj-grey: #7E8783; --tj-madda: #6F9BFF; --tj-madda-2: #8C8CFF; --tj-qalqala: #FF5A5F;
+  --tj-ikhfa: #D06BE0; --tj-idgham: #3CC58F; --tj-idgham-2: #6CCB3A; --tj-ghunna: #FF9A4D; --tj-iqlab: #4FD0FF;
+}
+[data-theme="light"] {
+  --bg: #F6F4EE;
+  --surface: #FFFFFF;
+  --surface-2: #EEEBE2;
+  --surface-3: #E3DFD3;
+  --emerald: #146C47;
+  --emerald-bright: #146C47;
+  --on-emerald: #FFFFFF;
+  --gold: #D6A546;
+  --gold-ink: #8A5E0F;
+  --on-gold: #1B1406;
+  --text: #141816;
+  --text-2: #5E6661;
+  --line: rgba(0,0,0,.07);
+  --highlight: rgba(20,108,71,.08);
+  --shadow: 0 10px 30px rgba(20,24,22,.12);
+  --glass: rgba(255,255,255,.95);
+  --paper: #FBF7EC;
+  --page: #E4E0D5;
+  --tj-grey: #A3A3A3; --tj-madda: #2F5FE0; --tj-madda-2: #4050FF; --tj-qalqala: #D2000A;
+  --tj-ikhfa: #9400A8; --tj-idgham: #16876A; --tj-idgham-2: #3E8A00; --tj-ghunna: #E86A00; --tj-iqlab: #0A9FDB;
+}
+:root {
+  --r-tile: 28px;
+  --r-card: 22px;
+  --r-btn: 18px;
+  --r-pill: 999px;
+  --font-ui: "Manrope", system-ui, sans-serif;
+  --font-quran: "UthmanicHafs", "Amiri Quran", serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--page); color: var(--text); font-family: var(--font-ui); min-height: 100vh; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.toolbar { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 24px 16px 8px; }
+.toolbar h1 { font-size: 15px; font-weight: 600; color: var(--text-2); margin-right: 8px; }
+.seg { display: inline-flex; background: var(--surface); border-radius: var(--r-pill); padding: 4px; }
+.seg button { border: 0; background: transparent; color: var(--text-2); font-weight: 700; font-size: 13px; padding: 8px 14px; border-radius: var(--r-pill); }
+.seg button.on { background: var(--emerald); color: var(--on-emerald); }
+
+.stage { display: flex; gap: 36px 32px; justify-content: center; flex-wrap: wrap; padding: 24px 16px 40px; max-width: 1400px; margin: 0 auto; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.caption { font-size: 13px; color: var(--text-2); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-align: center; }
+.caption small { display: block; text-transform: none; letter-spacing: 0; font-weight: 500; margin-top: 2px; max-width: 390px; }
+.flow { max-width: 900px; margin: 0 auto; padding: 0 16px; text-align: center; color: var(--text-2); font-size: 14px; font-weight: 600; }
+.flow b { color: var(--text); }
+
+/* ===== Телефон ===== */
+.phone { width: 390px; max-width: calc(100vw - 32px); height: 844px; background: var(--bg); border-radius: 44px; overflow: hidden; position: relative; box-shadow: var(--shadow), 0 0 0 10px #111, 0 0 0 11px #333; display: flex; flex-direction: column; }
+.status { height: 44px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 0 28px; font-size: 14px; font-weight: 700; position: relative; z-index: 6; background: var(--bg); }
+.screen { flex: 1; overflow-y: auto; padding: 8px 18px 120px; scrollbar-width: none; }
+.phone *::-webkit-scrollbar { display: none; }
+.phone * { scrollbar-width: none; }
+
+/* ===== Общие компоненты ===== */
+.icon { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.icon-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--surface); color: var(--text); display: grid; place-items: center; border: 0; position: relative; flex: none; }
+.badge-dot { position: absolute; top: 10px; right: 11px; width: 8px; height: 8px; background: var(--gold); border-radius: 50%; }
+.tabbar { position: absolute; left: 18px; right: 18px; bottom: 22px; height: 68px; background: var(--emerald); border-radius: var(--r-pill); display: flex; align-items: center; justify-content: space-around; padding: 0 10px; box-shadow: 0 12px 30px rgba(31,138,91,.35); z-index: 4; }
+.tabbar a { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: var(--on-emerald); opacity: .7; }
+.tabbar a.on { background: var(--on-emerald); color: var(--emerald); opacity: 1; }
+.num-badge { width: 38px; height: 38px; flex: none; display: grid; place-items: center; position: relative; font-size: 12px; font-weight: 800; color: var(--gold-ink); }
+.num-badge::before, .num-badge::after { content: ""; position: absolute; inset: 6px; border: 1.5px solid currentColor; border-radius: 7px; opacity: .55; }
+.num-badge::after { transform: rotate(45deg); }
+.num-badge span { position: relative; }
+.tag { font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 6px; letter-spacing: .02em; }
+.tag.mk { background: rgba(217,164,65,.16); color: var(--gold-ink); }
+.tag.md { background: rgba(52,194,127,.14); color: var(--emerald-bright); }
+.switch { width: 46px; height: 28px; border-radius: 14px; background: var(--surface-3); position: relative; flex: none; transition: background .2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.switch.on { background: var(--emerald); }
+.switch.on::after { transform: translateX(18px); }
+
+/* ===== Главная ===== */
+.hello { display: flex; align-items: center; gap: 12px; margin: 6px 0 20px; }
+.hello .who { flex: 1; min-width: 0; }
+.hello .who b { display: block; font-size: 17px; white-space: nowrap; font-weight: 800; letter-spacing: -.01em; }
+.hello .who span { font-size: 13px; color: var(--text-2); }
+.streak { display: inline-flex; align-items: center; gap: 4px; background: var(--surface); padding: 0 12px; height: 44px; border-radius: var(--r-pill); font-weight: 700; font-size: 14px; }
+.streak .icon { width: 18px; height: 18px; color: var(--gold-ink); }
+.bento { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; grid-template-rows: 112px 88px 112px; grid-template-areas: "quran hadith" "quran azkar" "names azkar"; }
+.tile { border-radius: var(--r-tile); padding: 16px; display: flex; flex-direction: column; background: var(--surface); color: var(--text); text-decoration: none; position: relative; overflow: hidden; cursor: pointer; }
+.tile .ib { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--gold-ink); flex: none; }
+.tile .ib .icon { width: 18px; height: 18px; }
+.tile .label { font-size: 13px; font-weight: 600; color: var(--text-2); margin-top: auto; }
+.tile .big { font-size: 26px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.tile.quran { grid-area: quran; background: var(--emerald); color: var(--on-emerald); }
+.tile.quran .ib { background: rgba(255,255,255,.16); color: var(--on-emerald); }
+.tile.quran .label { color: rgba(255,255,255,.75); }
+.tile.quran .cont { margin-top: 10px; background: rgba(0,0,0,.18); border-radius: 14px; padding: 8px 10px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.tile.quran .cont .icon { width: 14px; height: 14px; }
+.tile.quran .ornament { position: absolute; right: -30px; top: -30px; width: 130px; height: 130px; opacity: .14; color: #fff; }
+.tile.hadith { grid-area: hadith; } .tile.names { grid-area: names; }
+.tile.azkar { grid-area: azkar; background: var(--gold); color: var(--on-gold); }
+.tile.azkar .ib { background: rgba(0,0,0,.12); color: var(--on-gold); }
+.tile.azkar .label { color: rgba(27,20,6,.7); }
+.tile.azkar .big { font-size: 40px; }
+.progress { height: 6px; border-radius: 3px; background: rgba(0,0,0,.14); margin-top: 8px; overflow: hidden; }
+.progress i { display: block; height: 100%; width: 48%; background: var(--on-gold); border-radius: 3px; }
+.tile.hadith .big, .tile.names .big { font-size: 20px; }
+.tile .row { display: flex; justify-content: space-between; align-items: flex-start; }
+.tile .num { font-size: 13px; font-weight: 700; color: var(--text-2); }
+.section-h { display: flex; justify-content: space-between; align-items: center; margin: 26px 2px 12px; }
+.section-h h2 { font-size: 18px; font-weight: 800; }
+.section-h a { color: var(--emerald-bright); font-size: 13px; font-weight: 700; }
+.list-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--surface); border-radius: var(--r-card); margin-bottom: 8px; }
+.list-item .ib { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; color: var(--emerald-bright); flex: none; }
+.list-item .ib .icon { width: 18px; height: 18px; }
+.list-item .t { flex: 1; min-width: 0; }
+.list-item .t b { display: block; font-size: 14px; font-weight: 700; }
+.list-item .t span { font-size: 12px; color: var(--text-2); }
+.list-item .when { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.ayah-day { background: var(--surface); border-radius: var(--r-card); padding: 18px; }
+.ayah-day .ar { font-family: var(--font-quran); font-size: 26px; line-height: 2; direction: rtl; text-align: right; }
+.ayah-day p { font-size: 14px; line-height: 1.55; color: var(--text-2); margin-top: 8px; }
+.ayah-day .ref { font-size: 12px; font-weight: 700; color: var(--gold-ink); margin-top: 10px; }
+
+/* ===== Список сур (заголовок и фильтры закреплены) ===== */
+.screen.sl { padding-top: 0; }
+.sticky-title { position: sticky; top: 0; z-index: 3; background: var(--bg); margin: 0 -18px; padding: 8px 18px 10px; display: flex; align-items: center; justify-content: space-between; }
+.sticky-title h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+.sticky-chips { position: sticky; top: 62px; z-index: 3; background: var(--bg); margin: 0 -18px; padding: 6px 18px 10px; display: flex; gap: 8px; box-shadow: 0 8px 12px -10px rgba(0,0,0,.4); }
+.continue { display: flex; align-items: center; gap: 12px; background: var(--emerald); color: var(--on-emerald); border-radius: var(--r-card); padding: 14px 16px; margin: 6px 0 12px; }
+.continue .t { flex: 1; } .continue b { display: block; font-size: 15px; } .continue span { font-size: 12px; opacity: .8; }
+.continue .go { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,.18); display: grid; place-items: center; }
+.sortseg { display: flex; background: var(--surface); border-radius: var(--r-pill); padding: 4px; margin-bottom: 4px; }
+.sortseg button { flex: 1; border: 0; background: transparent; height: 38px; border-radius: var(--r-pill); font-size: 13px; font-weight: 700; color: var(--text-2); }
+.sortseg button.on { background: var(--surface-3); color: var(--text); }
+[data-theme="light"] .sortseg button.on { background: var(--bg); }
+.chip { flex: none; height: 34px; padding: 0 14px; border-radius: var(--r-pill); background: var(--surface); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; color: var(--text); border: 0; }
+.chip i { font-style: normal; color: var(--text-2); font-weight: 600; }
+.chip.on { background: var(--gold); color: var(--on-gold); } .chip.on i { color: rgba(27,20,6,.6); }
+.srow { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.srow .t { flex: 1; min-width: 0; }
+.srow .t b { display: block; font-size: 15px; font-weight: 700; }
+.srow .t span { font-size: 12px; color: var(--text-2); }
+.srow .r { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.srow .r .an { font-family: var(--font-quran); font-size: 20px; line-height: 1.3; color: var(--text); }
+.srow.cur { background: var(--highlight); border-radius: 16px; border-bottom-color: transparent; padding: 10px 10px; margin: 0 -6px; }
+
+/* ===== Экран чтения ===== */
+.reader { position: absolute; inset: 0; }
+.reader::before, .reader::after { content: ""; position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; }
+.reader::before { top: 0; height: 112px; background: linear-gradient(var(--bg) 60%, transparent); }
+.reader::after { bottom: 0; height: 120px; background: linear-gradient(transparent, var(--bg) 55%); }
+.glass { background: var(--glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.rtop { position: absolute; top: 48px; left: 12px; right: 12px; display: flex; gap: 8px; align-items: center; z-index: 5; }
+.sq { width: 48px; height: 48px; border-radius: var(--r-btn); border: 0; display: grid; place-items: center; flex: none; }
+.rtitle { flex: 1; height: 52px; border-radius: var(--r-btn); border: 0; display: flex; align-items: center; gap: 10px; padding: 0 14px; text-align: left; }
+.rtitle .t { flex: 1; min-width: 0; } .rtitle b { display: block; font-size: 15px; font-weight: 800; } .rtitle span { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.rtitle .ar { font-family: var(--font-quran); font-size: 20px; color: var(--gold-ink); }
+.rtitle .icon { width: 18px; height: 18px; color: var(--text-2); }
+
+.view { position: absolute; inset: 0; }
+.vscroll { position: absolute; inset: 0; overflow-y: auto; padding: 112px 20px 190px; }
+.hpager { position: absolute; inset: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; direction: rtl; }
+.hpage { flex: none; width: 100%; height: 100%; scroll-snap-align: start; overflow-y: auto; padding: 112px 20px 190px; direction: ltr; }
+.hpage.mus { overflow: hidden; padding: 104px 10px 102px; display: flex; flex-direction: column; }
+.swipe-hint { position: absolute; top: 108px; left: 50%; transform: translateX(-50%); z-index: 4; font-size: 11px; font-weight: 700; color: var(--text-2); background: var(--glass); padding: 4px 10px; border-radius: 999px; display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+
+/* аяты с переводом */
+.a-key { font-size: 12px; color: var(--text-2); font-weight: 700; margin: 20px 0 6px; }
+.a-ar { font-family: var(--font-quran); font-size: 28px; line-height: 2.15; direction: rtl; text-align: right; }
+.a-end { display: inline-grid; place-items: center; width: 34px; height: 34px; margin: 0 4px; vertical-align: middle; position: relative; font-family: var(--font-ui); font-size: 13px; font-weight: 800; color: var(--gold-ink); }
+.a-end::before, .a-end::after { content: ""; position: absolute; inset: 5px; border: 1.5px solid currentColor; border-radius: 6px; opacity: .6; }
+.a-end::after { transform: rotate(45deg); }
+.a-tr { font-size: 16px; line-height: 1.6; margin-top: 8px; }
+.a-block { border-radius: 18px; padding: 0 2px 6px; }
+.a-block.playing { background: var(--highlight); padding: 2px 12px 12px; margin: 10px -12px 0; }
+.a-block.playing .a-key { margin-top: 12px; color: var(--emerald-bright); }
+.pmark { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; color: var(--emerald-bright); font-size: 12px; font-weight: 800; }
+.pmark::before, .pmark::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.s-head { text-align: center; padding: 6px 0 4px; }
+.s-head .banner { border-radius: 16px; padding: 8px; border: 1.5px solid var(--gold); background:
+  repeating-linear-gradient(45deg, transparent 0 8px, rgba(217,164,65,.08) 8px 9px), repeating-linear-gradient(-45deg, transparent 0 8px, rgba(217,164,65,.08) 8px 9px); }
+.s-head .banner span { font-family: var(--font-quran); font-size: 24px; color: var(--gold-ink); }
+.s-head .bism { font-family: var(--font-quran); font-size: 22px; margin-top: 8px; }
+.page-foot { text-align: center; font-size: 12px; font-weight: 800; color: var(--text-2); margin-top: 22px; }
+/* пословный перевод */
+.wbw { display: flex; flex-wrap: wrap; direction: rtl; gap: 6px 4px; align-items: flex-start; }
+.wbw .w { display: inline-flex; flex-direction: column; align-items: center; padding: 2px 6px 6px; border-radius: 12px; background: var(--surface); min-width: 44px; }
+.wbw .w .wa { font-family: var(--font-quran); font-size: 25px; line-height: 1.9; }
+.wbw .w .wt { font-size: 11px; font-weight: 600; color: var(--text-2); direction: ltr; text-align: center; max-width: 92px; line-height: 1.25; }
+.wbw .a-end { align-self: center; }
+/* таджвид (разметка из Quran.com API) */
+tajweed.ham_wasl, tajweed.laam_shamsiyah, tajweed.slnt { color: var(--tj-grey); }
+tajweed.madda_normal, tajweed.madda_permissible { color: var(--tj-madda); }
+tajweed.madda_obligatory, tajweed.madda_necessary { color: var(--tj-madda-2); }
+tajweed.qalaqah { color: var(--tj-qalqala); }
+tajweed.ikhafa, tajweed.ikhafa_shafawi { color: var(--tj-ikhfa); }
+tajweed.idgham_ghunnah, tajweed.idgham_shafawi, tajweed.idgham_mutajanisayn, tajweed.idgham_mutaqaribayn { color: var(--tj-idgham); }
+tajweed.idgham_wo_ghunnah { color: var(--tj-idgham-2); }
+tajweed.ghunnah { color: var(--tj-ghunna); }
+tajweed.iqlab { color: var(--tj-iqlab); }
+/* страница мусхафа */
+.mushaf { background: var(--paper); border-radius: 18px; padding: 10px 12px 6px; border: 1px solid var(--line); flex: 1; display: flex; flex-direction: column; }
+.mushaf .lines { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.mushaf .ln { display: flex; justify-content: space-between; direction: rtl; white-space: nowrap; line-height: 1.55; align-items: center; }
+.mushaf .ln.center { justify-content: center; gap: .25em; }
+.mushaf .ln span { display: inline-block; }
+.mushaf .ln span.end { color: var(--gold-ink); }
+[data-theme="dark"] .mushaf .ln { font-palette: var(--pal); }
+.mushaf .ln span.hl { background: rgba(217,164,65,.25); border-radius: 4px; }
+.mushaf .ln.head { font-family: "SurahNames"; color: var(--gold-ink); justify-content: center; border: 1.5px solid var(--gold); border-radius: 10px; font-size: 1.35em; line-height: 1.25; background:
+  repeating-linear-gradient(45deg, transparent 0 7px, rgba(217,164,65,.12) 7px 8px), repeating-linear-gradient(-45deg, transparent 0 7px, rgba(217,164,65,.12) 7px 8px); }
+.mushaf .ln.bism { font-family: "UthmanicHafs"; justify-content: center; }
+.mushaf .pfoot { text-align: center; font-size: 12px; font-weight: 700; color: var(--text-2); padding-top: 4px; }
+
+/* нижняя панель: режим · колесо страниц · меню */
+.fab { position: absolute; right: 16px; bottom: 108px; width: 56px; height: 56px; border-radius: var(--r-btn); border: 0; background: var(--gold); color: var(--on-gold); display: grid; place-items: center; z-index: 5; box-shadow: 0 10px 24px rgba(217,164,65,.35); }
+.dock { position: absolute; left: 12px; right: 12px; bottom: 20px; height: 76px; border-radius: 26px; display: flex; align-items: center; gap: 8px; padding: 8px; z-index: 6; }
+.modebtn { width: 74px; height: 60px; border: 0; border-radius: var(--r-btn); background: var(--surface-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex: none; }
+.modebtn .icon { width: 20px; height: 20px; color: var(--gold-ink); }
+.modebtn b { font-size: 11px; font-weight: 800; letter-spacing: .02em; }
+.modebtn.open { background: var(--emerald); color: var(--on-emerald); } .modebtn.open .icon { color: var(--on-emerald); }
+.dial { flex: 1; min-width: 0; height: 60px; border-radius: var(--r-btn); background: var(--surface-2); position: relative; overflow: hidden; }
+.dial { touch-action: pan-x; cursor: pointer; }
+.dial .lbl { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); text-align: center; font-size: 12px; font-weight: 800; z-index: 2; white-space: nowrap; display: flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 8px; }
+.dial .lbl .icon { width: 13px; height: 13px; color: var(--gold-ink); stroke-width: 2.4; }
+.dial.press { background: var(--surface-3); transition: background .45s; }
+.dial .grip { position: absolute; top: 3px; left: 50%; width: 26px; height: 3px; margin-left: -13px; border-radius: 2px; background: var(--text-2); opacity: .35; }
+.dial .lbl em { font-style: normal; color: var(--text-2); font-weight: 700; margin-left: 8px; }
+.ruler { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; overflow-x: auto; overflow-y: hidden; display: flex; align-items: flex-end; scroll-snap-type: x mandatory; cursor: grab;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); }
+.ruler .pad { flex: none; }
+.ruler .tk { flex: none; width: 9px; height: 100%; scroll-snap-align: center; position: relative; }
+.ruler .tk::after { content: ""; position: absolute; left: 4px; bottom: 6px; width: 1.5px; height: 7px; background: var(--text-2); opacity: .45; border-radius: 1px; }
+.ruler .tk.m5::after { height: 11px; opacity: .7; }
+.ruler .tk.m10::after { height: 14px; opacity: .9; }
+.ruler .tk.m10 span { position: absolute; bottom: 21px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: 700; color: var(--text-2); }
+.dial .needle { position: absolute; bottom: 4px; left: 50%; width: 3px; height: 20px; margin-left: -1.5px; background: var(--gold); border-radius: 2px; z-index: 2; pointer-events: none; }
+.dial .needle::before { content: ""; position: absolute; top: -5px; left: -3.5px; border: 5px solid transparent; border-top-color: var(--gold); }
+.menubtn { width: 60px; height: 60px; border: 0; border-radius: var(--r-btn); background: var(--surface-2); display: grid; place-items: center; flex: none; }
+
+/* выбор режима */
+.pop { position: absolute; left: 12px; bottom: 104px; width: 300px; border-radius: 24px; padding: 8px; z-index: 12; display: none; }
+.pop.show { display: block; }
+.pop h4 { font-size: 12px; font-weight: 800; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; padding: 6px 10px 8px; }
+.pop .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pop button { border: 0; background: var(--surface-2); border-radius: 18px; padding: 12px 6px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.pop button .ic { width: 40px; height: 40px; border-radius: 12px; background: var(--surface-3); display: grid; place-items: center; }
+.pop button b { font-size: 13px; font-weight: 800; }
+.pop button span { font-size: 10.5px; color: var(--text-2); line-height: 1.3; font-weight: 600; }
+.pop button.on { background: var(--emerald); color: var(--on-emerald); }
+.pop button.on .ic { background: rgba(255,255,255,.18); }
+.pop button.on span { color: rgba(255,255,255,.8); }
+
+/* меню */
+.dim { position: absolute; inset: 0; background: rgba(0,0,0,.5); z-index: 10; display: none; }
+.dim.show { display: block; }
+.panel { position: absolute; left: 12px; right: 12px; bottom: 20px; z-index: 11; display: none; flex-direction: column; gap: 8px; padding: 14px; border-radius: 28px; background: var(--surface); box-shadow: var(--shadow); }
+.panel.show { display: flex; }
+.panel .ph { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 4px; }
+.panel .ph h3 { font-size: 20px; font-weight: 800; } .panel .ph span { font-size: 12px; color: var(--text-2); font-weight: 600; display: block; }
+.panel .x { width: 40px; height: 40px; border-radius: 14px; border: 0; background: var(--surface-2); display: grid; place-items: center; }
+.quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.quick button { border: 0; height: 74px; border-radius: var(--r-btn); background: var(--surface-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 700; }
+.quick button .icon { color: var(--gold-ink); }
+.mrow { border: 0; width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--r-btn); background: var(--surface-2); text-align: left; }
+.mrow .mi { width: 40px; height: 40px; border-radius: 12px; background: var(--surface-3); display: grid; place-items: center; flex: none; color: var(--emerald-bright); font-weight: 800; }
+.mrow .t { flex: 1; min-width: 0; } .mrow b { display: block; font-size: 15px; font-weight: 800; } .mrow span { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.mrow .chev { color: var(--text-2); width: 18px; height: 18px; }
+
+/* лист выбора суры и лист заучивания */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 28px 28px 0 0; z-index: 11; display: none; flex-direction: column; padding: 10px 16px 0; }
+.sheet.show { display: flex; animation: up .28s cubic-bezier(.2,.8,.2,1); }
+@keyframes up { from { transform: translateY(40%); opacity: .4; } to { transform: none; opacity: 1; } }
+.sheet.pick { height: 80%; }
+.sheet .handle { width: 40px; height: 5px; border-radius: 3px; background: var(--text-2); opacity: .4; margin: 0 auto 12px; flex: none; }
+.sheet .sh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sheet .sh h3 { font-size: 20px; font-weight: 800; } .sheet .sh span { font-size: 12px; color: var(--text-2); font-weight: 600; display: block; }
+.sheet .sortseg { background: var(--surface-2); margin-bottom: 10px; }
+.search { height: 44px; border-radius: 14px; background: var(--surface-2); display: flex; align-items: center; gap: 8px; padding: 0 12px; color: var(--text-2); font-size: 14px; margin-bottom: 8px; flex: none; }
+.search .icon { width: 18px; height: 18px; }
+.sheet .list { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+.memo { padding-bottom: 22px; }
+.fld { margin-bottom: 14px; }
+.fld > label { display: block; font-size: 12px; font-weight: 800; color: var(--text-2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.range { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stepper { display: flex; align-items: center; background: var(--surface-2); border-radius: 16px; padding: 6px; gap: 4px; }
+.stepper small { font-size: 11px; color: var(--text-2); font-weight: 700; margin-left: 6px; flex: 1; }
+.stepper button { width: 34px; height: 34px; border: 0; border-radius: 10px; background: var(--surface-3); font-size: 18px; font-weight: 700; }
+.stepper b { min-width: 30px; text-align: center; font-size: 17px; font-weight: 800; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pills button { border: 0; height: 36px; min-width: 48px; padding: 0 12px; border-radius: 12px; background: var(--surface-2); font-size: 13px; font-weight: 800; }
+.pills button.on { background: var(--gold); color: var(--on-gold); }
+.srow2 { display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
+.srow2 span { font-size: 12px; color: var(--text-2); display: block; font-weight: 600; }
+.bigbtn { width: 100%; height: 56px; border: 0; border-radius: var(--r-btn); background: var(--emerald); color: var(--on-emerald); font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px; }
+.memobar { position: absolute; left: 12px; right: 12px; bottom: 104px; z-index: 7; border-radius: 22px; padding: 10px 10px 10px 14px; display: none; align-items: center; gap: 10px; }
+.memobar.show { display: flex; }
+.memobar .ic { width: 40px; height: 40px; border-radius: 12px; background: var(--emerald); color: var(--on-emerald); display: grid; place-items: center; flex: none; }
+.memobar .t { flex: 1; min-width: 0; } .memobar b { display: block; font-size: 14px; font-weight: 800; } .memobar span { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.memobar .bar { height: 4px; border-radius: 2px; background: var(--surface-3); margin-top: 6px; overflow: hidden; } .memobar .bar i { display: block; height: 100%; width: 35%; background: var(--gold); }
+.memobar button { width: 40px; height: 40px; border: 0; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; }
+.reader.memo-on .fab, .reader.mode-mushaf .fab { display: none; }
+
+/* ===== Азкары ===== */
+.topbar { display: flex; align-items: center; gap: 12px; margin: 4px 0 16px; }
+.topbar .ttl { flex: 1; text-align: center; }
+.topbar .ttl b { display: block; font-size: 17px; font-weight: 800; }
+.topbar .ttl span { font-size: 12px; color: var(--text-2); }
+.dua-tabs { display: flex; background: var(--surface); border-radius: var(--r-pill); padding: 4px; margin-bottom: 16px; }
+.dua-tabs span { flex: 1; text-align: center; height: 38px; line-height: 38px; border-radius: var(--r-pill); font-size: 13px; font-weight: 700; color: var(--text-2); }
+.dua-tabs span.on { background: var(--gold); color: var(--on-gold); }
+.day-progress { background: var(--surface); border-radius: var(--r-card); padding: 14px 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.ring { width: 52px; height: 52px; flex: none; }
+.day-progress b { font-size: 15px; font-weight: 800; display: block; }
+.day-progress span { font-size: 12px; color: var(--text-2); }
+.dua { background: var(--surface); border-radius: var(--r-tile); padding: 18px; margin-bottom: 12px; }
+.dua.done { opacity: .55; }
+.dua .hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dua .hd .n { font-size: 12px; font-weight: 800; color: var(--gold-ink); }
+.dua .hd .play { width: 34px; height: 34px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; color: var(--emerald-bright); }
+.dua .hd .play .icon { width: 16px; height: 16px; }
+.dua .ar { font-family: var(--font-quran); font-size: 24px; line-height: 2.05; direction: rtl; text-align: right; }
+.an-mark { display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1.5px solid var(--gold-ink); border-radius: 50%; color: var(--gold-ink); font: 700 13px var(--font-ui); vertical-align: middle; margin: 0 2px; }
+.dua .tr { font-size: 14px; line-height: 1.6; margin-top: 8px; opacity: .88; }
+.dua .src { font-size: 12px; color: var(--text-2); margin-top: 10px; }
+.dua .src b { color: var(--text); font-weight: 700; }
+.counter { margin-top: 14px; height: 56px; border-radius: var(--r-pill); background: var(--emerald); color: var(--on-emerald); display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 22px; font-weight: 800; cursor: pointer; }
+.counter .lbl { font-size: 14px; }
+.counter .cnt { height: 42px; min-width: 76px; padding: 0 14px; border-radius: var(--r-pill); background: rgba(0,0,0,.2); display: grid; place-items: center; font-size: 18px; }
+.counter.full { background: var(--surface-2); color: var(--text-2); }
+.counter.full .cnt { background: transparent; color: var(--emerald-bright); }
+
+
+/* ===== Профиль, анкета, настройки ===== */
+.avatar { width: 46px; height: 46px; border-radius: 50%; flex: none; border: 0; display: grid; place-items: center; font-weight: 800; font-size: 18px; color: #fff; text-decoration: none;
+  background: linear-gradient(135deg, var(--emerald), var(--gold)); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--gold); cursor: pointer; }
+.avatar.xl { width: 84px; height: 84px; font-size: 32px; box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--gold); }
+.today { background: var(--surface); border-radius: var(--r-card); padding: 16px; margin-top: 12px; }
+.today .th { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.today .th b { font-size: 16px; font-weight: 800; } .today .th span { font-size: 12px; font-weight: 700; color: var(--gold-ink); }
+.task { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.task .ck { width: 26px; height: 26px; border-radius: 9px; border: 2px solid var(--surface-3); display: grid; place-items: center; flex: none; }
+.task .ck.on { background: var(--emerald); border-color: var(--emerald); color: var(--on-emerald); }
+.task .ck .icon { width: 16px; height: 16px; stroke-width: 2.6; }
+.task .t { flex: 1; } .task b { display: block; font-size: 14px; font-weight: 700; } .task span { font-size: 12px; color: var(--text-2); }
+.task.done b { text-decoration: line-through; opacity: .5; }
+.task .go { font-size: 12px; font-weight: 800; color: var(--emerald-bright); }
+.pf-head { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6px 0 16px; }
+.pf-head b { font-size: 22px; font-weight: 800; margin-top: 12px; } .pf-head span { font-size: 13px; color: var(--text-2); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat { background: var(--surface); border-radius: 18px; padding: 12px 10px; text-align: center; }
+.stat b { display: block; font-size: 22px; font-weight: 800; } .stat span { font-size: 11px; color: var(--text-2); font-weight: 600; }
+.stat .icon { width: 16px; height: 16px; color: var(--gold-ink); }
+.card { background: var(--surface); border-radius: var(--r-card); padding: 16px; margin-bottom: 12px; }
+.card .ch { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.card .ch b { font-size: 16px; font-weight: 800; } .card .ch a { font-size: 12px; font-weight: 800; color: var(--emerald-bright); }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 7px 0; border-top: 1px solid var(--line); }
+.kv span { color: var(--text-2); font-weight: 600; } .kv b { font-weight: 700; text-align: right; }
+.bar2 { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; margin: 6px 0 4px; } .bar2 i { display: block; height: 100%; background: var(--emerald-bright); border-radius: 4px; }
+.bar2.gold i { background: var(--gold); }
+.small { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.tip { display: flex; gap: 12px; background: rgba(217,164,65,.12); border-radius: var(--r-card); padding: 14px 16px; margin-bottom: 12px; }
+.tip .icon { color: var(--gold-ink); margin-top: 2px; } .tip b { display: block; font-size: 13px; font-weight: 800; color: var(--gold-ink); margin-bottom: 2px; } .tip p { font-size: 13px; line-height: 1.5; }
+.quiz { display: flex; flex-direction: column; flex: 1; padding: 8px 20px 24px; }
+.quiz .qtop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.quiz .qtop a { font-size: 13px; font-weight: 700; color: var(--text-2); }
+.steps { display: flex; gap: 5px; flex: 1; margin: 0 14px; } .steps i { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-2); } .steps i.on { background: var(--gold); }
+.quiz .qn { font-size: 12px; font-weight: 800; color: var(--gold-ink); text-transform: uppercase; letter-spacing: .06em; }
+.quiz h2 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; margin: 6px 0 6px; }
+.quiz .qd { font-size: 14px; color: var(--text-2); margin-bottom: 18px; line-height: 1.5; }
+.opt { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px; background: var(--surface); margin-bottom: 8px; text-align: left; border: 2px solid transparent; }
+.opt .oi { width: 40px; height: 40px; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; font-size: 19px; flex: none; }
+.opt b { display: block; font-size: 15px; font-weight: 800; } .opt span { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.opt.on { border-color: var(--emerald-bright); background: var(--highlight); }
+.opt .rd { margin-left: auto; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface-3); flex: none; }
+.opt.on .rd { border: 7px solid var(--emerald-bright); }
+.quiz .qfoot { margin-top: auto; }
+.plan-hero { background: var(--emerald); color: var(--on-emerald); border-radius: var(--r-tile); padding: 20px; margin-bottom: 12px; position: relative; overflow: hidden; }
+.plan-hero .ornament { position: absolute; right: -40px; bottom: -40px; width: 160px; height: 160px; opacity: .12; color: #fff; }
+.plan-hero small { font-size: 12px; font-weight: 700; opacity: .8; } .plan-hero h3 { font-size: 22px; font-weight: 800; margin: 4px 0 12px; line-height: 1.2; }
+.plan-hero .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.plan-hero .row3 div { background: rgba(0,0,0,.18); border-radius: 14px; padding: 10px; } .plan-hero .row3 b { display: block; font-size: 17px; } .plan-hero .row3 span { font-size: 11px; opacity: .8; }
+.method { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.method .n { width: 28px; height: 28px; border-radius: 9px; background: var(--surface-2); display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--gold-ink); flex: none; }
+.method b { display: block; font-size: 14px; } .method span { font-size: 12px; color: var(--text-2); line-height: 1.45; }
+.set-profile { display: flex; align-items: center; gap: 14px; background: var(--surface); border-radius: var(--r-card); padding: 14px; margin-bottom: 6px; color: var(--text); text-decoration: none; }
+.set-profile .t { flex: 1; } .set-profile b { display: block; font-size: 17px; font-weight: 800; } .set-profile span { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.group-t { font-size: 12px; font-weight: 800; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin: 16px 4px 8px; }
+.group { background: var(--surface); border-radius: var(--r-card); overflow: hidden; }
+.sitem { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); }
+.sitem:first-child { border-top: 0; }
+.sitem .si { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; color: #fff; }
+.sitem .si .icon { width: 18px; height: 18px; }
+.sitem .t { flex: 1; font-size: 14px; font-weight: 700; }
+.sitem .v { font-size: 13px; color: var(--text-2); font-weight: 600; text-align: right; }
+.sitem .chev { width: 16px; height: 16px; color: var(--text-2); }
+.donate { display: flex; align-items: center; gap: 12px; background: var(--gold); color: var(--on-gold); border-radius: var(--r-card); padding: 14px 16px; margin-top: 16px; }
+.donate b { display: block; font-size: 15px; font-weight: 800; } .donate span { font-size: 12px; opacity: .75; font-weight: 600; }
+.ver { text-align: center; font-size: 12px; color: var(--text-2); margin-top: 16px; }
+.note { max-width: 900px; margin: 0 auto; padding: 0 16px 48px; color: var(--text-2); font-size: 14px; line-height: 1.6; text-align: center; }
+@media (max-width: 440px) { .phone { height: 780px; border-radius: 36px; } }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1>Макет · кликабельный</h1>
+  <div class="seg" id="themeSeg"><button data-t="dark" class="on">Тёмная</button><button data-t="light">Светлая</button></div>
+</div>
+<p class="flow"><b>Главная</b> → плитка «Коран» → <b>Список сур</b> → выбор суры → <b>Чтение</b> (Мусхаф · Страница · Сура)</p>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3 5v13c4-.5 7 0 9 1.5 2-1.5 5-2 9-1.5V5c-4-.5-7 0-9 1.5z"/><path d="M12 6.5v13"/></symbol>
+    <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M8 3h11a2 2 0 0 1 2 2v2h-4"/><path d="M17 7v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1h9v1a2 2 0 0 0 2 2"/><path d="M8 3a2 2 0 0 0-2 2v13"/><path d="M10 9h4M10 13h4"/></symbol>
+    <symbol id="i-hands" viewBox="0 0 24 24"><path d="M7 21v-4l-3-4.5a2 2 0 0 1 .3-2.6L7 7.5V4a1 1 0 0 1 2 0v8"/><path d="M17 21v-4l3-4.5a2 2 0 0 0-.3-2.6L17 7.5V4a1 1 0 0 0-2 0v8"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.5l2.4 5.2 5.6.6-4.2 3.8 1.2 5.5L12 14.8l-5 2.8 1.2-5.5L4 8.3l5.6-.6z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.7 7-7 0-4-3-6.5-4-10-2 2-2.5 4-2.5 5.5C11 9 10 7.5 10 5.5 7 8 5 11 5 15c0 4.3 3 7 7 7z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M8 7 4 11l4 4M16 7l4 4-4 4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></symbol>
+    <symbol id="i-rows" viewBox="0 0 24 24"><path d="M5 5h14M5 9.5h14M5 14h14M5 18.5h9"/></symbol>
+    <symbol id="i-page" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="i-words" viewBox="0 0 24 24"><path d="M4 7h6M14 7h6M4 17h6M14 17h6"/><path d="M5 11h4M15 11h4M5 21h4M15 21h4" opacity=".5"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m14 6 4 4"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9.5 4.3 4.3 0 0 0 7 18z"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></symbol>
+    <symbol id="i-font" viewBox="0 0 24 24"><path d="M4 19 9 5l5 14M6 14h6M15 19l3-8 3 8M16 16.5h4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+    <symbol id="i-ornament" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="20" y="20" width="60" height="60"/><rect x="20" y="20" width="60" height="60" transform="rotate(45 50 50)"/><circle cx="50" cy="50" r="18"/><circle cx="50" cy="50" r="44"/></g></symbol>
+  </defs>
+</svg>
+
+<div class="stage" id="stage">
+
+  <!-- ============ 1. ГЛАВНАЯ ============ -->
+  <div class="col">
+    <div class="caption">1 · Главная</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="screen">
+        <div class="hello">
+          <a class="avatar" href="#profile" title="Профиль">А</a>
+          <div class="who"><b>Ас-саляму алейкум</b><span class="hijri">—</span></div>
+          <div class="streak" title="Дней подряд с выполненной дневной целью"><svg class="icon"><use href="#i-flame"/></svg>7</div>
+          <button class="icon-btn"><svg class="icon"><use href="#i-bell"/></svg><span class="badge-dot"></span></button>
+        </div>
+        <div class="bento">
+          <a class="tile quran" href="#surahs">
+            <svg class="ornament"><use href="#i-ornament"/></svg>
+            <div class="ib"><svg class="icon"><use href="#i-book"/></svg></div>
+            <div class="label">Читать и слушать</div>
+            <div class="big">Коран</div>
+            <div class="cont"><svg class="icon"><use href="#i-play"/></svg>Аль-Кахф, 23</div>
+          </a>
+          <a class="tile hadith"><div class="row"><div class="ib"><svg class="icon"><use href="#i-scroll"/></svg></div><div class="num">3 сборника</div></div><div class="big" style="margin-top:auto">Хадисы</div></a>
+          <a class="tile azkar" href="#azkar">
+            <div class="row"><div class="ib"><svg class="icon"><use href="#i-hands"/></svg></div></div>
+            <div class="label">Утренние азкары</div>
+            <div class="big">12<span style="font-size:22px;opacity:.6">/25</span></div>
+            <div class="progress"><i></i></div>
+            <div style="font-size:18px;font-weight:800;margin-top:10px">Азкары</div>
+          </a>
+          <a class="tile names"><div class="row"><div class="ib"><svg class="icon"><use href="#i-star"/></svg></div><div class="num">14/99</div></div><div class="big" style="margin-top:auto">99 имён</div></a>
+        </div>
+        <div class="today">
+          <div class="th"><b>Сегодня по плану</b><span>1 из 3</span></div>
+          <div class="task done"><div class="ck on"><svg class="icon"><use href="#i-check"/></svg></div><div class="t"><b>Повторить недавнее</b><span>Ан-Наба, 1–5</span></div></div>
+          <div class="task"><div class="ck"></div><div class="t"><b>Выучить новое</b><span>Ан-Наба, 6–10 · ~10 мин</span></div><a class="go">Начать</a></div>
+          <div class="task"><div class="ck"></div><div class="t"><b>Большой круг</b><span>Суры 114–110</span></div><a class="go">Начать</a></div>
+        </div>
+        <div class="section-h"><h2>Недавнее</h2><a>Все</a></div>
+        <div class="list-item"><div class="ib"><svg class="icon"><use href="#i-book"/></svg></div><div class="t"><b>Сура Аль-Кахф</b><span>Аят 23 из 110 · Кулиев</span></div><div class="when">Сегодня</div></div>
+        <div class="list-item"><div class="ib"><svg class="icon"><use href="#i-hands"/></svg></div><div class="t"><b>Вечерние азкары</b><span>Прочитано 24 из 24</span></div><div class="when">Вчера</div></div>
+        <div class="list-item"><div class="ib"><svg class="icon"><use href="#i-scroll"/></svg></div><div class="t"><b>40 хадисов ан-Навави</b><span>Хадис №7</span></div><div class="when">Вчера</div></div>
+        <div class="section-h"><h2>Аят дня</h2><a>Поделиться</a></div>
+        <div class="ayah-day"><div class="ar">قُلْ هُوَ ٱللَّهُ أَحَدٌ</div><p>Скажи: «Он — Аллах Единый».</p><div class="ref">Аль-Ихляс, 112:1</div></div>
+      </div>
+      <nav class="tabbar"><a class="on"><svg class="icon"><use href="#i-home"/></svg></a><a href="#surahs"><svg class="icon"><use href="#i-book"/></svg></a><a href="#azkar"><svg class="icon"><use href="#i-hands"/></svg></a><a href="#settings"><svg class="icon"><use href="#i-more"/></svg></a></nav>
+    </div>
+  </div>
+
+  <!-- ============ 2. СПИСОК СУР ============ -->
+  <div class="col" id="surahs">
+    <div class="caption">2 · Список сур<small>«Коран» и фильтры закреплены — прокрутите список</small></div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="screen sl">
+        <div class="sticky-title"><h1>Коран</h1><button class="icon-btn"><svg class="icon"><use href="#i-search"/></svg></button></div>
+        <div class="continue">
+          <div class="t"><b>Продолжить чтение</b><span>Аль-Кахф · аят 23 · стр. 295</span></div>
+          <div class="go"><svg class="icon"><use href="#i-play"/></svg></div>
+        </div>
+        <div class="sortseg" id="sortSeg"><button data-s="mushaf" class="on">По порядку</button><button data-s="rev">По ниспосланию</button></div>
+        <div class="sticky-chips" id="placeChips">
+          <button class="chip on" data-p="all">Все <i>114</i></button>
+          <button class="chip" data-p="1">Мекканские <i>86</i></button>
+          <button class="chip" data-p="0">Мединские <i>28</i></button>
+        </div>
+        <div id="surahList"></div>
+      </div>
+      <nav class="tabbar"><a><svg class="icon"><use href="#i-home"/></svg></a><a class="on"><svg class="icon"><use href="#i-book"/></svg></a><a><svg class="icon"><use href="#i-hands"/></svg></a><a><svg class="icon"><use href="#i-more"/></svg></a></nav>
+    </div>
+  </div>
+
+  <!-- 3–8: экран чтения в разных состояниях; собирается скриптом ниже -->
+  <div class="col"><div class="caption">3 · Режим «Сура»<small>Колесо крутится влево-вправо; свайп вверх по нему — выбор суры</small></div><div class="phone" data-reader="sura"></div></div>
+  <div class="col"><div class="caption">4 · Выбор режима + «Мусхаф»<small>Настоящие шрифты печатного Мединского мусхафа (QPC), 15 строк. Листается вбок (стр. 292–294)</small></div><div class="phone" data-reader="mushaf" data-pop="1"></div></div>
+  <div class="col"><div class="caption">5 · Режим «Страница» + пословный перевод<small>Аяты одной страницы мусхафа; следующая страница — свайп вбок</small></div><div class="phone" data-reader="page" data-wbw="1"></div></div>
+  <div class="col"><div class="caption">6 · Меню</div><div class="phone" data-reader="sura" data-menu="1"></div></div>
+  <div class="col"><div class="caption">7 · Заучивание<small>Нажмите «Начать» — появится плеер заучивания</small></div><div class="phone" data-reader="sura" data-memo="1"></div></div>
+  <div class="col"><div class="caption">8 · Выбор суры<small>Свайп вверх по колесу, тап по «Стр. 293» или удержание колеса ~0,5 с</small></div><div class="phone" data-reader="sura" data-sheet="1"></div></div>
+
+  <!-- ============ 9. АЗКАРЫ ============ -->
+  <div class="col" id="azkar">
+    <div class="caption">9 · Азкары<small>Счётчик внизу нажимается</small></div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="screen">
+        <div class="topbar">
+          <button class="icon-btn"><svg class="icon"><use href="#i-back"/></svg></button>
+          <div class="ttl"><b>Утренние азкары</b><span>Крепость мусульманина</span></div>
+          <button class="icon-btn"><svg class="icon"><use href="#i-play"/></svg></button>
+        </div>
+        <div class="dua-tabs"><span class="on">Утренние</span><span>Вечерние</span><span>Все разделы</span></div>
+        <div class="day-progress">
+          <svg class="ring" viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="var(--surface-2)" stroke-width="6"/><circle cx="26" cy="26" r="22" fill="none" stroke="var(--gold)" stroke-width="6" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="71.9" transform="rotate(-90 26 26)"/></svg>
+          <div><b>12 из 25 прочитано</b><span>Сегодня · серия 7 дней</span></div>
+        </div>
+        <div class="dua done">
+          <div class="hd"><span class="n">№ 1 · Аят аль-Курси</span><span class="play"><svg class="icon"><use href="#i-play"/></svg></span></div>
+          <div class="ar">ٱللَّهُ لَآ إِلَـٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ ۚ لَا تَأْخُذُهُۥ سِنَةٌ وَلَا نَوْمٌ</div>
+          <div class="tr">Аллах — нет божества, кроме Него, Живого, Вседержителя. Им не овладевают ни дремота, ни сон…</div>
+          <div class="counter full"><span class="lbl">Прочитано</span><span class="cnt"><svg class="icon"><use href="#i-check"/></svg></span></div>
+        </div>
+        <div class="dua">
+          <div class="hd"><span class="n">№ 2 · Аль-Ихляс</span><span class="play"><svg class="icon"><use href="#i-play"/></svg></span></div>
+          <div class="ar">قُلْ هُوَ ٱللَّهُ أَحَدٌ <span class="an-mark">١</span> ٱللَّهُ ٱلصَّمَدُ <span class="an-mark">٢</span> لَمْ يَلِدْ وَلَمْ يُولَدْ <span class="an-mark">٣</span> وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌۢ <span class="an-mark">٤</span></div>
+          <div class="tr">Скажи: «Он — Аллах Единый, Аллах Самодостаточный. Он не родил и не был рожден, и нет никого равного Ему».</div>
+          <div class="src"><b>Источник:</b> Абу Дауд 5082, ат-Тирмизи 3575 · читать 3 раза</div>
+          <div class="counter" id="cnt"><span class="lbl">Нажмите, чтобы считать</span><span class="cnt">1 / 3</span></div>
+        </div>
+      </div>
+      <nav class="tabbar"><a><svg class="icon"><use href="#i-home"/></svg></a><a><svg class="icon"><use href="#i-book"/></svg></a><a class="on"><svg class="icon"><use href="#i-hands"/></svg></a><a><svg class="icon"><use href="#i-more"/></svg></a></nav>
+    </div>
+  </div>
+
+  <!-- ============ 10. ПРОФИЛЬ ============ -->
+  <div class="col" id="profile">
+    <div class="caption">10 · Профиль<small>Аватарка в углу главной. Имя и фото — из Telegram</small></div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="screen">
+        <div class="topbar">
+          <button class="icon-btn"><svg class="icon"><use href="#i-back"/></svg></button>
+          <div class="ttl"><b>Профиль</b></div>
+          <button class="icon-btn"><svg class="icon"><use href="#i-edit"/></svg></button>
+        </div>
+        <div class="pf-head"><div class="avatar xl">А</div><b>Абдулла</b><span>@abdulla · с нами 24 дня</span></div>
+        <div class="stats">
+          <div class="stat"><svg class="icon"><use href="#i-flame"/></svg><b>7</b><span>дней подряд</span></div>
+          <div class="stat"><svg class="icon"><use href="#i-star"/></svg><b>38</b><span>аятов выучено</span></div>
+          <div class="stat"><svg class="icon"><use href="#i-book"/></svg><b>124</b><span>страниц прочитано</span></div>
+        </div>
+        <div class="card">
+          <div class="ch"><b>Мой план заучивания</b><a href="#quiz">Изменить</a></div>
+          <div class="small">Джуз Амма · с конца Корана</div>
+          <div class="bar2"><i style="width:7%"></i></div>
+          <div class="small">38 из 564 аятов · в этом темпе ≈ 4 месяца</div>
+          <div class="kv"><span>Новое в день</span><b>5 аятов · ~10 мин</b></div>
+          <div class="kv"><span>Напоминание</span><b>После Фаджра</b></div>
+        </div>
+        <div class="card">
+          <div class="ch"><b>Хатм — чтение Корана целиком</b><a>Изменить</a></div>
+          <div class="bar2 gold"><i style="width:49%"></i></div>
+          <div class="small">Страница 295 из 604 · 49% · цель: к Рамадану → 4 стр. в день</div>
+        </div>
+        <div class="tip"><svg class="icon"><use href="#i-bulb"/></svg><div><b>Совет дня</b><p>Новый аят сначала послушайте 5 раз у чтеца-муаллима, потом прочитайте сами, не глядя. Выученное читайте в намазе — так оно закрепляется быстрее.</p></div></div>
+        <div class="card">
+          <div class="ch"><b>О себе</b><a href="#quiz">Пройти заново</a></div>
+          <div class="kv"><span>Чтение по-арабски</span><b>Медленно, по слогам</b></div>
+          <div class="kv"><span>Знаю наизусть</span><b>Фатиху и короткие суры</b></div>
+          <div class="kv"><span>Цель</span><b>Начать заучивать</b></div>
+          <div class="kv"><span>Время в день</span><b>10 минут</b></div>
+        </div>
+      </div>
+      <nav class="tabbar"><a><svg class="icon"><use href="#i-home"/></svg></a><a><svg class="icon"><use href="#i-book"/></svg></a><a><svg class="icon"><use href="#i-hands"/></svg></a><a class="on"><svg class="icon"><use href="#i-more"/></svg></a></nav>
+    </div>
+  </div>
+
+  <!-- ============ 11. АНКЕТА ============ -->
+  <div class="col" id="quiz">
+    <div class="caption">11 · Анкета «Мой путь с Кораном»<small>6 коротких вопросов при первом входе, можно пропустить. Варианты нажимаются</small></div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="quiz">
+        <div class="qtop"><button class="icon-btn"><svg class="icon"><use href="#i-back"/></svg></button><div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div><a>Пропустить</a></div>
+        <div class="qn">Вопрос 4 из 6</div>
+        <h2>Какая у вас цель?</h2>
+        <p class="qd">От ответа зависит план на каждый день и напоминания. Изменить можно в любой момент.</p>
+        <div id="quizOpts">
+          <button class="opt on"><span class="oi">🌱</span><div><b>Начать заучивать</b><span>С коротких сур, понемногу каждый день</span></div><span class="rd"></span></button>
+          <button class="opt"><span class="oi">🎯</span><div><b>Выучить конкретную суру</b><span>Например, Аль-Кахф или Йа Син — к своей дате</span></div><span class="rd"></span></button>
+          <button class="opt"><span class="oi">🔁</span><div><b>Сохранять выученное</b><span>Регулярно повторять то, что уже знаю</span></div><span class="rd"></span></button>
+          <button class="opt"><span class="oi">📖</span><div><b>Регулярно читать</b><span>Прочитать Коран целиком (хатм) к своей дате</span></div><span class="rd"></span></button>
+        </div>
+        <div class="qfoot"><button class="bigbtn">Далее</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 12. ПЛАН ГОТОВ ============ -->
+  <div class="col">
+    <div class="caption">12 · План готов<small>Составляется автоматически по ответам</small></div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="screen" style="padding-bottom:30px">
+        <div class="topbar"><button class="icon-btn"><svg class="icon"><use href="#i-back"/></svg></button><div class="ttl"><b>Ваш план</b></div><span style="width:44px"></span></div>
+        <div class="plan-hero">
+          <svg class="ornament"><use href="#i-ornament"/></svg>
+          <small>Цель · Начать заучивать</small>
+          <h3>Джуз Амма за ≈ 4 месяца</h3>
+          <div class="row3"><div><b>5</b><span>аятов в день</span></div><div><b>10</b><span>минут</span></div><div><b>06:00</b><span>после Фаджра</span></div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><b>Как это работает</b></div>
+          <div class="method"><div class="n">1</div><div><b>Новое</b><span>Каждый день несколько новых аятов: слушаете чтеца-муаллима, повторяете по 5 раз, затем проверяете себя со скрытым текстом.</span></div></div>
+          <div class="method"><div class="n">2</div><div><b>Недавнее</b><span>Повторяете то, что выучили за последние 7 дней, чтобы не забылось сразу.</span></div></div>
+          <div class="method"><div class="n">3</div><div><b>Большой круг</b><span>Понемногу повторяете всё, что выучили раньше: полный круг — за 2 недели.</span></div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><b>Напоминания</b></div>
+          <div class="kv"><span>Заучивание</span><b>Каждый день, 06:00</b></div>
+          <div class="kv"><span>Если день пропущен</span><b>Мягкое напоминание в 20:00</b></div>
+        </div>
+        <button class="bigbtn">Начать с суры Ан-Наба</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 13. НАСТРОЙКИ ============ -->
+  <div class="col" id="settings">
+    <div class="caption">13 · Настройки<small>Кнопка «…» в нижнем меню</small></div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="screen">
+        <div class="page-title" style="margin:4px 0 16px"><h1 style="font-size:30px;font-weight:800;letter-spacing:-.02em">Настройки</h1></div>
+        <a class="set-profile" href="#profile"><div class="avatar">А</div><div class="t"><b>Абдулла</b><span>Профиль, план, статистика</span></div><svg class="icon" style="color:var(--text-2);width:18px;height:18px"><use href="#i-right"/></svg></a>
+
+        <div class="group-t">Чтение</div>
+        <div class="group">
+          <div class="sitem"><span class="si" style="background:#1F8A5B"><svg class="icon"><use href="#i-book"/></svg></span><span class="t">Перевод</span><span class="v">Кулиев</span><svg class="icon chev"><use href="#i-right"/></svg></div>
+          <div class="sitem"><span class="si" style="background:#2F7FD8"><svg class="icon"><use href="#i-scroll"/></svg></span><span class="t">Тафсир</span><span class="v">ас-Саади</span><svg class="icon chev"><use href="#i-right"/></svg></div>
+          <div class="sitem"><span class="si" style="background:#9B59D0"><svg class="icon"><use href="#i-font"/></svg></span><span class="t">Размер шрифта</span><span class="v">28 / 16</span><svg class="icon chev"><use href="#i-right"/></svg></div>
+          <div class="sitem"><span class="si" style="background:#E0663A"><svg class="icon"><use href="#i-eye"/></svg></span><span class="t">Цветной таджвид</span><span class="switch on"></span></div>
+        </div>
+
+        <div class="group-t">Аудио</div>
+        <div class="group">
+          <div class="sitem"><span class="si" style="background:#C08A2E"><svg class="icon"><use href="#i-sound"/></svg></span><span class="t">Чтец</span><span class="v">аль-Афаси</span><svg class="icon chev"><use href="#i-right"/></svg></div>
+          <div class="sitem"><span class="si" style="background:#5E6661"><svg class="icon"><use href="#i-cloud"/></svg></span><span class="t">Скачано для офлайна</span><span class="v">3 суры · 48 МБ</span><svg class="icon chev"><use href="#i-right"/></svg></div>
+        </div>
+
+        <div class="group-t">Напоминания</div>
+        <div class="group">
+          <div class="sitem"><span class="si" style="background:#1F8A5B"><svg class="icon"><use href="#i-clock"/></svg></span><span class="t">План заучивания</span><span class="v">06:00</span><svg class="icon chev"><use href="#i-right"/></svg></div>
+          <div class="sitem"><span class="si" style="background:#C08A2E"><svg class="icon"><use href="#i-hands"/></svg></span><span class="t">Утренние и вечерние азкары</span><span class="switch on"></span></div>
+          <div class="sitem"><span class="si" style="background:#2F7FD8"><svg class="icon"><use href="#i-book"/></svg></span><span class="t">Аль-Кахф в пятницу</span><span class="switch on"></span></div>
+        </div>
+
+        <div class="group-t">Приложение</div>
+        <div class="group">
+          <div class="sitem"><span class="si" style="background:#34495E"><svg class="icon"><use href="#i-moon"/></svg></span><span class="t">Тема</span><span class="v">Как в Telegram</span><svg class="icon chev"><use href="#i-right"/></svg></div>
+          <div class="sitem"><span class="si" style="background:#5E6661"><svg class="icon"><use href="#i-cloud"/></svg></span><span class="t">Синхронизация</span><span class="v">Включена</span><svg class="icon chev"><use href="#i-right"/></svg></div>
+          <div class="sitem"><span class="si" style="background:#5E6661"><svg class="icon"><use href="#i-info"/></svg></span><span class="t">Об источниках</span><svg class="icon chev"><use href="#i-right"/></svg></div>
+        </div>
+
+        <div class="donate"><svg class="icon"><use href="#i-heart"/></svg><div><b>Поддержать проект · садака</b><span>Через Telegram Stars</span></div></div>
+        <div class="ver">Коран и Сунна · версия 0.1</div>
+      </div>
+      <nav class="tabbar"><a><svg class="icon"><use href="#i-home"/></svg></a><a><svg class="icon"><use href="#i-book"/></svg></a><a><svg class="icon"><use href="#i-hands"/></svg></a><a class="on"><svg class="icon"><use href="#i-more"/></svg></a></nav>
+    </div>
+  </div>
+</div>
+
+<p class="note">Арабский текст, разметка таджвида, перевод Кулиева и данные сур взяты из Quran.com API.
+Пословный перевод в макете — пример для 18:1–4 (источник русского пословного перевода ещё предстоит выбрать).
+В настоящем приложении страница мусхафа будет рисоваться шрифтами KFGQPC — строка в строку, как в печатном Мединском мусхафе.</p>
+
+<script src="surahs.js"></script>
+<script src="quran-sample.js"></script>
+<script src="mushaf-pages.js"></script>
+<script>
+const ar = n => n.toLocaleString('ar-EG');
+const use = (id, cls = 'icon') => `<svg class="${cls}"><use href="#${id}"/></svg>`;
+const MODES = {
+  mushaf: { label: 'Мусхаф', icon: 'i-open', desc: 'Печатные страницы' },
+  page:   { label: 'Страница', icon: 'i-page', desc: 'Аяты страницы, свайп вбок' },
+  sura:   { label: 'Сура', icon: 'i-rows', desc: 'Вся сура, вниз' },
+};
+// Пословный перевод — пример (русские значения слов для 18:1–4)
+const WBW = {
+  '18:1': [['ٱلْحَمْدُ','Хвала'],['لِلَّهِ','Аллаху'],['ٱلَّذِىٓ','Который'],['أَنزَلَ','ниспослал'],['عَلَىٰ','на'],['عَبْدِهِ','раба Своего'],['ٱلْكِتَـٰبَ','Писание'],['وَلَمْ','и не'],['يَجْعَل','сделал'],['لَّهُۥ','в нём'],['عِوَجَاۜ','кривизны']],
+  '18:2': [['قَيِّمًۭا','прямым'],['لِّيُنذِرَ','чтобы предостеречь'],['بَأْسًۭا','о наказании'],['شَدِيدًۭا','суровом'],['مِّن','от'],['لَّدُنْهُ','Него'],['وَيُبَشِّرَ','и обрадовать'],['ٱلْمُؤْمِنِينَ','верующих'],['ٱلَّذِينَ','которые'],['يَعْمَلُونَ','совершают'],['ٱلصَّـٰلِحَـٰتِ','благие дела'],['أَنَّ','что'],['لَهُمْ','им'],['أَجْرًا','награда'],['حَسَنًۭا','прекрасная']],
+  '18:3': [['مَّـٰكِثِينَ','пребывая'],['فِيهِ','в ней'],['أَبَدًۭا','вечно']],
+  '18:4': [['وَيُنذِرَ','и предостеречь'],['ٱلَّذِينَ','тех, которые'],['قَالُوا۟','сказали'],['ٱتَّخَذَ','взял'],['ٱللَّهُ','Аллах'],['وَلَدًۭا','сына']],
+};
+const KAHF_BY_KEY = Object.fromEntries(KAHF.map(a => ['18:' + a[0], a]));
+const BISM = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ';
+const surahByPage = p => { let s = SURAHS[0]; for (const x of SURAHS) if (x[7] <= p) s = x; return s; };
+const juzByPage = p => Math.min(30, p < 22 ? 1 : Math.floor((p - 2) / 20) + 1);
+
+// ---------- Дата по Хиджре ----------
+try {
+  const parts = new Intl.DateTimeFormat('ru-RU-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' }).formatToParts(new Date());
+  const get = t => (parts.find(p => p.type === t) || {}).value;
+  document.querySelectorAll('.hijri').forEach(el => el.textContent = `${get('day')} ${get('month')} ${get('year')} г. х.`);
+} catch (e) {}
+
+// ---------- Строка суры ----------
+function surahRow(s, sort, current) {
+  const [id, name, meaning, arName, count, mk, rev] = s;
+  const sub = sort === 'rev' ? `${rev}-я по ниспосланию · ${count} аятов` : `${meaning} · ${count} аятов`;
+  return `<div class="srow${id === current ? ' cur' : ''}">
+    <div class="num-badge"><span>${id}</span></div>
+    <div class="t"><b>${name}</b><span>${sub}</span></div>
+    <div class="r"><span class="an">${arName}</span><span class="tag ${mk ? 'mk' : 'md'}">${mk ? 'Мекканская' : 'Мединская'}</span></div>
+  </div>`;
+}
+function renderList(el, sort, place, current) {
+  let list = SURAHS.filter(s => place === 'all' || String(s[5]) === place);
+  if (sort === 'rev') list = [...list].sort((a, b) => a[6] - b[6]);
+  el.innerHTML = list.map(s => surahRow(s, sort, current)).join('');
+}
+
+// ---------- Экран 2: список сур ----------
+const listState = { sort: 'mushaf', place: 'all' };
+const listEl = document.getElementById('surahList');
+const redraw = () => renderList(listEl, listState.sort, listState.place, 18);
+document.querySelectorAll('#sortSeg button').forEach(b => b.onclick = () => {
+  listState.sort = b.dataset.s; document.querySelectorAll('#sortSeg button').forEach(x => x.classList.toggle('on', x === b)); redraw();
+});
+document.querySelectorAll('#placeChips .chip').forEach(b => b.onclick = () => {
+  listState.place = b.dataset.p; document.querySelectorAll('#placeChips .chip').forEach(x => x.classList.toggle('on', x === b)); redraw();
+});
+redraw();
+
+// ---------- Отрисовка аятов ----------
+function surahHead(id) {
+  const s = SURAHS[id - 1];
+  return `<div class="s-head"><div class="banner"><span>سُورَةُ ${s[3]}</span></div>${id !== 1 && id !== 9 ? `<div class="bism">${BISM}</div>` : ''}</div>`;
+}
+function ayahBlock(key, plainAr, tr, st) {
+  const [sid, n] = key.split(':').map(Number);
+  const k = KAHF_BY_KEY[key];
+  const playing = key === '18:2';
+  let arHtml;
+  if (st.wbw && WBW[key]) {
+    arHtml = `<div class="wbw">${WBW[key].map(([a, t]) => `<span class="w"><span class="wa">${a}</span><span class="wt">${t}</span></span>`).join('')}<span class="a-end">${ar(n)}</span></div>`;
+  } else {
+    const txt = k ? (st.tj ? k[2] : k[2].replace(/<[^>]+>/g, '')) : plainAr;
+    arHtml = `<div class="a-ar">${txt} <span class="a-end">${ar(n)}</span></div>`;
+  }
+  return `${n === 1 ? surahHead(sid) : ''}<div class="a-block${playing ? ' playing' : ''}">
+    <div class="a-key">${key}${playing ? ' · звучит' : ''}</div>${arHtml}<div class="a-tr">${tr}</div></div>`;
+}
+function suraView(st) {
+  let html = surahHead(18);
+  KAHF.forEach((a, i) => {
+    html += ayahBlock('18:' + a[0], '', a[3], st).replace(surahHead(18), '');
+    const next = KAHF[i + 1];
+    if (!next || next[1] !== a[1]) html += `<div class="pmark">${a[1]} стр.</div>`;
+  });
+  return `<div class="vscroll">${html}</div>`;
+}
+function pageView(st) {
+  const pages = Object.keys(PAGES).map(Number).sort((a, b) => a - b);
+  return `<div class="hpager">${pages.map(p => `<section class="hpage" data-p="${p}">
+    ${PAGES[p].map(([key, t, tr]) => ayahBlock(key, t, tr, st)).join('')}
+    <div class="page-foot">— ${p} —</div></section>`).join('')}</div>
+    <div class="swipe-hint">${use('i-swap')}листайте вбок</div>`;
+}
+function mushafView(st) {
+  const pages = Object.keys(MUSHAF).map(Number).sort((a, b) => a - b);
+  return `<div class="hpager">${pages.map(p => {
+    const { lines, starts } = MUSHAF[p];
+    let html = '';
+    for (let n = 1; n <= 15; n++) {
+      const words = lines[n];
+      if (words) {
+        html += `<div class="ln" style="font-family:'QPC${st.tj ? 'T' : ''}-p${p}'; --pal: --tjdark-${p}">${words.map(([g, key, end]) =>
+          `<span class="${end ? 'end' : ''}${key === '18:2' ? ' hl' : ''}">${g}</span>`).join('')}</div>`;
+      } else {
+        // пустые строки перед началом суры: заголовок и «Бисмилля»
+        const st = starts.find(([, line]) => line === n + 1 || line === n + 2);
+        const sid = st ? +st[0] : 0;
+        if (!lines[n + 1] && lines[n + 2] !== undefined) html += `<div class="ln head">${sid ? 'surah' + String(sid).padStart(3, '0') : ''}</div>`;
+        else html += `<div class="ln bism">${BISM}</div>`;
+      }
+    }
+    return `<section class="hpage mus" data-p="${p}"><div class="mushaf"><div class="lines">${html}</div><div class="pfoot">${p}</div></div></section>`;
+  }).join('')}</div>`;
+}
+// подгоняем размер шрифта так, чтобы самая длинная строка занимала всю ширину страницы
+function fitMushaf(root) {
+  root.querySelectorAll('.mushaf').forEach(m => {
+    const box = m.querySelector('.lines');
+    m.style.fontSize = '20px';
+    let maxW = 0;
+    box.querySelectorAll('.ln:not(.head):not(.bism)').forEach(ln => {
+      let w = 0; ln.querySelectorAll('span').forEach(sp => w += sp.getBoundingClientRect().width);
+      maxW = Math.max(maxW, w);
+    });
+    if (maxW) m.style.fontSize = (20 * box.clientWidth / maxW * 0.95).toFixed(2) + 'px';
+  });
+}
+
+// ---------- Экран чтения ----------
+function buildReader(phone) {
+  const st = { mode: phone.dataset.reader, wbw: !!phone.dataset.wbw, tj: phone.dataset.tj !== '0', page: 293 };
+  const ticks = Array.from({ length: 604 }, (_, i) => {
+    const p = i + 1, cls = p % 10 === 0 ? 'm10' : p % 5 === 0 ? 'm5' : '';
+    return `<div class="tk ${cls}" data-p="${p}">${p % 10 === 0 ? `<span>${p}</span>` : ''}</div>`;
+  }).join('');
+  phone.innerHTML = `
+    <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+    <div class="reader">
+      <div class="view"></div>
+      <div class="rtop">
+        <button class="sq glass">${use('i-back')}</button>
+        <div class="rtitle glass"><div class="t"><b class="js-sname">Аль-Кахф</b><span class="js-ssub">Сура 18 · Мекканская · 110 аятов</span></div><span class="ar js-sar">الكهف</span></div>
+      </div>
+      <button class="fab">${use('i-play')}</button>
+      <div class="memobar glass">
+        <div class="ic">${use('i-repeat')}</div>
+        <div class="t"><b>Заучивание · 18:1–10</b><span class="js-mstat">Аят 2 · повтор 2 из 3 · круг 1 из 2</span><div class="bar"><i></i></div></div>
+        <button>${use('i-pause')}</button><button class="js-mstop">${use('i-close')}</button>
+      </div>
+      <div class="dock glass">
+        <button class="modebtn js-mode"></button>
+        <div class="dial">
+          <div class="grip"></div>
+          <div class="lbl js-plbl"></div>
+          <div class="ruler"><div class="pad"></div>${ticks}<div class="pad"></div></div>
+          <div class="needle"></div>
+        </div>
+        <button class="menubtn js-menu" title="Меню">${use('i-grid')}</button>
+      </div>
+
+      <div class="pop glass">
+        <h4>Режим чтения</h4>
+        <div class="opts">${Object.entries(MODES).map(([m, o]) => `<button data-m="${m}"><span class="ic">${use(o.icon)}</span><b>${o.label}</b><span>${o.desc}</span></button>`).join('')}</div>
+      </div>
+
+      <div class="dim"></div>
+      <div class="panel">
+        <div class="ph"><div><h3>Меню</h3><span>Аль-Кахф · стр. 293</span></div><button class="x js-close">${use('i-close')}</button></div>
+        <div class="quick">
+          <button>${use('i-play')}Слушать</button>
+          <button>${use('i-bookmark')}Закладки</button>
+          <button>${use('i-search')}Поиск</button>
+        </div>
+        <button class="mrow js-memo"><span class="mi">${use('i-repeat')}</span><div class="t"><b>Заучивание</b><span>Отрывок, повторы, скрытие текста</span></div>${use('i-right', 'icon chev')}</button>
+        <button class="mrow js-wbw"><span class="mi">${use('i-words')}</span><div class="t"><b>Пословный перевод</b><span>Перевод под каждым словом</span></div><span class="switch"></span></button>
+        <button class="mrow js-tj"><span class="mi">${use('i-eye')}</span><div class="t"><b>Таджвид</b><span>Цветная подсветка правил чтения</span></div><span class="switch"></span></button>
+        <button class="mrow"><span class="mi">Aa</span><div class="t"><b>Настройки</b><span>Перевод · чтец · шрифт</span></div>${use('i-right', 'icon chev')}</button>
+      </div>
+
+      <div class="sheet pick">
+        <div class="handle"></div>
+        <div class="sh"><h3>Перейти</h3><button class="icon-btn js-close" style="background:var(--surface-2)">${use('i-close')}</button></div>
+        <div class="sortseg"><button class="on">Суры</button><button>Джузы</button><button>Страница</button></div>
+        <div class="search">${use('i-search')}Название или номер суры</div>
+        <div class="list"></div>
+      </div>
+
+      <div class="sheet memo">
+        <div class="handle"></div>
+        <div class="sh"><div><h3>Заучивание</h3><span>Аль-Кахф · чтец аль-Хусари (муаллим)</span></div><button class="icon-btn js-close" style="background:var(--surface-2)">${use('i-close')}</button></div>
+        <div class="fld"><label>Отрывок</label>
+          <div class="range">
+            <div class="stepper" data-k="from"><small>с аята</small><button data-d="-1">−</button><b>1</b><button data-d="1">+</button></div>
+            <div class="stepper" data-k="to"><small>по аят</small><button data-d="-1">−</button><b>10</b><button data-d="1">+</button></div>
+          </div></div>
+        <div class="fld"><label>Повтор каждого аята</label><div class="pills">${['1×','3×','5×','7×','10×'].map((x, i) => `<button class="${i === 1 ? 'on' : ''}">${x}</button>`).join('')}</div></div>
+        <div class="fld"><label>Повтор всего отрывка</label><div class="pills">${['1×','2×','3×','∞'].map((x, i) => `<button class="${i === 1 ? 'on' : ''}">${x}</button>`).join('')}</div></div>
+        <div class="fld"><label>Пауза между повторами</label><div class="pills">${['нет','2 с','5 с','= длине аята'].map((x, i) => `<button class="${i === 0 ? 'on' : ''}">${x}</button>`).join('')}</div></div>
+        <div class="srow2"><div>Скрывать текст аята<span>Проверить себя по памяти</span></div><span class="switch"></span></div>
+        <button class="bigbtn js-mstart">${use('i-play')}Начать заучивание</button>
+      </div>
+    </div>`;
+
+  const $ = s => phone.querySelector(s);
+  const reader = $('.reader'), view = $('.view'), pop = $('.pop'), dim = $('.dim'), panel = $('.panel'),
+        pick = $('.sheet.pick'), memo = $('.sheet.memo'), modeBtn = $('.js-mode'), ruler = $('.ruler'), memobar = $('.memobar');
+  renderList($('.sheet.pick .list'), 'mushaf', 'all', 18);
+
+  // --- колесо страниц ---
+  const TICK = 9;
+  const sizePads = () => { const pad = (ruler.clientWidth - TICK) / 2; ruler.querySelectorAll('.pad').forEach(p => p.style.width = pad + 'px'); };
+  let silent = false;
+  const setLabels = p => {
+    st.page = p;
+    const s = surahByPage(p);
+    $('.js-plbl').innerHTML = `${use('i-up')}Стр. ${p}<em>Джуз ${juzByPage(p)}</em>`;
+    $('.js-sname').textContent = s[1];
+    $('.js-sar').textContent = s[3];
+    $('.js-ssub').textContent = `Сура ${s[0]} · ${s[5] ? 'Мекканская' : 'Мединская'} · ${s[4]} аятов`;
+    panel.querySelector('.ph span').textContent = `${s[1]} · стр. ${p}`;
+  };
+  const dialTo = p => { silent = true; ruler.scrollLeft = (p - 1) * TICK; setLabels(p); setTimeout(() => silent = false, 80); };
+  ruler.addEventListener('scroll', () => {
+    const p = Math.max(1, Math.min(604, Math.round(ruler.scrollLeft / TICK) + 1));
+    if (p === st.page) return;
+    setLabels(p);
+    if (!silent) syncPager(p);
+  });
+  // жесты на колесе: свайп вверх / тап по подписи / удержание ~0,5 с — открыть выбор суры
+  const dial = $('.dial');
+  let g = null;
+  dial.addEventListener('pointerdown', e => {
+    g = { x: e.clientX, y: e.clientY, moved: false, t: setTimeout(() => { if (g && !g.moved) { dial.classList.remove('press'); drag = null; open(pick); g = null; } }, 500) };
+    dial.classList.add('press');
+  });
+  window.addEventListener('pointermove', e => {
+    if (!g) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { g.moved = true; clearTimeout(g.t); dial.classList.remove('press'); }
+    if (dy < -24 && Math.abs(dy) > Math.abs(dx) * 1.2) { clearTimeout(g.t); g = null; drag = null; ruler.style.scrollSnapType = ''; open(pick); }
+  });
+  window.addEventListener('pointerup', () => { if (g) { clearTimeout(g.t); dial.classList.remove('press'); g = null; } });
+  $('.js-plbl').addEventListener('click', () => open(pick));
+  $('.js-plbl').addEventListener('pointerdown', e => e.stopPropagation());
+
+  // перетаскивание мышью (на телефоне — пальцем)
+  let drag = null;
+  ruler.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') { drag = { x: e.clientX, s: ruler.scrollLeft }; ruler.style.scrollSnapType = 'none'; } });
+  window.addEventListener('pointermove', e => { if (drag) ruler.scrollLeft = drag.s - (e.clientX - drag.x); });
+  window.addEventListener('pointerup', () => { if (drag) { drag = null; ruler.style.scrollSnapType = ''; } });
+  ruler.addEventListener('wheel', e => { e.preventDefault(); ruler.scrollLeft += (e.deltaY || e.deltaX); }, { passive: false });
+
+  // --- горизонтальный пейджер (Мусхаф / Страница) ---
+  let pager = null;
+  const pagerIndexOf = p => [...pager.children].findIndex(s => +s.dataset.p === p);
+  function syncPager(p) {
+    if (!pager) return;
+    const i = pagerIndexOf(p);
+    if (i >= 0) pager.scrollLeft = -i * pager.clientWidth;
+  }
+  function render() {
+    view.innerHTML = st.mode === 'mushaf' ? mushafView(st) : st.mode === 'page' ? pageView(st) : suraView(st);
+    modeBtn.innerHTML = `${use(MODES[st.mode].icon)}<b>${MODES[st.mode].label}</b>`;
+    reader.classList.toggle('mode-mushaf', st.mode === 'mushaf');
+    pop.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === st.mode));
+    pager = view.querySelector('.hpager');
+    if (st.mode === 'mushaf') { fitMushaf(view); document.fonts.ready.then(() => fitMushaf(view)); }
+    if (pager) {
+      syncPager(st.page);
+      // в режиме «Страница» показываем начало суры Аль-Кахф на странице 293
+      const cur = pager.children[pagerIndexOf(st.page)], head = cur && cur.querySelector('.s-head');
+      if (head && st.mode === 'page') cur.scrollTop = head.offsetTop - 110;
+      pager.addEventListener('scroll', () => {
+        const i = Math.min(pager.children.length - 1, Math.round(Math.abs(pager.scrollLeft) / pager.clientWidth));
+        const p = +pager.children[i].dataset.p;
+        if (p !== st.page) dialTo(p);
+      });
+    } else {
+      const vs = view.querySelector('.vscroll');
+      const target = vs.querySelectorAll('.a-block')[1];
+      if (target) vs.scrollTop = target.offsetTop - 120;
+    }
+  }
+
+  const closeAll = () => { [dim, panel, pick, memo, pop].forEach(el => el.classList.remove('show')); modeBtn.classList.remove('open'); };
+  const open = el => { closeAll(); dim.classList.add('show'); el.classList.add('show'); };
+  modeBtn.onclick = () => { const show = !pop.classList.contains('show'); closeAll(); pop.classList.toggle('show', show); modeBtn.classList.toggle('open', show); };
+  pop.querySelectorAll('button').forEach(b => b.onclick = () => { st.mode = b.dataset.m; closeAll(); render(); });
+  $('.js-menu').onclick = () => open(panel);
+  phone.querySelectorAll('.js-sheet').forEach(b => b.onclick = () => open(pick));
+  phone.querySelectorAll('.js-close').forEach(b => b.onclick = closeAll);
+  dim.onclick = closeAll;
+  const wbwSwitch = $('.js-wbw .switch');
+  wbwSwitch.classList.toggle('on', st.wbw);
+  $('.js-wbw').onclick = () => { st.wbw = !st.wbw; wbwSwitch.classList.toggle('on', st.wbw); render(); };
+  const tjSwitch = $('.js-tj .switch');
+  tjSwitch.classList.toggle('on', st.tj);
+  $('.js-tj').onclick = () => { st.tj = !st.tj; tjSwitch.classList.toggle('on', st.tj); render(); };
+  $('.js-memo').onclick = () => open(memo);
+  memo.querySelectorAll('.pills').forEach(g => g.querySelectorAll('button').forEach(b => b.onclick = () => g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b))));
+  memo.querySelectorAll('.stepper').forEach(sp => sp.querySelectorAll('button').forEach(b => b.onclick = () => {
+    const v = sp.querySelector('b'); v.textContent = Math.max(1, Math.min(110, +v.textContent + +b.dataset.d));
+  }));
+  memo.querySelector('.srow2').onclick = e => e.currentTarget.querySelector('.switch').classList.toggle('on');
+  $('.js-mstart').onclick = () => {
+    const [f, t] = [...memo.querySelectorAll('.stepper b')].map(b => b.textContent);
+    memobar.querySelector('b').textContent = `Заучивание · 18:${f}–${t}`;
+    closeAll(); memobar.classList.add('show'); reader.classList.add('memo-on');
+  };
+  $('.js-mstop').onclick = () => { memobar.classList.remove('show'); reader.classList.remove('memo-on'); };
+
+  render();
+  requestAnimationFrame(() => { sizePads(); dialTo(st.page); });
+
+  if (phone.dataset.pop) { pop.classList.add('show'); modeBtn.classList.add('open'); }
+  if (phone.dataset.menu) open(panel);
+  if (phone.dataset.sheet) open(pick);
+  if (phone.dataset.memo) open(memo);
+}
+document.querySelectorAll('[data-reader]').forEach(buildReader);
+
+// ---------- Счётчик азкара ----------
+let c = 1; const cnt = document.getElementById('cnt');
+cnt.onclick = () => { if (c < 3) c++; cnt.querySelector('.cnt').textContent = `${c} / 3`; if (c === 3) { cnt.classList.add('full'); cnt.querySelector('.lbl').textContent = 'Прочитано'; } };
+
+// ---------- Анкета ----------
+document.querySelectorAll('#quizOpts .opt').forEach(o => o.onclick = () => document.querySelectorAll('#quizOpts .opt').forEach(x => x.classList.toggle('on', x === o)));
+
+// ---------- Тема ----------
+document.querySelectorAll('#themeSeg button').forEach(b => b.addEventListener('click', () => {
+  document.documentElement.dataset.theme = b.dataset.t;
+  document.querySelectorAll('#themeSeg button').forEach(x => x.classList.toggle('on', x === b));
+}));
+</script>
+</body>
+</html>
