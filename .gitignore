@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.playwright-mcp/
+*.log
+.env
+.env.*
+.DS_Store
+Thumbs.db
+
+# картинки-референсы (скриншоты чужих приложений) — не публикуем
+references/
+
+# вспомогательные программы
+tools/
