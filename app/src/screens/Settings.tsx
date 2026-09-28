@@ -53,6 +53,11 @@ export default function Settings() {
         <button className="sitem" onClick={() => setOpen('rec')}><span className="si" style={{ background: '#C08A2E' }}><Icon id="sound" /></span><span className="t">Чтец</span><span className="v">{(RECITERS[st.reciter] ?? RECITERS.alafasy).name}</span><Icon id="right" className="icon chev" /></button>
       </div>
 
+      <div className="group-t">Без интернета</div>
+      <div className="group">
+        <button className="sitem" onClick={() => nav('/downloads')}><span className="si" style={{ background: '#1F8A5B' }}><Icon id="download" /></span><span className="t">Загрузки</span><span className="v">Коран, страницы, аудио</span><Icon id="right" className="icon chev" /></button>
+      </div>
+
       <div className="group-t">Приложение</div>
       <div className="group">
         <button className="sitem" onClick={() => setOpen('theme')}><span className="si" style={{ background: '#34495E' }}><Icon id="moon" /></span><span className="t">Тема</span><span className="v">{THEMES[st.theme]}</span><Icon id="right" className="icon chev" /></button>

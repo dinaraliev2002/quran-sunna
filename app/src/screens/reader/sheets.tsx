@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead, SurahRow } from '../../components/ui'
-import { loadSurah, loadTafsir, tafsirFor, TOTAL_PAGES, type Surah } from '../../lib/data'
+import { loadSurah, loadTafsir, tafsirFor, TOTAL_PAGES, type Ayah, type Surah } from '../../lib/data'
+import { haptic } from '../../lib/telegram'
+import { QpcText } from './views'
 import { RECITERS, type MemoOptions, type PauseMode } from '../../store/player'
 import { useStore, type ReadMode, type Translation } from '../../store/settings'
+
+const TRANSLATIONS: Record<Translation, string> = { ku: 'Эльмир Кулиев', aa: 'Абу Адель' }
 
 export const MODES: Record<ReadMode, { label: string; icon: string; desc: string }> = {
   mushaf: { label: 'Мусхаф', icon: 'open', desc: 'Печатные страницы' },
@@ -158,25 +162,33 @@ export function MemoSheet({ surah, startAyah, reciterName, onClose, onStart }: {
   )
 }
 
-export function TafsirSheet({ surah, ayah, onClose }: { surah: Surah; ayah: number; onClose: () => void }) {
+/** Окно аята: арабский текст, перевод, тафсир ас-Саади. Листается свайпом влево/вправо по аятам. */
+export function AyahSheet({ surah, ayah, onClose, onPlay }: { surah: Surah; ayah: number; onClose: () => void; onPlay: (s: number, a: number) => void }) {
+  const st = useStore()
+  const [ayahs, setAyahs] = useState<Ayah[] | null>(null)
   const [tf, setTf] = useState<Record<string, string> | null | undefined>(undefined)
   const [cur, setCur] = useState(ayah)
   const [slide, setSlide] = useState<'' | 'l' | 'r'>('')
   const bodyRef = useRef<HTMLDivElement>(null)
-  useEffect(() => { loadTafsir(surah.id).then(setTf).catch(() => setTf(null)) }, [surah])
+  useEffect(() => {
+    loadSurah(surah.id).then(setAyahs)
+    loadTafsir(surah.id).then(setTf).catch(() => setTf(null))
+  }, [surah])
 
+  const a = ayahs?.[cur - 1]
   const t = tf ? tafsirFor(tf, cur, surah.ayahs) : null
-  const prev = t && t.from > 1 ? t.from - 1 : null
-  const next = t && t.to < surah.ayahs ? t.to + 1 : null
-  const go = (a: number | null, dir: 'l' | 'r') => {
-    if (!a) return
-    setSlide(dir); setCur(a)
+  const key = `${surah.id}:${cur}`
+  const marked = st.bookmarks.includes(key)
+  const go = (n: number, dir: 'l' | 'r') => {
+    if (n < 1 || n > surah.ayahs) return
+    haptic.tick()
+    setSlide(dir); setCur(n)
     bodyRef.current?.scrollTo({ top: 0 })
     setTimeout(() => setSlide(''), 250)
   }
-
   const goRef = useRef({ next: () => {}, prev: () => {} })
-  goRef.current = { next: () => go(next, 'l'), prev: () => go(prev, 'r') }
+  goRef.current = { next: () => go(cur + 1, 'l'), prev: () => go(cur - 1, 'r') }
+
   // свайп влево — следующий аят, вправо — предыдущий
   useEffect(() => {
     const el = bodyRef.current
@@ -190,24 +202,37 @@ export function TafsirSheet({ surah, ayah, onClose }: { surah: Surah; ayah: numb
     el.addEventListener('touchstart', s, { passive: true })
     el.addEventListener('touchend', end)
     return () => { el.removeEventListener('touchstart', s); el.removeEventListener('touchend', end) }
-  }, [tf])
+  }, [])
 
-  const range = t ? (t.from === t.to ? `аят ${t.from}` : `аяты ${t.from}–${t.to}`) : `аят ${cur}`
+  const range = t ? (t.from === t.to ? `аят ${t.from}` : `аяты ${t.from}–${t.to}`) : ''
   return (
     <Sheet onClose={onClose} tall>
       <div className="sh">
-        <div><h3>Тафсир ас-Саади</h3><span>{surah.name}, {range}</span></div>
+        <div><h3>{surah.name}, аят {cur}</h3><span>{surah.meaning} · {cur} из {surah.ayahs}</span></div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="xbtn" disabled={!prev} style={{ opacity: prev ? 1 : .35 }} onClick={() => go(prev, 'r')} aria-label="Предыдущий"><Icon id="back" /></button>
-          <button className="xbtn" disabled={!next} style={{ opacity: next ? 1 : .35 }} onClick={() => go(next, 'l')} aria-label="Следующий"><Icon id="right" /></button>
+          <button className="xbtn" disabled={cur <= 1} style={{ opacity: cur > 1 ? 1 : .35 }} onClick={() => go(cur - 1, 'r')} aria-label="Предыдущий аят"><Icon id="back" /></button>
+          <button className="xbtn" disabled={cur >= surah.ayahs} style={{ opacity: cur < surah.ayahs ? 1 : .35 }} onClick={() => go(cur + 1, 'l')} aria-label="Следующий аят"><Icon id="right" /></button>
           <button className="xbtn" onClick={onClose} aria-label="Закрыть"><Icon id="close" /></button>
         </div>
       </div>
       <div className="body" ref={bodyRef}>
-        {tf === undefined && <div className="loading">Загрузка…</div>}
-        {tf !== undefined && !t && <div className="empty">Для этого аята тафсир не найден</div>}
-        {t && <div key={t.from} className={'tafsir' + (slide ? ' slide-' + slide : '')}>{t.text}</div>}
-        {t && <div className="tafsir-hint">Свайп влево — следующий аят, вправо — предыдущий</div>}
+        {!a && <div className="loading">Загрузка…</div>}
+        {a && (
+          <div key={cur} className={'ayah-sheet' + (slide ? ' slide-' + slide : '')}>
+            <QpcText page={a.p} glyphs={a.g} tajweed={st.tajweed} className="as-ar" />
+            <div className="as-actions">
+              <button onClick={() => onPlay(surah.id, cur)}><Icon id="play" />Слушать</button>
+              <button className={marked ? 'on' : ''} onClick={() => { haptic.tap(); st.toggleBookmark(key) }}><Icon id="bookmark" />{marked ? 'В закладках' : 'В закладки'}</button>
+            </div>
+            <div className="as-label">Перевод · {TRANSLATIONS[st.translation]}</div>
+            <div className="as-tr">{st.translation === 'aa' ? a.aa : a.ku}</div>
+            <div className="as-label">Тафсир ас-Саади{range ? ` · ${range}` : ''}</div>
+            {tf === undefined && <div className="loading" style={{ height: 80 }}>Загрузка…</div>}
+            {tf !== undefined && !t && <div className="empty">Для этого аята тафсир не найден</div>}
+            {t && <div className="tafsir">{t.text}</div>}
+            <div className="tafsir-hint">Свайп влево — следующий аят, вправо — предыдущий</div>
+          </div>
+        )}
       </div>
     </Sheet>
   )
@@ -248,7 +273,6 @@ export function BookmarksSheet({ bookmarks, surahs, onClose, onOpen, onRemove }:
   )
 }
 
-const TRANSLATIONS: Record<Translation, string> = { ku: 'Эльмир Кулиев', aa: 'Абу Адель' }
 
 /** Настройки чтения — окном поверх текста, без перехода на другой экран */
 export function ReaderSettingsSheet({ onClose }: { onClose: () => void }) {

@@ -1,4 +1,5 @@
 // Загрузка подготовленных данных из public/data (см. scripts/fetch-data.mjs)
+import { cachedJson, dataKey } from './net'
 
 export interface Surah {
   id: number
@@ -16,6 +17,8 @@ export interface Ayah {
   n: number
   p: number // страница мусхафа
   j: number // джуз
+  r: number // четверть хизба 1–240 (хизб = ⌈r/4⌉)
+  rs?: 1 // с этого аята начинается четверть хизба
   t: string // текст Усмани
   tj: string // текст с разметкой таджвида
   ku: string // перевод Кулиева
@@ -33,15 +36,13 @@ export interface MushafPage {
 }
 
 export const TOTAL_PAGES = 604
-const BASE = import.meta.env.BASE_URL + 'data/'
+export const DATA_BASE = import.meta.env.BASE_URL + 'data/'
 const cache = new Map<string, Promise<unknown>>()
 
+// Данные берутся с телефона, если уже скачаны; иначе из сети (и сохраняются на телефоне)
 function load<T>(path: string): Promise<T> {
   if (!cache.has(path)) {
-    const p = fetch(BASE + path).then((r) => {
-      if (!r.ok) throw new Error(`${path}: ${r.status}`)
-      return r.json()
-    })
+    const p = cachedJson<T>(dataKey(path), DATA_BASE + path)
     p.catch(() => cache.delete(path)) // при ошибке сети — попробуем снова в следующий раз
     cache.set(path, p)
   }
@@ -81,3 +82,7 @@ export function tafsirFor(tf: Record<string, string>, ayah: number, total: numbe
 
 export const arDigits = (n: number) => n.toLocaleString('ar-EG')
 export const surahGlyph = (id: number) => 'surah' + pad(id)
+
+/** Хизб и четверть: 1 хизб = 4 четверти, 2 хизба = 1 джуз */
+export const hizbOf = (r: number) => ({ hizb: Math.ceil(r / 4), quarter: (r - 1) % 4 }) // quarter: 0 — начало, 1 — ¼, 2 — ½, 3 — ¾
+export const QUARTER_LABEL = ['', '¼', '½', '¾']

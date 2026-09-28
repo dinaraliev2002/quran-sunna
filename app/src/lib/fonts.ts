@@ -3,58 +3,71 @@
 //  V2 — обычный текст, V4 — с цветным таджвидом (цвета печатного мусхафа с таджвидом).
 // V4 бывает в двух форматах: COLRv1 (Chrome/Android) и OT-SVG (Safari: iPhone, iPad, Mac) — у OT-SVG
 // отдельные файлы для светлой и тёмной темы.
+// Скачанный шрифт сохраняется на телефоне (IndexedDB) — второй раз страница открывается мгновенно и без сети.
 // Пока берём с CDN Quran.com; перед релизом перенесём к себе.
 
-const V2 = (p: number) => `https://static.qurancdn.com/fonts/quran/hafs/v2/woff2/p${p}.woff2`
-const V4_COLR = (p: number) => `https://verses.quran.foundation/fonts/quran/hafs/v4/colrv1/woff2/p${p}.woff2`
-const V4_SVG = (p: number, theme: Theme) => `https://verses.quran.foundation/fonts/quran/hafs/v4/ot-svg/${theme}/woff2/p${p}.woff2`
+import { create } from 'zustand'
+import { cachedBuffer } from './net'
 
 type Theme = 'light' | 'dark'
 
 /** Движок Safari (все браузеры на iOS, Telegram на iPhone/Mac) — для него таджвид в формате OT-SVG */
-const appleWebKit = (() => {
+export const appleWebKit = (() => {
   const ua = navigator.userAgent
   if (/iPhone|iPad|iPod/.test(ua)) return true
   if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return true // iPadOS
   return /AppleWebKit/.test(ua) && !/Chrome|Chromium|Android|Edg|OPR/.test(ua)
 })()
 
+/** Вариант шрифтов для текущих настроек: v2 · v4c (COLRv1) · v4s-light / v4s-dark (OT-SVG) */
+export const fontVariant = (tajweed: boolean, theme: Theme) => (!tajweed ? 'v2' : appleWebKit ? `v4s-${theme}` : 'v4c')
+
+export function fontUrl(p: number, variant: string) {
+  if (variant === 'v2') return `https://static.qurancdn.com/fonts/quran/hafs/v2/woff2/p${p}.woff2`
+  if (variant === 'v4c') return `https://verses.quran.foundation/fonts/quran/hafs/v4/colrv1/woff2/p${p}.woff2`
+  return `https://verses.quran.foundation/fonts/quran/hafs/v4/ot-svg/${variant.slice(4)}/woff2/p${p}.woff2`
+}
+export const fontKey = (p: number, variant: string) => `font:${variant}:p${p}`
+
 export function pageFontFamily(p: number, tajweed: boolean, theme: Theme) {
-  if (!tajweed) return `QPC-p${p}`
-  return appleWebKit ? `QPCT-${theme}-p${p}` : `QPCT-p${p}`
+  const v = fontVariant(tajweed, theme)
+  return v === 'v2' ? `QPC-p${p}` : v === 'v4c' ? `QPCT-p${p}` : `QPCT-${theme}-p${p}`
 }
 
 /** Тёмная палитра цветного шрифта COLRv1 (для OT-SVG есть отдельный тёмный файл) */
 export const pagePalette = (p: number) => (appleWebKit ? 'normal' : `--tjdark-${p}`)
 
-const faces = new Map<string, FontFace>()
+// какие шрифты уже готовы — чтобы не показывать «квадратики» до загрузки
+export const useFonts = create<{ ready: Record<string, true> }>(() => ({ ready: {} }))
+export const useFontReady = (family: string) => useFonts((s) => !!s.ready[family])
+
+const pending = new Map<string, Promise<void>>()
 let paletteStyle: HTMLStyleElement | null = null
 
-function register(p: number, tajweed: boolean, theme: Theme): FontFace {
-  const family = pageFontFamily(p, tajweed, theme)
-  let face = faces.get(family)
-  if (!face) {
-    const url = !tajweed ? V2(p) : appleWebKit ? V4_SVG(p, theme) : V4_COLR(p)
-    face = new FontFace(family, `url(${url}) format("woff2")`, { display: 'block' })
-    // шрифт зарегистрирован, но скачается только когда текст с ним появится на экране
-    document.fonts.add(face)
-    faces.set(family, face)
-    if (tajweed && !appleWebKit) {
-      paletteStyle ??= document.head.appendChild(document.createElement('style'))
-      paletteStyle.textContent += `@font-palette-values --tjdark-${p} { font-family: "${family}"; base-palette: 1; }\n`
-    }
-  }
-  return face
-}
-
-/** Подготовить шрифт страницы (скачается при первом использовании) */
-export function pageFont(p: number, tajweed: boolean, theme: Theme) {
-  register(p, tajweed, theme)
-  return pageFontFamily(p, tajweed, theme)
-}
-
-/** Дождаться загрузки шрифта страницы (нужно мусхафу, чтобы подогнать размер) */
+/** Загрузить шрифт страницы (с телефона или из сети) и подключить */
 export function loadPageFont(p: number, tajweed: boolean, theme: Theme): Promise<void> {
-  const face = register(p, tajweed, theme)
-  return face.load().then(() => undefined, () => { faces.delete(pageFontFamily(p, tajweed, theme)); document.fonts.delete(face) })
+  const family = pageFontFamily(p, tajweed, theme)
+  if (useFonts.getState().ready[family]) return Promise.resolve()
+  if (!pending.has(family)) {
+    const variant = fontVariant(tajweed, theme)
+    const promise = cachedBuffer(fontKey(p, variant), fontUrl(p, variant))
+      .then((buf) => new FontFace(family, buf).load())
+      .then((face) => {
+        document.fonts.add(face)
+        if (variant === 'v4c') {
+          paletteStyle ??= document.head.appendChild(document.createElement('style'))
+          paletteStyle.textContent += `@font-palette-values --tjdark-${p} { font-family: "${family}"; base-palette: 1; }\n`
+        }
+        useFonts.setState((s) => ({ ready: { ...s.ready, [family]: true } }))
+      })
+      .finally(() => pending.delete(family))
+    pending.set(family, promise)
+  }
+  return pending.get(family)!
+}
+
+/** Имя шрифта страницы; загрузка запускается в фоне */
+export function pageFont(p: number, tajweed: boolean, theme: Theme) {
+  loadPageFont(p, tajweed, theme).catch(() => {})
+  return pageFontFamily(p, tajweed, theme)
 }

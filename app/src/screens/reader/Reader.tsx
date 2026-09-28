@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { useQuranMeta } from '../../components/ui'
-import { juzByPage, loadMushafPage, loadSurah, surahByPage, type Surah } from '../../lib/data'
+import { juzByPage, loadMushafPage, loadSurah, surahByPage, surahGlyph, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
 import { RECITERS, setMediaTitle, setReciter, usePlayer, type MemoOptions } from '../../store/player'
 import { useStore, type ReadMode } from '../../store/settings'
 import { Dial } from './Dial'
 import { Pager } from './Pager'
-import { BookmarksSheet, MemoSheet, MenuPanel, MODES, ModePop, PickerSheet, ReaderSettingsSheet, TafsirSheet } from './sheets'
+import { AyahSheet, BookmarksSheet, MemoSheet, MenuPanel, MODES, ModePop, PickerSheet, ReaderSettingsSheet } from './sheets'
 import { MushafView, PageAyahs, SuraView, type AyahActions } from './views'
 
 type Overlay = null | 'pop' | 'menu' | 'picker' | 'search' | 'memo' | 'bookmarks' | 'settings' | { tafsir: [number, number] }
@@ -53,7 +53,9 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const markPage = st.markPage
   // каждая открытая страница засчитывается в «Сегодня» на главной и в серию дней
   useEffect(() => { const t = setTimeout(() => markPage(page), 1500); return () => clearTimeout(t) }, [page, markPage])
-  const pageSurah = surahByPage(surahs, page)
+  // на одной странице бывает несколько сур (напр. 604: 112–114) — если открытая сура есть на странице, показываем её
+  const opened = surahs[surahId - 1]
+  const pageSurah = opened.pages[0] <= page && page <= opened.pages[1] ? opened : surahByPage(surahs, page)
   const surah = mode === 'sura' ? surahs[surahId - 1] : pageSurah
 
   // ----- последнее место чтения -----
@@ -94,8 +96,11 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const goSurah = useCallback((s: Surah, ayah = 1) => {
     setOverlay(null)
     if (mode === 'sura') { setSurahId(s.id); setTarget((t) => ({ ayah, nonce: t.nonce + 1 })); setPage(s.pages[0]) }
-    else if (ayah === 1) setPage(s.pages[0])
-    else loadSurah(s.id).then((ayahs) => setPage(ayahs.find((x) => x.n === ayah)?.p ?? s.pages[0]))
+    else {
+      setSurahId(s.id)
+      if (ayah === 1) setPage(s.pages[0])
+      else loadSurah(s.id).then((ayahs) => setPage(ayahs.find((x) => x.n === ayah)?.p ?? s.pages[0]))
+    }
   }, [mode])
 
   function switchMode(m: ReadMode) {
@@ -104,7 +109,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     if (m === 'sura' && mode !== 'sura') {
       // в «Суру» — открываем суру текущей страницы на первом аяте этой страницы
       // сура из заголовка (та, что начинается на этой странице или раньше) и её первый аят на странице
-      const sid = surahByPage(surahs, page).id
+      const sid = pageSurah.id
       loadMushafPage(page).then((mp) => {
         const keys = Object.keys(mp.lines).map(Number).sort((a, b) => a - b).flatMap((n) => mp.lines[n].map((w) => w[1]))
         const key = keys.find((k) => k.startsWith(sid + ':'))
@@ -153,13 +158,14 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     hidden: (k) => !!player.memo?.hideText && player.queue.includes(k),
     bookmarked: (k) => st.bookmarks.includes(k),
     onPlay: playFrom,
-    onTafsir: (s, a) => setOverlay({ tafsir: [s, a] }),
+    onInfo: (s, a) => setOverlay({ tafsir: [s, a] }),
     onBookmark: (k) => { haptic.tap(); st.toggleBookmark(k) },
   }), [player.current, player.status, player.memo, player.queue, st, playFrom])
 
   const opts = useMemo(() => ({ tajweed: st.tajweed, translation: st.translation }), [st.tajweed, st.translation])
   const renderPage = useCallback((p: number) => <PageAyahs page={p} surahs={surahs} opts={opts} act={act} />, [surahs, opts, act])
-  const renderMushaf = useCallback((p: number) => <MushafView page={p} tajweed={st.tajweed} playing={player.current} />, [st.tajweed, player.current])
+  const onAyahHold = useCallback((key: string) => { const [s, a] = key.split(':').map(Number); setOverlay({ tafsir: [s, a] }) }, [])
+  const renderMushaf = useCallback((p: number) => <MushafView page={p} tajweed={st.tajweed} playing={player.current} onAyahHold={onAyahHold} />, [st.tajweed, player.current, onAyahHold])
 
   // тап по тексту — показать/спрятать панели; прокрутка пальцем — спрятать
   const onViewDown = (e: RPE) => {
@@ -207,7 +213,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
         <button className="sq glass" onClick={() => nav(-1)} aria-label="Назад"><Icon id="back" /></button>
         <div className="rtitle glass">
           <div className="t"><b>{surah.name}</b><span>Сура {surah.id} · {surah.mk ? 'Мекканская' : 'Мединская'} · {surah.ayahs} аятов</span></div>
-          <span className="ar">{surah.ar}</span>
+          <span className="sname">{surahGlyph(surah.id)}</span>
         </div>
       </div>
 
@@ -264,7 +270,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
       )}
       {overlay === 'settings' && <ReaderSettingsSheet onClose={() => setOverlay(null)} />}
       {overlay && typeof overlay === 'object' && (
-        <TafsirSheet surah={surahs[overlay.tafsir[0] - 1]} ayah={overlay.tafsir[1]} onClose={() => setOverlay(null)} />
+        <AyahSheet surah={surahs[overlay.tafsir[0] - 1]} ayah={overlay.tafsir[1]} onClose={() => setOverlay(null)} onPlay={(s, a) => { setOverlay(null); playFrom(s, a) }} />
       )}
     </div>
   )

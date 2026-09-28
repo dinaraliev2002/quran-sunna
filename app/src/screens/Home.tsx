@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
-import { TabBar, plural, useQuranMeta } from '../components/ui'
+import { plural, useQuranMeta } from '../components/ui'
 import { loadSurah, type Ayah } from '../lib/data'
-import { pageFont, pagePalette } from '../lib/fonts'
+import { QpcText } from './reader/views'
 import { haptic, tgUser } from '../lib/telegram'
 import { useStore, type TaskId } from '../store/settings'
-import { useUi } from '../store/ui'
 
 function hijriToday() {
   try {
@@ -36,7 +35,6 @@ export default function Home() {
   const nav = useNavigate()
   const meta = useQuranMeta()
   const { lastRead, recent, streak, today, markTask, tajweed } = useStore()
-  const theme = useUi((s) => s.theme)
   const user = tgUser()
   const last = lastRead && meta ? meta.surahs[lastRead.s - 1] : null
   const aod = useAyahOfDay()
@@ -54,7 +52,7 @@ export default function Home() {
   return (
     <div className="screen">
       <div className="hello">
-        <button className="avatar" onClick={() => nav('/profile')} aria-label="Профиль">
+        <button className="avatar" onClick={() => nav('/settings')} aria-label="Профиль и настройки">
           {user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? 'А')}
         </button>
         <div className="who">
@@ -125,12 +123,11 @@ export default function Home() {
       <div className="section-h"><h2>Аят дня</h2></div>
       {aod && meta && (
         <button className="ayah-day" onClick={() => nav(`/read/${aod.key.split(':')[0]}?a=${aod.a.n}`)}>
-          <div className="ar qpc" style={{ fontFamily: `'${pageFont(aod.a.p, tajweed, theme)}', 'UthmanicHafs'`, ['--pal' as string]: pagePalette(aod.a.p) }}>{aod.a.g}</div>
+          <QpcText page={aod.a.p} glyphs={aod.a.g} tajweed={tajweed} className="ar" />
           <p>{aod.a.ku}</p>
           <div className="ref">{meta.surahs[Number(aod.key.split(':')[0]) - 1].name}, {aod.key}</div>
         </button>
       )}
-      <TabBar />
     </div>
   )
 }

@@ -6,7 +6,7 @@
 // public/data/tafsir/NNN.json    — тафсир ас-Саади (только аяты, на которых стоит текст группы)
 // public/data/mushaf/NNN.json    — раскладка страницы мусхафа: строка → глифы QPC V2
 
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -104,6 +104,7 @@ async function main() {
         n: v.verse_number,
         p: v.page_number,
         j: v.juz_number,
+        r: v.rub_el_hizb_number, // четверть хизба (1–240): хизб = ⌈r/4⌉
         t: v.text_uthmani,
         tj: v.text_uthmani_tajweed.replace(/<span class=end>.*?<\/span>/g, '').trim(),
         ku: tr[TR_KULIEV] ?? '',
@@ -127,6 +128,15 @@ async function main() {
     process.stdout.write(`\rсуры: ${++done}/114`)
   })
   console.log()
+
+  // Отметить аяты, с которых начинается четверть хизба (rs: 1) — для меток «Хизб N», «¼ хизба» и т.д.
+  let prevRub = 0
+  for (const s of surahs) {
+    const file = join(OUT, `quran/${pad(s.id)}.json`)
+    const d = JSON.parse(await readFile(file, 'utf8'))
+    for (const a of d.ayahs) { if (a.r !== prevRub) a.rs = 1; else delete a.rs; prevRub = a.r }
+    await writeFile(file, JSON.stringify(d))
+  }
 
   // Страницы мусхафа: слова в строке — по порядку аятов и позиций
   const order = (key) => key.split(':').map(Number)

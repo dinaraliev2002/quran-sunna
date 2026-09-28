@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Icon } from './Icon'
-import { loadMeta, loadSurahs, type Surah } from '../lib/data'
+import { loadMeta, loadSurahs, surahGlyph, type Surah } from '../lib/data'
 
 export function TabBar() {
   const tabs = [
@@ -30,7 +30,7 @@ export function SurahRow({ s, sort, current, onClick }: { s: Surah; sort?: 'mush
         <span>{sort === 'rev' ? `${s.rev}-я по ниспосланию` : s.meaning} · {s.ayahs} {plural(s.ayahs, 'аят', 'аята', 'аятов')}</span>
       </div>
       <div className="r">
-        <span className="an">{s.ar}</span>
+        <span className="sname">{surahGlyph(s.id)}</span>
         <span className={'tag ' + (s.mk ? 'mk' : 'md')}>{s.mk ? 'Мекканская' : 'Мединская'}</span>
       </div>
     </button>

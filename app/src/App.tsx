@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { IconSprite } from './components/Icon'
+import { cleanupOldData } from './lib/net'
 import { backButton, initTelegram, paintChrome, telegramScheme } from './lib/telegram'
 import Home from './screens/Home'
 import Reader from './screens/reader/Reader'
+import Downloads from './screens/Downloads'
 import Settings from './screens/Settings'
 import Stub from './screens/Stub'
 import SurahList from './screens/SurahList'
@@ -43,7 +45,7 @@ function TelegramBack() {
 export default function App() {
   const hydrated = useStore((s) => s.hydrated)
   useTheme()
-  useEffect(() => { hydrateStore() }, [])
+  useEffect(() => { hydrateStore(); cleanupOldData() }, [])
 
   return (
     <HashRouter>
@@ -56,6 +58,7 @@ export default function App() {
             <Route path="/quran" element={<SurahList />} />
             <Route path="/read/:surah" element={<Reader />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/downloads" element={<Downloads />} />
             <Route path="/azkar" element={<Stub title="Азкары" icon="hands" text="«Крепость мусульманина» — следующий раздел, который мы сделаем." />} />
             <Route path="/hadith" element={<Stub title="Хадисы" icon="scroll" text="Сборники хадисов появятся после раздела азкаров." />} />
             <Route path="/names" element={<Stub title="99 имён Аллаха" icon="star" text="Раздел в работе." />} />
