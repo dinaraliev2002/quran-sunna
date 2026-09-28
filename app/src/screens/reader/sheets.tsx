@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead, SurahRow } from '../../components/ui'
 import { loadSurah, loadTafsir, tafsirFor, TOTAL_PAGES, type Surah } from '../../lib/data'
@@ -159,18 +159,55 @@ export function MemoSheet({ surah, startAyah, reciterName, onClose, onStart }: {
 }
 
 export function TafsirSheet({ surah, ayah, onClose }: { surah: Surah; ayah: number; onClose: () => void }) {
-  const [t, setT] = useState<{ text: string; from: number; to: number } | null | undefined>(undefined)
+  const [tf, setTf] = useState<Record<string, string> | null | undefined>(undefined)
+  const [cur, setCur] = useState(ayah)
+  const [slide, setSlide] = useState<'' | 'l' | 'r'>('')
+  const bodyRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { loadTafsir(surah.id).then(setTf).catch(() => setTf(null)) }, [surah])
+
+  const t = tf ? tafsirFor(tf, cur, surah.ayahs) : null
+  const prev = t && t.from > 1 ? t.from - 1 : null
+  const next = t && t.to < surah.ayahs ? t.to + 1 : null
+  const go = (a: number | null, dir: 'l' | 'r') => {
+    if (!a) return
+    setSlide(dir); setCur(a)
+    bodyRef.current?.scrollTo({ top: 0 })
+    setTimeout(() => setSlide(''), 250)
+  }
+
+  const goRef = useRef({ next: () => {}, prev: () => {} })
+  goRef.current = { next: () => go(next, 'l'), prev: () => go(prev, 'r') }
+  // свайп влево — следующий аят, вправо — предыдущий
   useEffect(() => {
-    loadTafsir(surah.id).then((tf) => setT(tafsirFor(tf, ayah, surah.ayahs))).catch(() => setT(null))
-  }, [surah, ayah])
-  const range = t ? (t.from === t.to ? `аят ${t.from}` : `аяты ${t.from}–${t.to}`) : `аят ${ayah}`
+    const el = bodyRef.current
+    if (!el) return
+    let x = 0, y = 0
+    const s = (e: TouchEvent) => { x = e.touches[0].clientX; y = e.touches[0].clientY }
+    const end = (e: TouchEvent) => {
+      const dx = e.changedTouches[0].clientX - x, dy = e.changedTouches[0].clientY - y
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) (dx < 0 ? goRef.current.next() : goRef.current.prev())
+    }
+    el.addEventListener('touchstart', s, { passive: true })
+    el.addEventListener('touchend', end)
+    return () => { el.removeEventListener('touchstart', s); el.removeEventListener('touchend', end) }
+  }, [tf])
+
+  const range = t ? (t.from === t.to ? `аят ${t.from}` : `аяты ${t.from}–${t.to}`) : `аят ${cur}`
   return (
     <Sheet onClose={onClose} tall>
-      <SheetHead title="Тафсир ас-Саади" sub={`${surah.name}, ${range}`} onClose={onClose} />
-      <div className="body">
-        {t === undefined && <div className="loading">Загрузка…</div>}
-        {t === null && <div className="empty">Для этого аята тафсир не найден</div>}
-        {t && <div className="tafsir">{t.text}</div>}
+      <div className="sh">
+        <div><h3>Тафсир ас-Саади</h3><span>{surah.name}, {range}</span></div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="xbtn" disabled={!prev} style={{ opacity: prev ? 1 : .35 }} onClick={() => go(prev, 'r')} aria-label="Предыдущий"><Icon id="back" /></button>
+          <button className="xbtn" disabled={!next} style={{ opacity: next ? 1 : .35 }} onClick={() => go(next, 'l')} aria-label="Следующий"><Icon id="right" /></button>
+          <button className="xbtn" onClick={onClose} aria-label="Закрыть"><Icon id="close" /></button>
+        </div>
+      </div>
+      <div className="body" ref={bodyRef}>
+        {tf === undefined && <div className="loading">Загрузка…</div>}
+        {tf !== undefined && !t && <div className="empty">Для этого аята тафсир не найден</div>}
+        {t && <div key={t.from} className={'tafsir' + (slide ? ' slide-' + slide : '')}>{t.text}</div>}
+        {t && <div className="tafsir-hint">Свайп влево — следующий аят, вправо — предыдущий</div>}
       </div>
     </Sheet>
   )

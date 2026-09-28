@@ -30,6 +30,7 @@ export function Dial({ page, juz, onChange, onOpenPicker }: { page: number; juz:
   const [shown, setShown] = useState(page)
   const [pad, setPad] = useState(0)
   const silent = useRef(false)
+  const touchedAt = useRef(0) // когда человек последний раз трогал колесо
   const settle = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [press, setPress] = useState(false)
   const gesture = useRef<{ x: number; y: number; moved: boolean; timer: ReturnType<typeof setTimeout> } | null>(null)
@@ -43,16 +44,23 @@ export function Dial({ page, juz, onChange, onOpenPicker }: { page: number; juz:
     return () => ro.disconnect()
   }, [])
 
-  // внешняя смена страницы → повернуть колесо без события
+  // внешняя смена страницы (листание, «Перейти», чтец) → плавно довернуть колесо, без события
+  const first = useRef(true)
   useEffect(() => {
     const el = ruler.current
     if (!el || !pad) return
     const target = (page - 1) * TICK
     if (Math.abs(el.scrollLeft - target) > 2) {
       silent.current = true
-      el.scrollLeft = target
-      setTimeout(() => (silent.current = false), 100)
+      const near = Math.abs(el.scrollLeft - target) < 40 * TICK
+      if (first.current || !near) el.scrollLeft = target
+      else el.scrollTo({ left: target, behavior: 'smooth' })
+      // «тишина», пока колесо доезжает
+      const done = () => { silent.current = false; el.removeEventListener('scrollend', done) }
+      el.addEventListener('scrollend', done)
+      setTimeout(done, first.current || !near ? 120 : 700)
     }
+    first.current = false
     setShown(page)
   }, [page, pad])
 
@@ -60,13 +68,15 @@ export function Dial({ page, juz, onChange, onOpenPicker }: { page: number; juz:
     const el = ruler.current!
     const p = Math.max(1, Math.min(TOTAL_PAGES, Math.round(el.scrollLeft / TICK) + 1))
     if (p !== shown) { setShown(p); if (!silent.current) haptic.tick() }
-    if (silent.current) return
+    // страницу меняем только если колесо крутит человек (а не раскладка экрана или «доводка»)
+    if (silent.current || Date.now() - touchedAt.current > 2000) return
     clearTimeout(settle.current)
     settle.current = setTimeout(() => { if (p !== page) onChange(p) }, 180)
   }
 
   // жесты
   function down(e: RPE) {
+    touchedAt.current = Date.now()
     const timer = setTimeout(() => {
       if (gesture.current && !gesture.current.moved) { gesture.current = null; setPress(false); haptic.tap(); onOpenPicker() }
     }, 500)
@@ -74,6 +84,7 @@ export function Dial({ page, juz, onChange, onOpenPicker }: { page: number; juz:
     setPress(true)
   }
   function move(e: RPE) {
+    if (e.buttons || e.pointerType !== 'mouse') touchedAt.current = Date.now()
     const g = gesture.current
     if (!g) return
     const dx = e.clientX - g.x, dy = e.clientY - g.y
@@ -90,7 +101,8 @@ export function Dial({ page, juz, onChange, onOpenPicker }: { page: number; juz:
 
   return (
     <div ref={dial} className={'dial glass' + (press ? ' press' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up}
-      onWheel={(e) => { ruler.current!.scrollLeft += e.deltaY || e.deltaX }}>
+      onWheel={(e) => { touchedAt.current = Date.now(); ruler.current!.scrollLeft += e.deltaY || e.deltaX }}
+      onTouchStart={() => { touchedAt.current = Date.now() }} onTouchMove={() => { touchedAt.current = Date.now() }}>
       <div className="grip" />
       <button className="lbl" onPointerDown={(e) => e.stopPropagation()} onClick={onOpenPicker}>
         <Icon id="up" />Стр. {shown}<em>Джуз {juz(shown)}</em>

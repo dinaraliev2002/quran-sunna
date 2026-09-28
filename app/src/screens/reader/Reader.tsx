@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPE, type UIEvent as RUE } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { useQuranMeta } from '../../components/ui'
@@ -34,6 +34,10 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const [target, setTarget] = useState({ ayah: initAyah, nonce: 0 }) // куда прокрутить в режиме «Сура»
   const [page, setPage] = useState(Number(search.get('p')) || surahs[initSurah - 1].pages[0])
   const [overlay, setOverlay] = useState<Overlay>(null)
+  // режим «чистого чтения»: панели спрятаны, пока не тапнешь по экрану
+  const [bare, setBare] = useState(false)
+  const gesture = useRef({ x: 0, y: 0, t: 0, lastTouch: 0 })
+  const lastScroll = useRef(new WeakMap<Element, { top: number; left: number }>())
   const topAyah = useRef(initAyah)
 
   // точная страница стартового аята
@@ -99,11 +103,13 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     haptic.tap()
     if (m === 'sura' && mode !== 'sura') {
       // в «Суру» — открываем суру текущей страницы на первом аяте этой страницы
+      // сура из заголовка (та, что начинается на этой странице или раньше) и её первый аят на странице
+      const sid = surahByPage(surahs, page).id
       loadMushafPage(page).then((mp) => {
-        const first = Object.keys(mp.lines).map(Number).sort((a, b) => a - b)[0]
-        const [s, a] = mp.lines[first][0][1].split(':').map(Number)
-        setSurahId(s)
-        setTarget((t) => ({ ayah: a, nonce: t.nonce + 1 }))
+        const keys = Object.keys(mp.lines).map(Number).sort((a, b) => a - b).flatMap((n) => mp.lines[n].map((w) => w[1]))
+        const key = keys.find((k) => k.startsWith(sid + ':'))
+        setSurahId(sid)
+        setTarget((t) => ({ ayah: key ? Number(key.split(':')[1]) : 1, nonce: t.nonce + 1 }))
       })
     }
     st.set({ mode: m })
@@ -142,16 +148,40 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
 
   const act: AyahActions = useMemo(() => ({
     playing: player.current,
+    sounding: player.status === 'playing' || player.status === 'loading',
+    onToggle: () => { haptic.tap(); usePlayer.getState().toggle() },
     hidden: (k) => !!player.memo?.hideText && player.queue.includes(k),
     bookmarked: (k) => st.bookmarks.includes(k),
     onPlay: playFrom,
     onTafsir: (s, a) => setOverlay({ tafsir: [s, a] }),
     onBookmark: (k) => { haptic.tap(); st.toggleBookmark(k) },
-  }), [player.current, player.memo, player.queue, st, playFrom])
+  }), [player.current, player.status, player.memo, player.queue, st, playFrom])
 
   const opts = useMemo(() => ({ tajweed: st.tajweed, translation: st.translation }), [st.tajweed, st.translation])
   const renderPage = useCallback((p: number) => <PageAyahs page={p} surahs={surahs} opts={opts} act={act} />, [surahs, opts, act])
   const renderMushaf = useCallback((p: number) => <MushafView page={p} tajweed={st.tajweed} playing={player.current} />, [st.tajweed, player.current])
+
+  // тап по тексту — показать/спрятать панели; прокрутка пальцем — спрятать
+  const onViewDown = (e: RPE) => {
+    gesture.current = { ...gesture.current, x: e.clientX, y: e.clientY, t: e.timeStamp, lastTouch: Date.now() }
+  }
+  const onViewUp = (e: RPE) => {
+    const g = gesture.current
+    const moved = Math.hypot(e.clientX - g.x, e.clientY - g.y)
+    if (moved > 8 || e.timeStamp - g.t > 350) return
+    if ((e.target as HTMLElement).closest('button, a, input, .a-act')) return
+    setBare((b) => !b)
+  }
+  const onViewScroll = (e: RUE) => {
+    const el = e.target as Element
+    const prev = lastScroll.current.get(el)
+    const cur = { top: el.scrollTop, left: el.scrollLeft }
+    lastScroll.current.set(el, cur)
+    // только если прокручивает сам человек (касание/колесо за последние 1,5 с), а не чтец
+    if (!prev || Date.now() - gesture.current.lastTouch > 1500) return
+    if (Math.abs(cur.top - prev.top) > 6 || Math.abs(cur.left - prev.left) > 20) setBare(true)
+  }
+  useEffect(() => { if (overlay) setBare(false) }, [overlay])
 
   // окно выбора режима закрывается, как только касаемся чего-то другого (листаем страницу, колесо и т.п.)
   useEffect(() => {
@@ -165,8 +195,9 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const playing = player.status === 'playing' || player.status === 'loading'
 
   return (
-    <div className="reader" style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
-      <div className="view">
+    <div className={'reader' + (bare ? ' bare' : '')} style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
+      <div className="view" onPointerDown={onViewDown} onPointerUp={onViewUp} onScrollCapture={onViewScroll}
+        onWheel={() => { gesture.current.lastTouch = Date.now() }}>
         {mode === 'sura' && <SuraView key={`${surahId}-${target.nonce}`} surah={surahs[surahId - 1]} scrollTo={target.ayah} opts={opts} act={act} onTop={onTop} />}
         {mode === 'page' && <Pager page={page} onChange={setPage} render={renderPage} />}
         {mode === 'mushaf' && <Pager page={page} onChange={setPage} render={renderMushaf} />}

@@ -6,6 +6,9 @@ import { useUi } from '../../store/ui'
 
 export interface AyahActions {
   playing: string | null
+  /** идёт ли звук прямо сейчас (для кнопки ▶/⏸ у звучащего аята) */
+  sounding: boolean
+  onToggle: () => void
   hidden: (key: string) => boolean
   bookmarked: (key: string) => boolean
   onPlay: (surah: number, ayah: number) => void
@@ -50,7 +53,8 @@ export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, h
     <div className={'a-block' + (playing ? ' playing' : '')} data-key={key} data-page={a.p}>
       <div className="a-head">
         <span className="a-key">{key}{playing ? ' · звучит' : ''}</span>
-        <button className="a-act" onClick={() => act.onPlay(sid, a.n)} aria-label="Слушать"><Icon id="play" /></button>
+        <button className={'a-act' + (playing ? ' on' : '')} onClick={() => (playing ? act.onToggle() : act.onPlay(sid, a.n))}
+          aria-label={playing && act.sounding ? 'Пауза' : 'Слушать'}><Icon id={playing && act.sounding ? 'pause' : 'play'} /></button>
         <button className="a-act" onClick={() => act.onTafsir(sid, a.n)} aria-label="Тафсир"><Icon id="info" /></button>
         <button className={'a-act' + (marked ? ' on' : '')} onClick={() => act.onBookmark(key)} aria-label="Закладка"><Icon id="bookmark" /></button>
       </div>
