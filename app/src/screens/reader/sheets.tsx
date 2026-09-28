@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead, SurahRow } from '../../components/ui'
 import { loadSurah, loadTafsir, tafsirFor, TOTAL_PAGES, type Surah } from '../../lib/data'
-import { colorFontsSupported } from '../../lib/fonts'
-import type { MemoOptions, PauseMode } from '../../store/player'
-import type { ReadMode } from '../../store/settings'
+import { RECITERS, type MemoOptions, type PauseMode } from '../../store/player'
+import { useStore, type ReadMode, type Translation } from '../../store/settings'
 
 export const MODES: Record<ReadMode, { label: string; icon: string; desc: string }> = {
   mushaf: { label: 'Мусхаф', icon: 'open', desc: 'Печатные страницы' },
@@ -30,12 +28,10 @@ export function ModePop({ mode, onPick }: { mode: ReadMode; onPick: (m: ReadMode
   )
 }
 
-export function MenuPanel({ sub, tajweed, mode, onClose, onPlay, onBookmarks, onSearch, onMemo, onTajweed }: {
+export function MenuPanel({ sub, tajweed, onClose, onPlay, onBookmarks, onSearch, onMemo, onTajweed, onSettings }: {
   sub: string; tajweed: boolean; mode: ReadMode
-  onClose: () => void; onPlay: () => void; onBookmarks: () => void; onSearch: () => void; onMemo: () => void; onTajweed: () => void
+  onClose: () => void; onPlay: () => void; onBookmarks: () => void; onSearch: () => void; onMemo: () => void; onTajweed: () => void; onSettings: () => void
 }) {
-  const nav = useNavigate()
-  const tjNote = mode === 'mushaf' && !colorFontsSupported ? 'В мусхафе на iPhone пока без цвета' : 'Цветная подсветка правил чтения'
   return (
     <>
       <div className="dim" onClick={onClose} />
@@ -58,10 +54,10 @@ export function MenuPanel({ sub, tajweed, mode, onClose, onPlay, onBookmarks, on
         </button>
         <button className="mrow" onClick={onTajweed}>
           <span className="mi"><Icon id="eye" /></span>
-          <div className="t"><b>Таджвид</b><span>{tjNote}</span></div>
+          <div className="t"><b>Таджвид</b><span>Цветная подсветка правил чтения</span></div>
           <span className={'switch' + (tajweed ? ' on' : '')} />
         </button>
-        <button className="mrow" onClick={() => nav('/settings')}>
+        <button className="mrow" onClick={onSettings}>
           <span className="mi">Aa</span>
           <div className="t"><b>Настройки</b><span>Перевод · чтец · шрифт</span></div>
           <Icon id="right" className="icon chev" />
@@ -210,6 +206,44 @@ export function BookmarksSheet({ bookmarks, surahs, onClose, onOpen, onRemove }:
             </div>
           )
         })}
+      </div>
+    </Sheet>
+  )
+}
+
+const TRANSLATIONS: Record<Translation, string> = { ku: 'Эльмир Кулиев', aa: 'Абу Адель' }
+
+/** Настройки чтения — окном поверх текста, без перехода на другой экран */
+export function ReaderSettingsSheet({ onClose }: { onClose: () => void }) {
+  const st = useStore()
+  const [open, setOpen] = useState<null | 'tr' | 'rec'>(null)
+  return (
+    <Sheet onClose={onClose}>
+      <SheetHead title={open === 'tr' ? 'Перевод смыслов' : open === 'rec' ? 'Чтец' : 'Настройки чтения'} onClose={open ? () => setOpen(null) : onClose} />
+      <div className="body">
+        {open === 'tr' && (Object.keys(TRANSLATIONS) as Translation[]).map((k) => (
+          <button key={k} className="opt-row" onClick={() => { st.set({ translation: k }); setOpen(null) }}>
+            <span>{TRANSLATIONS[k]}</span>{st.translation === k && <Icon id="check" />}
+          </button>
+        ))}
+        {open === 'rec' && Object.entries(RECITERS).map(([k, r]) => (
+          <button key={k} className="opt-row" onClick={() => { st.set({ reciter: k }); setOpen(null) }}>
+            <span>{r.name}</span>{st.reciter === k && <Icon id="check" />}
+          </button>
+        ))}
+        {!open && (
+          <>
+            <button className="srow2" onClick={() => setOpen('tr')}><div>Перевод<span>{TRANSLATIONS[st.translation]}</span></div><Icon id="right" className="icon" /></button>
+            <button className="srow2" onClick={() => setOpen('rec')}><div>Чтец<span>{(RECITERS[st.reciter] ?? RECITERS.alafasy).name}</span></div><Icon id="right" className="icon" /></button>
+            <button className="srow2" onClick={() => st.set({ tajweed: !st.tajweed })}><div>Цветной таджвид<span>Как в печатном мусхафе с таджвидом</span></div><span className={'switch' + (st.tajweed ? ' on' : '')} /></button>
+            <div className="fld" style={{ marginTop: 6 }}><label>Размер арабского текста</label>
+              <div className="stepper"><small>{st.arSize}</small><button onClick={() => st.set({ arSize: Math.max(20, st.arSize - 2) })}>−</button><button onClick={() => st.set({ arSize: Math.min(44, st.arSize + 2) })}>+</button></div>
+            </div>
+            <div className="fld"><label>Размер перевода</label>
+              <div className="stepper"><small>{st.trSize}</small><button onClick={() => st.set({ trSize: Math.max(12, st.trSize - 1) })}>−</button><button onClick={() => st.set({ trSize: Math.min(24, st.trSize + 1) })}>+</button></div>
+            </div>
+          </>
+        )}
       </div>
     </Sheet>
   )

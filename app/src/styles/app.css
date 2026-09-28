@@ -83,6 +83,19 @@ a { color: inherit; text-decoration: none; }
 .ayah-day p { font-size: 14px; line-height: 1.55; color: var(--text-2); margin-top: 8px; }
 .ayah-day .ref { font-size: 12px; font-weight: 700; color: var(--gold-ink); margin-top: 10px; }
 
+.ayah-day { width: 100%; text-align: left; display: block; }
+.ayah-day .ar.qpc { font-size: 25px; line-height: 2; }
+.today { background: var(--surface); border-radius: var(--r-card); padding: 16px; margin-top: 12px; }
+.today .th { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.today .th b { font-size: 16px; font-weight: 800; } .today .th span { font-size: 12px; font-weight: 700; color: var(--gold-ink); }
+.task { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.task .ck { width: 28px; height: 28px; border-radius: 9px; border: 2px solid var(--surface-3); display: grid; place-items: center; flex: none; transition: background .15s, border-color .15s; }
+.task .ck.on { background: var(--emerald); border-color: var(--emerald); color: var(--on-emerald); }
+.task .ck .icon { width: 16px; height: 16px; stroke-width: 2.6; }
+.task .t { flex: 1; min-width: 0; } .task b { display: block; font-size: 14px; font-weight: 700; } .task span { font-size: 12px; color: var(--text-2); }
+.task.done b { text-decoration: line-through; opacity: .5; }
+.task .go { font-size: 12px; font-weight: 800; color: var(--emerald-bright); padding: 6px 2px; }
+
 /* ===== Список сур ===== */
 .screen.sl { padding-top: 0; }
 .sticky-title { position: sticky; top: 0; z-index: 3; background: var(--bg); margin: 0 -18px; padding: calc(var(--content-top) + 10px) 18px 10px; display: flex; align-items: center; justify-content: space-between; }
@@ -111,7 +124,7 @@ a { color: inherit; text-decoration: none; }
 .reader { position: fixed; inset: 0; background: var(--bg); }
 .reader::before, .reader::after { content: ""; position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; }
 .reader::before { top: 0; height: calc(var(--content-top) + 72px); background: linear-gradient(var(--bg) 60%, transparent); }
-.reader::after { bottom: 0; height: calc(var(--safe-bottom) + 110px); background: linear-gradient(transparent, var(--bg) 55%); }
+.reader::after { bottom: 0; height: calc(var(--safe-bottom) + 90px); background: linear-gradient(transparent, var(--bg) 55%); }
 .glass { background: var(--glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 8px 24px rgba(0, 0, 0, .2); }
 .rtop { position: absolute; top: calc(var(--content-top) + 8px); left: 12px; right: 12px; display: flex; gap: 8px; align-items: center; z-index: 5; }
 .sq { width: 48px; height: 48px; border-radius: var(--r-btn); display: grid; place-items: center; flex: none; }
@@ -120,7 +133,7 @@ a { color: inherit; text-decoration: none; }
 .rtitle span { font-size: 12px; color: var(--text-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .rtitle .ar { font-family: var(--font-quran); font-size: 22px; color: var(--gold-ink); }
 .view { position: absolute; inset: 0; }
-.vscroll { position: absolute; inset: 0; overflow-y: auto; padding: calc(var(--content-top) + 72px) 20px calc(var(--safe-bottom) + 190px); }
+.vscroll { position: absolute; inset: 0; overflow-y: auto; padding: calc(var(--content-top) + 72px) 20px calc(var(--safe-bottom) + 160px); }
 .content { max-width: 720px; margin: 0 auto; }
 
 /* аяты */
@@ -133,6 +146,8 @@ a { color: inherit; text-decoration: none; }
 .a-act .icon { width: 17px; height: 17px; }
 .a-act.on { color: var(--gold-ink); }
 .a-ar { font-family: var(--font-quran); font-size: var(--ar-size); line-height: 2.1; direction: rtl; text-align: right; }
+.a-ar.qpc { font-size: calc(var(--ar-size) * .92); line-height: 2.05; word-spacing: .05em; }
+.s-head .bism.qpc { font-size: 26px; }
 .a-ar.hidden { filter: blur(9px); opacity: .5; user-select: none; }
 .a-end { display: inline-grid; place-items: center; width: 34px; height: 34px; margin: 0 4px; vertical-align: middle; position: relative; font-family: var(--font-ui); font-size: 12px; font-weight: 800; color: var(--gold-ink); }
 .a-end::before, .a-end::after { content: ""; position: absolute; inset: 5px; border: 1.5px solid currentColor; border-radius: 6px; opacity: .6; }
@@ -163,51 +178,54 @@ tajweed.ghunnah { color: var(--tj-ghunna); }
 tajweed.iqlab { color: var(--tj-iqlab); }
 
 /* листание страниц */
-.pager { position: absolute; inset: 0; overflow: hidden; touch-action: pan-y; }
-.pager .track { position: absolute; inset: 0; will-change: transform; }
-.pager .slot { position: absolute; top: 0; bottom: 0; width: 100%; }
-.pscroll { position: absolute; inset: 0; overflow-y: auto; padding: calc(var(--content-top) + 72px) 20px calc(var(--safe-bottom) + 190px); }
-.mus { position: absolute; inset: 0; display: flex; flex-direction: column; padding: calc(var(--content-top) + 66px) 10px calc(var(--safe-bottom) + 100px); }
+.hpager { position: absolute; inset: 0; display: flex; direction: rtl; overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.hslot { position: relative; flex: none; width: 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; direction: ltr; overflow: hidden; }
+.pscroll { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior-y: contain; padding: calc(var(--content-top) + 72px) 20px calc(var(--safe-bottom) + 160px); }
+.mus { position: absolute; inset: 0; display: flex; flex-direction: column; padding: calc(var(--content-top) + 66px) 10px calc(var(--safe-bottom) + 80px); }
 .mushaf { background: var(--paper); border-radius: 18px; padding: 10px 12px 6px; border: 1px solid var(--line); flex: 1; display: flex; flex-direction: column; max-width: 560px; width: 100%; margin: 0 auto; min-height: 0; }
 .mushaf .lines { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
 .mushaf.short .lines { justify-content: center; gap: .5em; }
 .mushaf .ln { display: flex; justify-content: space-between; direction: rtl; white-space: nowrap; line-height: 1.55; align-items: center; }
 .mushaf .ln.center { justify-content: center; gap: .3em; }
 .mushaf .ln span { display: inline-block; }
-[data-theme="dark"] .mushaf .ln.w { font-palette: var(--pal); }
+[data-theme="dark"] .mushaf .ln.w, [data-theme="dark"] .qpc { font-palette: var(--pal); }
 .mushaf .ln span.hl { background: rgba(217, 164, 65, .25); border-radius: 4px; }
 .mushaf .ln.head { font-family: "SurahNames"; color: var(--gold-ink); justify-content: center; border: 1.5px solid var(--gold); border-radius: 10px; font-size: 1.35em; line-height: 1.25; background:
   repeating-linear-gradient(45deg, transparent 0 7px, rgba(217, 164, 65, .12) 7px 8px), repeating-linear-gradient(-45deg, transparent 0 7px, rgba(217, 164, 65, .12) 7px 8px); }
 .mushaf .ln.bism { font-family: var(--font-quran); justify-content: center; }
 .mushaf .pfoot { text-align: center; font-size: 12px; font-weight: 700; color: var(--text-2); padding-top: 4px; }
 
-/* нижняя панель */
-.fab { position: absolute; right: 16px; bottom: calc(var(--safe-bottom) + 108px); width: 56px; height: 56px; border-radius: var(--r-btn); background: var(--gold); color: var(--on-gold); display: grid; place-items: center; z-index: 5; box-shadow: 0 10px 24px rgba(217, 164, 65, .35); }
-.dock { position: absolute; left: 12px; right: 12px; bottom: calc(var(--safe-bottom) + 18px); height: 76px; border-radius: 26px; display: flex; align-items: center; gap: 8px; padding: 8px; z-index: 6; max-width: 560px; margin: 0 auto; }
-.modebtn { width: 74px; height: 60px; border-radius: var(--r-btn); background: var(--surface-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex: none; }
-.modebtn .icon { width: 20px; height: 20px; color: var(--gold-ink); }
-.modebtn b { font-size: 11px; font-weight: 800; letter-spacing: .02em; }
-.modebtn.open { background: var(--emerald); color: var(--on-emerald); } .modebtn.open .icon { color: var(--on-emerald); }
-.dial { flex: 1; min-width: 0; height: 60px; border-radius: var(--r-btn); background: var(--surface-2); position: relative; overflow: hidden; touch-action: pan-x; }
-.dial.press { background: var(--surface-3); transition: background .45s; }
-.dial .grip { position: absolute; top: 3px; left: 50%; width: 26px; height: 3px; margin-left: -13px; border-radius: 2px; background: var(--text-2); opacity: .35; }
-.dial .lbl { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 800; z-index: 2; white-space: nowrap; display: flex; align-items: center; gap: 4px; padding: 1px 8px; }
-.dial .lbl .icon { width: 13px; height: 13px; color: var(--gold-ink); stroke-width: 2.4; }
+/* нижняя панель: круглая кнопка режима · колесо страниц · круглая кнопка меню (отдельно, без общей подложки) */
+.fab { position: absolute; right: 14px; bottom: calc(var(--safe-bottom) + 84px); width: 52px; height: 52px; border-radius: 50%; background: var(--gold); color: var(--on-gold); display: grid; place-items: center; z-index: 5; box-shadow: 0 8px 20px rgba(217, 164, 65, .35); }
+.fab .icon { width: 20px; height: 20px; }
+.rbar { position: absolute; left: 14px; right: 14px; bottom: calc(var(--safe-bottom) + 18px); display: flex; align-items: center; justify-content: space-between; gap: 10px; z-index: 6; pointer-events: none; max-width: 520px; margin: 0 auto; }
+.rbar > * { pointer-events: auto; }
+.rcircle { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.rcircle .icon { width: 21px; height: 21px; }
+.rcircle.modebtn .icon { color: var(--gold-ink); }
+.rcircle.open { background: var(--emerald); color: var(--on-emerald); }
+.rcircle.open .icon { color: var(--on-emerald); }
+.dial { flex: 0 1 216px; min-width: 150px; height: 52px; border-radius: 26px; position: relative; overflow: hidden; touch-action: pan-x; }
+.dial.press { filter: brightness(1.15); transition: filter .45s; }
+.dial .grip { position: absolute; top: 3px; left: 50%; width: 22px; height: 3px; margin-left: -11px; border-radius: 2px; background: var(--text-2); opacity: .35; }
+.dial .lbl { position: absolute; top: 7px; left: 50%; transform: translateX(-50%); font-size: 11.5px; font-weight: 800; z-index: 2; white-space: nowrap; display: flex; align-items: center; gap: 3px; padding: 1px 6px; }
+.dial .lbl .icon { width: 12px; height: 12px; color: var(--gold-ink); stroke-width: 2.4; }
 .dial .lbl em { font-style: normal; color: var(--text-2); font-weight: 700; margin-left: 4px; }
-.ruler { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; overflow-x: auto; overflow-y: hidden; display: flex; align-items: flex-end; scroll-snap-type: x mandatory;
+.ruler { position: absolute; left: 0; right: 0; bottom: 0; height: 30px; overflow-x: auto; overflow-y: hidden; display: flex; align-items: flex-end; scroll-snap-type: x mandatory;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); }
 .ruler .pad { flex: none; }
 .ruler .tk { flex: none; width: 9px; height: 100%; scroll-snap-align: center; position: relative; }
-.ruler .tk::after { content: ""; position: absolute; left: 4px; bottom: 6px; width: 1.5px; height: 7px; background: var(--text-2); opacity: .45; border-radius: 1px; }
-.ruler .tk.m5::after { height: 11px; opacity: .7; }
-.ruler .tk.m10::after { height: 14px; opacity: .9; }
-.ruler .tk.m10 span { position: absolute; bottom: 21px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: 700; color: var(--text-2); }
-.dial .needle { position: absolute; bottom: 4px; left: 50%; width: 3px; height: 20px; margin-left: -1.5px; background: var(--gold); border-radius: 2px; z-index: 2; pointer-events: none; }
+.ruler .tk::after { content: ""; position: absolute; left: 4px; bottom: 5px; width: 1.5px; height: 6px; background: var(--text-2); opacity: .45; border-radius: 1px; }
+.ruler .tk.m5::after { height: 9px; opacity: .7; }
+.ruler .tk.m10::after { height: 11px; opacity: .9; }
+.ruler .tk.m10 span { position: absolute; bottom: 17px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: 700; color: var(--text-2); }
+.dial .needle { position: absolute; bottom: 3px; left: 50%; width: 3px; height: 16px; margin-left: -1.5px; background: var(--gold); border-radius: 2px; z-index: 2; pointer-events: none; }
 .dial .needle::before { content: ""; position: absolute; top: -5px; left: -3.5px; border: 5px solid transparent; border-top-color: var(--gold); }
 .menubtn { width: 60px; height: 60px; border-radius: var(--r-btn); background: var(--surface-2); display: grid; place-items: center; flex: none; }
 
 /* всплывающие окна */
-.pop { position: absolute; left: 12px; bottom: calc(var(--safe-bottom) + 102px); width: min(300px, calc(100% - 24px)); border-radius: 24px; padding: 8px; z-index: 12; }
+.pop { position: absolute; left: 14px; bottom: calc(var(--safe-bottom) + 80px); width: min(300px, calc(100% - 24px)); border-radius: 24px; padding: 8px; z-index: 12; }
 .pop h4 { font-size: 12px; font-weight: 800; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; padding: 6px 10px 8px; }
 .pop .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .pop button { background: var(--surface-2); border-radius: 18px; padding: 12px 6px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
@@ -259,7 +277,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .pills button.on { background: var(--gold); color: var(--on-gold); }
 .srow2 { width: 100%; display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; font-size: 14px; font-weight: 700; text-align: left; }
 .srow2 span { font-size: 12px; color: var(--text-2); display: block; font-weight: 600; }
-.memobar { position: absolute; left: 12px; right: 12px; bottom: calc(var(--safe-bottom) + 102px); z-index: 7; border-radius: 22px; padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 10px; max-width: 560px; margin: 0 auto; }
+.memobar { position: absolute; left: 12px; right: 12px; bottom: calc(var(--safe-bottom) + 80px); z-index: 7; border-radius: 22px; padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 10px; max-width: 560px; margin: 0 auto; }
 .memobar .ic { width: 40px; height: 40px; border-radius: 12px; background: var(--emerald); color: var(--on-emerald); display: grid; place-items: center; flex: none; }
 .memobar .t { flex: 1; min-width: 0; } .memobar b { display: block; font-size: 14px; font-weight: 800; } .memobar span { font-size: 12px; color: var(--text-2); font-weight: 600; }
 .memobar .bar { height: 4px; border-radius: 2px; background: var(--surface-3); margin-top: 6px; overflow: hidden; } .memobar .bar i { display: block; height: 100%; background: var(--gold); transition: width .3s; }

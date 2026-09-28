@@ -8,6 +8,7 @@ import Settings from './screens/Settings'
 import Stub from './screens/Stub'
 import SurahList from './screens/SurahList'
 import { hydrateStore, useStore } from './store/settings'
+import { useUi } from './store/ui'
 
 const ROOTS = ['/', '/quran', '/azkar', '/settings']
 
@@ -27,6 +28,7 @@ function useTheme() {
   const theme = pref !== 'auto' ? pref : tgScheme ?? (sysDark ? 'dark' : 'light')
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    useUi.setState({ theme })
     paintChrome(getComputedStyle(document.documentElement).getPropertyValue('--bg').trim())
   }, [theme])
 }

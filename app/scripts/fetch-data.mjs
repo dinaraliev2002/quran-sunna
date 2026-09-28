@@ -2,7 +2,7 @@
 // Запуск: npm run data   (один раз; результат хранится в проекте, приложение не ходит в чужие API)
 //
 // public/data/surahs.json        — список сур
-// public/data/quran/NNN.json     — аяты суры: текст, таджвид, переводы Кулиева и Абу Аделя, слова
+// public/data/quran/NNN.json     — аяты суры: текст, таджвид, переводы Кулиева и Абу Аделя, слова, глифы QPC
 // public/data/tafsir/NNN.json    — тафсир ас-Саади (только аяты, на которых стоит текст группы)
 // public/data/mushaf/NNN.json    — раскладка страницы мусхафа: строка → глифы QPC V2
 
@@ -109,6 +109,8 @@ async function main() {
         ku: tr[TR_KULIEV] ?? '',
         aa: tr[TR_ABU_ADEL] ?? '',
         w: words.map((w) => w.text_uthmani),
+        // глифы слов для шрифтов страниц QPC (V2 — обычный, V4 — таджвид), включая знак конца аята
+        g: v.words.map((w) => w.code_v2).join(' '),
       }
     })
     await save(`quran/${pad(s.id)}.json`, { id: s.id, ayahs })

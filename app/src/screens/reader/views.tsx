@@ -1,7 +1,8 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
-import { arDigits, loadMushafPage, loadSurah, surahGlyph, type Ayah, type MushafPage, type Surah } from '../../lib/data'
-import { colorFontsSupported, loadPageFont, pageFontFamily, pagePalette } from '../../lib/fonts'
+import { loadMushafPage, loadSurah, surahGlyph, type Ayah, type MushafPage, type Surah } from '../../lib/data'
+import { loadPageFont, pageFont, pagePalette } from '../../lib/fonts'
+import { useUi } from '../../store/ui'
 
 export interface AyahActions {
   playing: string | null
@@ -14,21 +15,37 @@ export interface AyahActions {
 
 export interface ViewOpts { tajweed: boolean; translation: 'ku' | 'aa' }
 
+// «Бисмилля» — глифами первой страницы мусхафа (1:1 без знака конца аята)
+function useBismillah() {
+  const [g, setG] = useState<string | null>(null)
+  useEffect(() => { loadSurah(1).then((a) => setG(a[0].g.split(' ').slice(0, -1).join(' '))) }, [])
+  return g
+}
+
+function Bismillah({ tajweed, className }: { tajweed: boolean; className: string }) {
+  const g = useBismillah()
+  const theme = useUi((s) => s.theme)
+  if (!g) return <div className={className}>&nbsp;</div>
+  return <div className={className + ' qpc'} style={{ fontFamily: `'${pageFont(1, tajweed, theme)}'`, ['--pal' as string]: pagePalette(1) }}>{g}</div>
+}
+
 // ---------- Заголовок суры ----------
-export function SurahHead({ s }: { s: Surah }) {
+export function SurahHead({ s, tajweed }: { s: Surah; tajweed: boolean }) {
   return (
     <div className="s-head">
       <div className="banner">{surahGlyph(s.id)}</div>
-      {s.id !== 1 && s.id !== 9 && <div className="bism">بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ</div>}
+      {s.id !== 1 && s.id !== 9 && <Bismillah tajweed={tajweed} className="bism" />}
     </div>
   )
 }
 
 // ---------- Аят с переводом ----------
-export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, hidden, marked }: {
-  sid: number; a: Ayah; opts: ViewOpts; act: AyahActions; playing: boolean; hidden: boolean; marked: boolean
+// Арабский текст рисуется шрифтом той страницы мусхафа, на которой стоит аят (как в печатном издании).
+export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, hidden, marked, theme }: {
+  sid: number; a: Ayah; opts: ViewOpts; act: AyahActions; playing: boolean; hidden: boolean; marked: boolean; theme: 'light' | 'dark'
 }) {
   const key = `${sid}:${a.n}`
+  const family = pageFont(a.p, opts.tajweed, theme)
   return (
     <div className={'a-block' + (playing ? ' playing' : '')} data-key={key} data-page={a.p}>
       <div className="a-head">
@@ -37,9 +54,8 @@ export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, h
         <button className="a-act" onClick={() => act.onTafsir(sid, a.n)} aria-label="Тафсир"><Icon id="info" /></button>
         <button className={'a-act' + (marked ? ' on' : '')} onClick={() => act.onBookmark(key)} aria-label="Закладка"><Icon id="bookmark" /></button>
       </div>
-      <div className={'a-ar' + (hidden ? ' hidden' : '')}>
-        {opts.tajweed ? <span dangerouslySetInnerHTML={{ __html: a.tj }} /> : a.t}{' '}
-        <span className="a-end">{arDigits(a.n)}</span>
+      <div className={'a-ar qpc' + (hidden ? ' hidden' : '')} style={{ fontFamily: `'${family}', 'UthmanicHafs'`, ['--pal' as string]: pagePalette(a.p) }}>
+        {a.g}
       </div>
       <div className="a-tr">{opts.translation === 'aa' ? a.aa : a.ku}</div>
     </div>
@@ -54,6 +70,7 @@ export function SuraView({ surah, scrollTo, opts, act, onTop }: {
   const box = useRef<HTMLDivElement>(null)
   const onTopRef = useRef(onTop)
   onTopRef.current = onTop
+  const theme = useUi((s) => s.theme)
 
   useEffect(() => {
     let alive = true
@@ -92,21 +109,20 @@ export function SuraView({ surah, scrollTo, opts, act, onTop }: {
   // звучащий аят — докрутить до него
   useEffect(() => {
     if (!act.playing || !box.current) return
-    const el = box.current.querySelector<HTMLElement>(`[data-key="${act.playing}"]`)
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    box.current.querySelector<HTMLElement>(`[data-key="${act.playing}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [act.playing])
 
   return (
     <div className="vscroll" ref={box}>
       <div className="content">
-        <SurahHead s={surah} />
+        <SurahHead s={surah} tajweed={opts.tajweed} />
         {!ayahs && <div className="loading">Загрузка…</div>}
         {ayahs?.map((a, i) => {
           const key = `${surah.id}:${a.n}`
           const pageEnd = !ayahs[i + 1] || ayahs[i + 1].p !== a.p
           return (
             <div key={a.n}>
-              <AyahBlock sid={surah.id} a={a} opts={opts} act={act} playing={act.playing === key} hidden={act.hidden(key)} marked={act.bookmarked(key)} />
+              <AyahBlock sid={surah.id} a={a} opts={opts} act={act} theme={theme} playing={act.playing === key} hidden={act.hidden(key)} marked={act.bookmarked(key)} />
               {pageEnd && <div className="pmark">{a.p} стр.</div>}
             </div>
           )
@@ -117,9 +133,10 @@ export function SuraView({ surah, scrollTo, opts, act, onTop }: {
 }
 
 // ---------- Режим «Страница»: аяты одной страницы мусхафа ----------
-export function PageAyahs({ page, surahs, opts, act }: { page: number; surahs: Surah[]; opts: ViewOpts; act: AyahActions }) {
+export const PageAyahs = memo(function PageAyahs({ page, surahs, opts, act }: { page: number; surahs: Surah[]; opts: ViewOpts; act: AyahActions }) {
   const [items, setItems] = useState<{ sid: number; a: Ayah }[] | null>(null)
   const box = useRef<HTMLDivElement>(null)
+  const theme = useUi((s) => s.theme)
 
   useEffect(() => {
     let alive = true
@@ -148,8 +165,8 @@ export function PageAyahs({ page, surahs, opts, act }: { page: number; surahs: S
           const key = `${sid}:${a.n}`
           return (
             <div key={key}>
-              {a.n === 1 && <SurahHead s={surahs[sid - 1]} />}
-              <AyahBlock sid={sid} a={a} opts={opts} act={act} playing={act.playing === key} hidden={act.hidden(key)} marked={act.bookmarked(key)} />
+              {a.n === 1 && <SurahHead s={surahs[sid - 1]} tajweed={opts.tajweed} />}
+              <AyahBlock sid={sid} a={a} opts={opts} act={act} theme={theme} playing={act.playing === key} hidden={act.hidden(key)} marked={act.bookmarked(key)} />
             </div>
           )
         })}
@@ -157,9 +174,9 @@ export function PageAyahs({ page, surahs, opts, act }: { page: number; surahs: S
       </div>
     </div>
   )
-}
+})
 
-// ---------- Режим «Мусхаф»: печатная страница (шрифты QPC) ----------
+// ---------- Режим «Мусхаф»: печатная страница ----------
 type Line = { kind: 'words'; n: number } | { kind: 'head'; sid: number } | { kind: 'bism' } | { kind: 'empty' }
 
 function layoutLines(mp: MushafPage): Line[] {
@@ -186,18 +203,18 @@ function layoutLines(mp: MushafPage): Line[] {
   return out
 }
 
-export function MushafView({ page, tajweed, playing }: { page: number; tajweed: boolean; playing: string | null }) {
+export const MushafView = memo(function MushafView({ page, tajweed, playing }: { page: number; tajweed: boolean; playing: string | null }) {
   const [mp, setMp] = useState<MushafPage | null>(null)
   const [ready, setReady] = useState(false)
   const box = useRef<HTMLDivElement>(null)
-  const tj = tajweed && colorFontsSupported
+  const theme = useUi((s) => s.theme)
 
   useEffect(() => {
     let alive = true
     setReady(false)
-    Promise.all([loadMushafPage(page), loadPageFont(page, tj)]).then(([m]) => { if (alive) { setMp(m); setReady(true) } })
+    Promise.all([loadMushafPage(page), loadPageFont(page, tajweed, theme)]).then(([m]) => { if (alive) { setMp(m); setReady(true) } })
     return () => { alive = false }
-  }, [page, tj])
+  }, [page, tajweed, theme])
 
   // подгоняем шрифт: самая длинная строка = ширина страницы, 15 строк = высота
   useLayoutEffect(() => {
@@ -221,23 +238,21 @@ export function MushafView({ page, tajweed, playing }: { page: number; tajweed: 
     const ro = new ResizeObserver(fit)
     ro.observe(m)
     return () => ro.disconnect()
-  }, [ready, mp])
+  }, [ready, mp, page])
 
   if (!mp || !ready) return <div className="mus"><div className="loading">Загрузка страницы…</div></div>
-  const family = pageFontFamily(page, tj)
+  const family = pageFont(page, tajweed, theme)
   return (
     <div className="mus">
       <div className={'mushaf' + (page <= 2 ? ' short' : '')} ref={box}>
         <div className="lines">
           {layoutLines(mp).map((l, i) => {
             if (l.kind === 'head') return <div key={i} className="ln head">{surahGlyph(l.sid)}</div>
-            if (l.kind === 'bism') return <div key={i} className="ln bism">بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ</div>
+            if (l.kind === 'bism') return <Bismillah key={i} tajweed={tajweed} className="ln bism" />
             if (l.kind === 'empty') return <div key={i} className="ln" />
-            const words = mp.lines[l.n]
             return (
-              <div key={i} className={'ln w' + (page <= 2 ? ' center' : '')}
-                style={{ fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(page) }}>
-                {words.map(([g, key], j) => <span key={j} className={key === playing ? 'hl' : ''}>{g}</span>)}
+              <div key={i} className={'ln w' + (page <= 2 ? ' center' : '')} style={{ fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(page) }}>
+                {mp.lines[l.n].map(([g, key], j) => <span key={j} className={key === playing ? 'hl' : ''}>{g}</span>)}
               </div>
             )
           })}
@@ -246,4 +261,4 @@ export function MushafView({ page, tajweed, playing }: { page: number; tajweed: 
       </div>
     </div>
   )
-}
+})

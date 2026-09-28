@@ -8,10 +8,10 @@ import { RECITERS, setMediaTitle, setReciter, usePlayer, type MemoOptions } from
 import { useStore, type ReadMode } from '../../store/settings'
 import { Dial } from './Dial'
 import { Pager } from './Pager'
-import { BookmarksSheet, MemoSheet, MenuPanel, MODES, ModePop, PickerSheet, TafsirSheet } from './sheets'
+import { BookmarksSheet, MemoSheet, MenuPanel, MODES, ModePop, PickerSheet, ReaderSettingsSheet, TafsirSheet } from './sheets'
 import { MushafView, PageAyahs, SuraView, type AyahActions } from './views'
 
-type Overlay = null | 'pop' | 'menu' | 'picker' | 'search' | 'memo' | 'bookmarks' | { tafsir: [number, number] }
+type Overlay = null | 'pop' | 'menu' | 'picker' | 'search' | 'memo' | 'bookmarks' | 'settings' | { tafsir: [number, number] }
 
 export default function Reader() {
   const meta = useQuranMeta()
@@ -42,11 +42,13 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     loadSurah(initSurah).then((ayahs) => { const a = ayahs.find((x) => x.n === initAyah); if (a) setPage(a.p) })
   }, [])
 
-  useEffect(() => { st.markToday() }, [])
   useEffect(() => { setReciter(st.reciter) }, [st.reciter])
   useEffect(() => { setMediaTitle((k) => { const [s, a] = k.split(':'); return `${surahs[+s - 1].name}, аят ${a}` }) }, [surahs])
 
   const mode = st.mode
+  const markPage = st.markPage
+  // каждая открытая страница засчитывается в «Сегодня» на главной и в серию дней
+  useEffect(() => { const t = setTimeout(() => markPage(page), 1500); return () => clearTimeout(t) }, [page, markPage])
   const pageSurah = surahByPage(surahs, page)
   const surah = mode === 'sura' ? surahs[surahId - 1] : pageSurah
 
@@ -134,6 +136,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   function startMemo(from: number, to: number, opts: MemoOptions) {
     setOverlay(null)
     haptic.success()
+    st.markTask('memo', true)
     usePlayer.getState().play(keysOf(surah, from, to), 0, opts)
   }
 
@@ -146,7 +149,17 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     onBookmark: (k) => { haptic.tap(); st.toggleBookmark(k) },
   }), [player.current, player.memo, player.queue, st, playFrom])
 
-  const opts = { tajweed: st.tajweed, translation: st.translation }
+  const opts = useMemo(() => ({ tajweed: st.tajweed, translation: st.translation }), [st.tajweed, st.translation])
+  const renderPage = useCallback((p: number) => <PageAyahs page={p} surahs={surahs} opts={opts} act={act} />, [surahs, opts, act])
+  const renderMushaf = useCallback((p: number) => <MushafView page={p} tajweed={st.tajweed} playing={player.current} />, [st.tajweed, player.current])
+
+  // окно выбора режима закрывается, как только касаемся чего-то другого (листаем страницу, колесо и т.п.)
+  useEffect(() => {
+    if (overlay !== 'pop') return
+    const close = (e: PointerEvent) => { const t = e.target as HTMLElement; if (!t.closest('.pop, .modebtn')) setOverlay(null) }
+    document.addEventListener('pointerdown', close, true)
+    return () => document.removeEventListener('pointerdown', close, true)
+  }, [overlay])
   const juz = (p: number) => juzByPage(juzPages, p)
   const memo = player.memo
   const playing = player.status === 'playing' || player.status === 'loading'
@@ -155,8 +168,8 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     <div className="reader" style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
       <div className="view">
         {mode === 'sura' && <SuraView key={`${surahId}-${target.nonce}`} surah={surahs[surahId - 1]} scrollTo={target.ayah} opts={opts} act={act} onTop={onTop} />}
-        {mode === 'page' && <Pager page={page} onChange={setPage} render={(p) => <PageAyahs page={p} surahs={surahs} opts={opts} act={act} />} />}
-        {mode === 'mushaf' && <Pager page={page} onChange={setPage} render={(p) => <MushafView page={p} tajweed={st.tajweed} playing={player.current} />} />}
+        {mode === 'page' && <Pager page={page} onChange={setPage} render={renderPage} />}
+        {mode === 'mushaf' && <Pager page={page} onChange={setPage} render={renderMushaf} />}
       </div>
 
       <div className="rtop">
@@ -185,12 +198,12 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
       )}
       {player.error && <div className="memobar glass" style={{ bottom: 'calc(var(--safe-bottom) + 170px)' }}><div className="t"><span>{player.error}</span></div></div>}
 
-      <div className="dock glass">
-        <button className={'modebtn' + (overlay === 'pop' ? ' open' : '')} onClick={() => setOverlay(overlay === 'pop' ? null : 'pop')}>
-          <Icon id={MODES[mode].icon} /><b>{MODES[mode].label}</b>
+      <div className="rbar">
+        <button className={'rcircle glass modebtn' + (overlay === 'pop' ? ' open' : '')} onClick={() => setOverlay(overlay === 'pop' ? null : 'pop')} aria-label={'Режим: ' + MODES[mode].label}>
+          <Icon id={MODES[mode].icon} />
         </button>
         <Dial page={page} juz={juz} onChange={goPage} onOpenPicker={() => setOverlay('picker')} />
-        <button className="menubtn" onClick={() => setOverlay('menu')} aria-label="Меню"><Icon id="grid" /></button>
+        <button className="rcircle glass" onClick={() => setOverlay('menu')} aria-label="Меню"><Icon id="grid" /></button>
       </div>
 
       {overlay === 'pop' && <ModePop mode={mode} onPick={switchMode} />}
@@ -203,6 +216,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
           onSearch={() => setOverlay('search')}
           onMemo={() => setOverlay('memo')}
           onTajweed={() => { haptic.tap(); st.set({ tajweed: !st.tajweed }) }}
+          onSettings={() => setOverlay('settings')}
         />
       )}
       {(overlay === 'picker' || overlay === 'search') && (
@@ -217,6 +231,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
         <BookmarksSheet bookmarks={st.bookmarks} surahs={surahs} onClose={() => setOverlay(null)}
           onOpen={(s, a) => goSurah(surahs[s - 1], a)} onRemove={st.toggleBookmark} />
       )}
+      {overlay === 'settings' && <ReaderSettingsSheet onClose={() => setOverlay(null)} />}
       {overlay && typeof overlay === 'object' && (
         <TafsirSheet surah={surahs[overlay.tafsir[0] - 1]} ayah={overlay.tafsir[1]} onClose={() => setOverlay(null)} />
       )}

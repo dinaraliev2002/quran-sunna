@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
-import { TabBar, useQuranMeta } from '../components/ui'
-import { useStore } from '../store/settings'
-import { tgUser } from '../lib/telegram'
+import { TabBar, plural, useQuranMeta } from '../components/ui'
+import { loadSurah, type Ayah } from '../lib/data'
+import { pageFont, pagePalette } from '../lib/fonts'
+import { haptic, tgUser } from '../lib/telegram'
+import { useStore, type TaskId } from '../store/settings'
+import { useUi } from '../store/ui'
 
 function hijriToday() {
   try {
@@ -14,12 +18,38 @@ function hijriToday() {
   }
 }
 
+// Аят дня — меняется каждый день (короткие известные аяты из небольших сур)
+const DAILY = ['13:28', '20:114', '29:69', '39:53', '40:60', '55:13', '65:3', '93:5', '94:5', '49:13', '25:63', '112:1', '17:24', '65:2']
+
+function useAyahOfDay() {
+  const [data, setData] = useState<{ key: string; a: Ayah } | null>(null)
+  useEffect(() => {
+    const day = Math.floor((Date.now() - new Date().getTimezoneOffset() * 6e4) / 864e5)
+    const key = DAILY[day % DAILY.length]
+    const [s, n] = key.split(':').map(Number)
+    loadSurah(s).then((ayahs) => setData({ key, a: ayahs[n - 1] }))
+  }, [])
+  return data
+}
+
 export default function Home() {
   const nav = useNavigate()
   const meta = useQuranMeta()
-  const { lastRead, streak } = useStore()
+  const { lastRead, recent, streak, today, markTask, tajweed } = useStore()
+  const theme = useUi((s) => s.theme)
   const user = tgUser()
   const last = lastRead && meta ? meta.surahs[lastRead.s - 1] : null
+  const aod = useAyahOfDay()
+
+  const continueReading = () => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}`) : nav('/read/1'))
+  const pagesToday = today.pages.length
+  const tasks: { id: TaskId; title: string; sub: string; action?: () => void; actionLabel?: string }[] = [
+    { id: 'read', title: 'Прочитать страницу Корана', sub: pagesToday ? `Сегодня: ${pagesToday} ${plural(pagesToday, 'страница', 'страницы', 'страниц')}` : 'Отметится само, когда почитаете', action: continueReading, actionLabel: 'Читать' },
+    { id: 'morning', title: 'Утренние азкары', sub: 'После утреннего намаза' },
+    { id: 'evening', title: 'Вечерние азкары', sub: 'После послеполуденного намаза' },
+    { id: 'memo', title: 'Повторить выученное', sub: 'Меню чтения → «Заучивание»', action: continueReading, actionLabel: 'Начать' },
+  ]
+  const doneCount = tasks.filter((t) => today.done.includes(t.id)).length
 
   return (
     <div className="screen">
@@ -31,7 +61,7 @@ export default function Home() {
           <b>Ас-саляму алейкум{user?.first_name ? `, ${user.first_name}` : ''}</b>
           <span>{hijriToday()}</span>
         </div>
-        <div className="streak" title="Дней подряд с чтением"><Icon id="flame" />{streak}</div>
+        <div className="streak" title="Дней подряд с чтением Корана"><Icon id="flame" />{streak}</div>
         <button className="icon-btn" onClick={() => nav('/notifications')} aria-label="Уведомления"><Icon id="bell" /></button>
       </div>
 
@@ -41,7 +71,7 @@ export default function Home() {
           <div className="ib"><Icon id="book" /></div>
           <div className="label">Читать и слушать</div>
           <div className="big">Коран</div>
-          <div className="cont" onClick={(e) => { if (last && lastRead) { e.stopPropagation(); nav(`/read/${lastRead.s}?a=${lastRead.a}`) } }}>
+          <div className="cont" onClick={(e) => { e.stopPropagation(); continueReading() }}>
             <Icon id="play" />{last && lastRead ? `${last.name}, ${lastRead.a}` : 'Аль-Фатиха, 1'}
           </div>
         </button>
@@ -60,12 +90,46 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="section-h"><h2>Аят дня</h2></div>
-      <div className="ayah-day">
-        <div className="ar">قُلْ هُوَ ٱللَّهُ أَحَدٌ</div>
-        <p>Скажи: «Он — Аллах Единый».</p>
-        <div className="ref">Аль-Ихлас, 112:1</div>
+      <div className="today">
+        <div className="th"><b>Сегодня</b><span>{doneCount} из {tasks.length}</span></div>
+        {tasks.map((t) => {
+          const done = today.done.includes(t.id)
+          return (
+            <div key={t.id} className={'task' + (done ? ' done' : '')}>
+              <button className={'ck' + (done ? ' on' : '')} onClick={() => { haptic.tap(); markTask(t.id) }} aria-label={done ? 'Снять отметку' : 'Отметить'}>
+                {done && <Icon id="check" />}
+              </button>
+              <div className="t"><b>{t.title}</b><span>{t.sub}</span></div>
+              {t.action && !done && <button className="go" onClick={t.action}>{t.actionLabel}</button>}
+            </div>
+          )
+        })}
       </div>
+
+      {recent.length > 0 && meta && (
+        <>
+          <div className="section-h"><h2>Недавнее</h2></div>
+          {recent.slice(0, 3).map((r) => {
+            const s = meta.surahs[r.s - 1]
+            return (
+              <button key={r.s} className="list-item" onClick={() => nav(`/read/${r.s}?a=${r.a}`)}>
+                <div className="ib"><Icon id="book" /></div>
+                <div className="t"><b>Сура {s.name}</b><span>Аят {r.a} из {s.ayahs} · стр. {r.p}</span></div>
+                <Icon id="right" className="icon" style={{ color: 'var(--text-2)', width: 18, height: 18 }} />
+              </button>
+            )
+          })}
+        </>
+      )}
+
+      <div className="section-h"><h2>Аят дня</h2></div>
+      {aod && meta && (
+        <button className="ayah-day" onClick={() => nav(`/read/${aod.key.split(':')[0]}?a=${aod.a.n}`)}>
+          <div className="ar qpc" style={{ fontFamily: `'${pageFont(aod.a.p, tajweed, theme)}', 'UthmanicHafs'`, ['--pal' as string]: pagePalette(aod.a.p) }}>{aod.a.g}</div>
+          <p>{aod.a.ku}</p>
+          <div className="ref">{meta.surahs[Number(aod.key.split(':')[0]) - 1].name}, {aod.key}</div>
+        </button>
+      )}
       <TabBar />
     </div>
   )

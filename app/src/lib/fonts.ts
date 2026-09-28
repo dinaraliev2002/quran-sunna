@@ -1,38 +1,60 @@
-// Шрифты страниц Мединского мусхафа (Комплекс короля Фахда, QPC):
-//  V2 — обычные, V4 — с цветным таджвидом (COLRv1).
-// Пока берём с CDN Quran.com; перед публикацией скачаем к себе (см. план).
+// Шрифты страниц Мединского мусхафа (Комплекс короля Фахда, QPC). У каждой из 604 страниц свой шрифт,
+// каждое слово — готовый глиф. Используются во всех режимах чтения:
+//  V2 — обычный текст, V4 — с цветным таджвидом (цвета печатного мусхафа с таджвидом).
+// V4 бывает в двух форматах: COLRv1 (Chrome/Android) и OT-SVG (Safari: iPhone, iPad, Mac) — у OT-SVG
+// отдельные файлы для светлой и тёмной темы.
+// Пока берём с CDN Quran.com; перед релизом перенесём к себе.
 
 const V2 = (p: number) => `https://static.qurancdn.com/fonts/quran/hafs/v2/woff2/p${p}.woff2`
-const V4 = (p: number) => `https://verses.quran.foundation/fonts/quran/hafs/v4/colrv1/woff2/p${p}.woff2`
+const V4_COLR = (p: number) => `https://verses.quran.foundation/fonts/quran/hafs/v4/colrv1/woff2/p${p}.woff2`
+const V4_SVG = (p: number, theme: Theme) => `https://verses.quran.foundation/fonts/quran/hafs/v4/ot-svg/${theme}/woff2/p${p}.woff2`
 
-export const pageFontFamily = (p: number, tajweed: boolean) => `QPC${tajweed ? 'T' : ''}-p${p}`
-export const pagePalette = (p: number) => `--tjdark-${p}`
+type Theme = 'light' | 'dark'
 
-/** COLRv1 (цветные шрифты) не поддерживается в Safari → на iOS таджвид в мусхафе пока недоступен */
-export const colorFontsSupported = (() => {
+/** Движок Safari (все браузеры на iOS, Telegram на iPhone/Mac) — для него таджвид в формате OT-SVG */
+const appleWebKit = (() => {
   const ua = navigator.userAgent
-  const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Android|CriOS|Edg/.test(ua)
-  const isIOS = /iPhone|iPad|iPod/.test(ua)
-  return !(isSafari || isIOS)
+  if (/iPhone|iPad|iPod/.test(ua)) return true
+  if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return true // iPadOS
+  return /AppleWebKit/.test(ua) && !/Chrome|Chromium|Android|Edg|OPR/.test(ua)
 })()
 
-const loaded = new Map<string, Promise<void>>()
+export function pageFontFamily(p: number, tajweed: boolean, theme: Theme) {
+  if (!tajweed) return `QPC-p${p}`
+  return appleWebKit ? `QPCT-${theme}-p${p}` : `QPCT-p${p}`
+}
+
+/** Тёмная палитра цветного шрифта COLRv1 (для OT-SVG есть отдельный тёмный файл) */
+export const pagePalette = (p: number) => (appleWebKit ? 'normal' : `--tjdark-${p}`)
+
+const faces = new Map<string, FontFace>()
 let paletteStyle: HTMLStyleElement | null = null
 
-export function loadPageFont(p: number, tajweed: boolean): Promise<void> {
-  const family = pageFontFamily(p, tajweed)
-  if (!loaded.has(family)) {
-    const face = new FontFace(family, `url(${tajweed ? V4(p) : V2(p)}) format("woff2")`, { display: 'block' })
-    const promise = face.load().then((f) => {
-      document.fonts.add(f)
-      if (tajweed) {
-        // у цветного шрифта есть тёмная палитра — подключаем её для тёмной темы
-        paletteStyle ??= document.head.appendChild(document.createElement('style'))
-        paletteStyle.textContent += `@font-palette-values ${pagePalette(p)} { font-family: "${family}"; base-palette: 1; }\n`
-      }
-    })
-    promise.catch(() => loaded.delete(family))
-    loaded.set(family, promise)
+function register(p: number, tajweed: boolean, theme: Theme): FontFace {
+  const family = pageFontFamily(p, tajweed, theme)
+  let face = faces.get(family)
+  if (!face) {
+    const url = !tajweed ? V2(p) : appleWebKit ? V4_SVG(p, theme) : V4_COLR(p)
+    face = new FontFace(family, `url(${url}) format("woff2")`, { display: 'block' })
+    // шрифт зарегистрирован, но скачается только когда текст с ним появится на экране
+    document.fonts.add(face)
+    faces.set(family, face)
+    if (tajweed && !appleWebKit) {
+      paletteStyle ??= document.head.appendChild(document.createElement('style'))
+      paletteStyle.textContent += `@font-palette-values --tjdark-${p} { font-family: "${family}"; base-palette: 1; }\n`
+    }
   }
-  return loaded.get(family)!
+  return face
+}
+
+/** Подготовить шрифт страницы (скачается при первом использовании) */
+export function pageFont(p: number, tajweed: boolean, theme: Theme) {
+  register(p, tajweed, theme)
+  return pageFontFamily(p, tajweed, theme)
+}
+
+/** Дождаться загрузки шрифта страницы (нужно мусхафу, чтобы подогнать размер) */
+export function loadPageFont(p: number, tajweed: boolean, theme: Theme): Promise<void> {
+  const face = register(p, tajweed, theme)
+  return face.load().then(() => undefined, () => { faces.delete(pageFontFamily(p, tajweed, theme)); document.fonts.delete(face) })
 }

@@ -89,7 +89,7 @@ export function Dial({ page, juz, onChange, onOpenPicker }: { page: number; juz:
   }
 
   return (
-    <div ref={dial} className={'dial' + (press ? ' press' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up}
+    <div ref={dial} className={'dial glass' + (press ? ' press' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up}
       onWheel={(e) => { ruler.current!.scrollLeft += e.deltaY || e.deltaX }}>
       <div className="grip" />
       <button className="lbl" onPointerDown={(e) => e.stopPropagation()} onClick={onOpenPicker}>
