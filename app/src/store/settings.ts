@@ -38,6 +38,8 @@ interface Store extends Settings, Progress {
   toggleBookmark: (key: string) => void
   markPage: (p: number) => void
   markTask: (id: TaskId, done?: boolean) => void
+  /** наступил новый день → обнулить «Сегодня» и проверить серию */
+  rollDay: () => void
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -50,7 +52,8 @@ const DEFAULT_SETTINGS: Settings = {
   trSize: 16,
   theme: 'auto',
 }
-const dayStr = (d = new Date()) => d.toLocaleDateString('sv') // YYYY-MM-DD в местном времени
+// YYYY-MM-DD в местном времени (вручную — не зависим от языковых форматов браузера)
+const dayStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const emptyToday = (): Today => ({ d: dayStr(), done: [], pages: [] })
 const DEFAULT_PROGRESS: Progress = { lastRead: null, recent: [], streak: 0, lastDay: '', today: emptyToday() }
 
@@ -102,6 +105,14 @@ export const useStore = create<Store>((set, get) => ({
     set({ today: { ...today, pages, done }, ...streakPatch })
     persist(get())
   },
+  rollDay: () => {
+    const { today, lastDay, streak } = get()
+    const patch: Partial<Progress> = {}
+    if (today.d !== dayStr()) patch.today = emptyToday()
+    const yesterday = dayStr(new Date(Date.now() - 864e5))
+    if (streak && lastDay && lastDay !== dayStr() && lastDay !== yesterday) patch.streak = 0
+    if (Object.keys(patch).length) { set(patch); persist(get()) }
+  },
   markTask: (id, done) => {
     const today = currentToday(get().today)
     const has = today.done.includes(id)
@@ -123,4 +134,10 @@ export async function hydrateStore() {
   if (progress.lastDay && progress.lastDay !== dayStr() && progress.lastDay !== yesterday) progress.streak = 0
   const bookmarks = b ? b.split(',').filter(Boolean) : Array.isArray(legacy.bookmarks) ? legacy.bookmarks : []
   useStore.setState({ ...DEFAULT_SETTINGS, ...parse(s), ...progress, bookmarks, hydrated: true })
+}
+
+// Telegram держит приложение в памяти — проверяем смену дня при каждом возвращении и раз в минуту
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') useStore.getState().rollDay() })
+  setInterval(() => useStore.getState().rollDay(), 60_000)
 }

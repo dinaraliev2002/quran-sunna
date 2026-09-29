@@ -34,7 +34,8 @@ function useAyahOfDay() {
 export default function Home() {
   const nav = useNavigate()
   const meta = useQuranMeta()
-  const { lastRead, recent, streak, today, markTask, tajweed } = useStore()
+  const { lastRead, recent, streak, today, markTask, tajweed, rollDay } = useStore()
+  useEffect(() => { rollDay() }, [rollDay]) // открыли главную — убедиться, что «Сегодня» за сегодня
   const user = tgUser()
   const last = lastRead && meta ? meta.surahs[lastRead.s - 1] : null
   const aod = useAyahOfDay()
