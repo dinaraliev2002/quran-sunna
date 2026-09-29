@@ -93,6 +93,7 @@ export default function Settings() {
             <p>• Переводы смыслов: Эльмир Кулиев; Абу Адель.</p>
             <p>• Тафсир ас-Саади (русский перевод) — Quran.com.</p>
             <p>• Аудио: everyayah.com, зеркало quranicaudio.com.</p>
+            <p>• Азкары «Крепость мусульманина» (Саид аль-Кахтани): тексты и перевод — открытая библиотека my-prayers/muslim-data (Apache-2.0); число повторов и аудио — hisnmuslim.com.</p>
           </div>
         </Sheet>
       )}

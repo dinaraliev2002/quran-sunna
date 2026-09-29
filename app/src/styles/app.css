@@ -384,3 +384,66 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .content.from-right { animation: enterFromRight .35s cubic-bezier(.22, 1, .36, 1); }
 @keyframes enterFromLeft { from { transform: translateX(-60px); opacity: 0; } }
 @keyframes enterFromRight { from { transform: translateX(60px); opacity: 0; } }
+
+/* ===== Азкары ===== */
+.screen.az { padding-top: 0; }
+.az-tabs { position: sticky; top: calc(var(--content-top) + 64px); z-index: 2; background: var(--bg); margin: 0 -18px; padding: 4px 18px 8px; }
+.az-sub { font-size: 12px; color: var(--text-2); font-weight: 600; margin: 4px 2px 14px; }
+.az-hero { width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; border-radius: var(--r-tile); padding: 18px; margin-bottom: 10px; background: var(--surface); }
+.az-hero.primary { background: var(--gold); color: var(--on-gold); }
+.az-hero .t { flex: 1; min-width: 0; }
+.az-hero b { display: block; font-size: 20px; font-weight: 800; margin: 2px 0 4px; }
+.az-hero span { font-size: 12px; font-weight: 600; opacity: .75; }
+.az-when { display: inline-block; font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase; letter-spacing: .06em; opacity: .7 !important; }
+.az-ring { position: relative; width: 58px; height: 58px; flex: none; display: grid; place-items: center; }
+.az-ring svg { position: absolute; inset: 0; }
+.az-ring span { position: relative; font-size: 13px; font-weight: 800; opacity: 1 !important; }
+.az-ring .icon { width: 22px; height: 22px; stroke-width: 2.6; }
+.ring-bg { fill: none; stroke: currentColor; opacity: .15; stroke-width: 5; }
+.ring-fg { fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset .4s; }
+.az-hero:not(.primary) .ring-fg { stroke: var(--emerald-bright); }
+.az-count { font-size: 12px; font-weight: 800; color: var(--emerald-bright); background: var(--highlight); padding: 4px 8px; border-radius: 8px; }
+.chev-s { width: 18px !important; height: 18px !important; color: var(--text-2); }
+.az-row { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); text-align: left; content-visibility: auto; contain-intrinsic-size: auto 70px; }
+.az-num { width: 30px; flex: none; font-size: 12px; font-weight: 800; color: var(--gold-ink); padding-top: 2px; }
+.az-row .t { flex: 1; min-width: 0; }
+.az-ch { display: block; font-size: 11px; font-weight: 800; color: var(--gold-ink); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 3px; }
+.az-row b { font-size: 14px; font-weight: 600; line-height: 1.45; }
+.az-rep { flex: none; font-size: 11px; font-weight: 800; color: var(--emerald-bright); background: var(--highlight); padding: 3px 7px; border-radius: 7px; margin-top: 2px; }
+.az-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.az-cat { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px; border-radius: var(--r-card); background: var(--surface); text-align: left; min-height: 118px; }
+.az-cat .ib { width: 40px; height: 40px; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; color: var(--gold-ink); margin-bottom: auto; }
+.az-cat b { font-size: 15px; font-weight: 800; line-height: 1.25; }
+.az-cat span:last-child { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.icon-btn.ghost { background: transparent; color: var(--gold-ink); }
+/* глава азкаров */
+.screen.azc { padding-top: 0; }
+.azc-top { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 12px; background: var(--bg); margin: 0 -18px; padding: calc(var(--content-top) + 12px) 18px 10px; }
+.azc-top .ttl { flex: 1; min-width: 0; text-align: center; }
+.azc-top .ttl b { display: block; font-size: 16px; font-weight: 800; line-height: 1.25; }
+.azc-top .ttl span { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.azc-progress { margin: 4px 2px 14px; }
+.azc-progress span { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.dua { background: var(--surface); border-radius: var(--r-tile); padding: 18px; margin-bottom: 12px; transition: opacity .3s; scroll-margin-top: 90px; }
+.dua.done { opacity: .6; }
+.dua.focus { box-shadow: 0 0 0 2px var(--gold); }
+.dua .hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dua .hd .n { font-size: 12px; font-weight: 800; color: var(--gold-ink); }
+.dua .hd .play { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; color: var(--emerald-bright); }
+.dua .hd .play.on { background: var(--emerald); color: var(--on-emerald); }
+.dua .hd .play .icon { width: 17px; height: 17px; }
+.dua .ar { font-family: "Amiri", "UthmanicHafs", serif; font-size: calc(var(--ar-size) * .85); line-height: 2; direction: rtl; text-align: right; white-space: pre-line; }
+.dua .tr { font-size: calc(var(--tr-size) - 1px); line-height: 1.6; margin-top: 10px; white-space: pre-line; }
+.dua .src { font-size: 12px; color: var(--text-2); margin-top: 10px; line-height: 1.5; }
+.dua .src b { color: var(--text); font-weight: 700; }
+.counter { width: 100%; margin-top: 14px; height: 56px; border-radius: var(--r-pill); background: var(--emerald); color: var(--on-emerald); display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 20px; font-weight: 800; transition: transform .1s, background .2s; }
+.counter:active { transform: scale(.98); }
+.counter .lbl { font-size: 13px; }
+.counter .cnt { height: 42px; min-width: 76px; padding: 0 14px; border-radius: var(--r-pill); background: rgba(0, 0, 0, .2); display: grid; place-items: center; font-size: 17px; }
+.counter .cnt .icon { width: 20px; height: 20px; stroke-width: 2.6; }
+.counter.full { background: var(--surface-2); color: var(--text-2); }
+.counter.full .cnt { background: transparent; color: var(--emerald-bright); }
+.azc-done { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 24px 12px 8px; }
+.azc-done .icon { width: 44px; height: 44px; color: var(--on-emerald); background: var(--emerald); border-radius: 50%; padding: 10px; stroke-width: 2.6; }
+.azc-done b { font-size: 17px; font-weight: 800; } .azc-done span { font-size: 13px; color: var(--text-2); }
+.azc-toast { position: fixed; left: 16px; right: 16px; bottom: calc(var(--safe-bottom) + 20px); z-index: 20; background: var(--surface-3); border-radius: 16px; padding: 12px 14px; font-size: 13px; font-weight: 600; text-align: center; }

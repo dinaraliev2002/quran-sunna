@@ -2,7 +2,7 @@
 import { idbDeletePrefix, idbGet, idbKeys, idbPut } from './idb'
 
 /** Версия данных Корана: увеличиваем, когда меняем public/data (старые копии на телефоне удалятся) */
-export const DATA_VERSION = 'v3'
+export const DATA_VERSION = 'v4'
 export const dataKey = (path: string) => `data:${DATA_VERSION}:${path}`
 
 const inflight = new Map<string, Promise<unknown>>()

@@ -9,7 +9,7 @@ export interface LastRead { s: number; a: number; p: number }
 
 /** Ежедневные дела на главной */
 export type TaskId = 'read' | 'morning' | 'evening' | 'memo'
-interface Today { d: string; done: TaskId[]; pages: number[] }
+interface Today { d: string; done: TaskId[]; pages: number[]; /** азкары: «глава:азкар» → сколько раз прочитан сегодня */ az?: Record<string, number> }
 
 interface Settings {
   mode: ReadMode
@@ -40,6 +40,9 @@ interface Store extends Settings, Progress {
   markTask: (id: TaskId, done?: boolean) => void
   /** наступил новый день → обнулить «Сегодня» и проверить серию */
   rollDay: () => void
+  /** +1 к счётчику азкара (не больше нужного числа повторов); вернёт новое значение */
+  azkarTap: (ch: number, item: number, rep: number) => number
+  azkarReset: (ch: number, items: number[]) => void
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -112,6 +115,23 @@ export const useStore = create<Store>((set, get) => ({
     const yesterday = dayStr(new Date(Date.now() - 864e5))
     if (streak && lastDay && lastDay !== dayStr() && lastDay !== yesterday) patch.streak = 0
     if (Object.keys(patch).length) { set(patch); persist(get()) }
+  },
+  azkarTap: (ch, item, rep) => {
+    const today = currentToday(get().today)
+    const key = `${ch}:${item}`
+    const az = { ...(today.az ?? {}) }
+    const n = Math.min(rep, (az[key] ?? 0) + 1)
+    az[key] = n
+    set({ today: { ...today, az } })
+    persist(get())
+    return n
+  },
+  azkarReset: (ch, items) => {
+    const today = currentToday(get().today)
+    const az = { ...(today.az ?? {}) }
+    items.forEach((i) => delete az[`${ch}:${i}`])
+    set({ today: { ...today, az } })
+    persist(get())
   },
   markTask: (id, done) => {
     const today = currentToday(get().today)

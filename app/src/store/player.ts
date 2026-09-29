@@ -117,6 +117,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     play: (queue, start = 0, memo = null) => {
       clearTimeout(waitTimer)
       set({ queue, memo: memo ? { ...memo, each: 1, round: 1 } : null })
+      window.dispatchEvent(new Event('quran-play')) // остановить аудио азкара, если играет
       audio.src = SILENT
       audio.play().catch(() => {})
       load(start)

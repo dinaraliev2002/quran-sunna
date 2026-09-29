@@ -4,6 +4,8 @@ import { Icon } from '../components/Icon'
 import { plural, useQuranMeta } from '../components/ui'
 import { loadSurah, type Ayah } from '../lib/data'
 import { QpcText } from './reader/views'
+import { useChapterProgress } from './azkar/Azkar'
+import { EVENING, loadAzkar, MORNING, nowIsMorning, type AzkarData } from '../lib/azkar'
 import { haptic, tgUser } from '../lib/telegram'
 import { useStore, type TaskId } from '../store/settings'
 
@@ -40,12 +42,20 @@ export default function Home() {
   const last = lastRead && meta ? meta.surahs[lastRead.s - 1] : null
   const aod = useAyahOfDay()
 
+  // азкары: прогресс утренних/вечерних для плитки и блока «Сегодня»
+  const [azkar, setAzkar] = useState<AzkarData | null>(null)
+  useEffect(() => { loadAzkar().then(setAzkar).catch(() => {}) }, [])
+  const azProgress = useChapterProgress(azkar)
+  const azSub = (ch: number, fallback: string) => { const p = azProgress(ch); return p.done ? `Прочитано ${p.done} из ${p.total}` : fallback }
+  const azNow = nowIsMorning() ? MORNING : EVENING
+  const azNowP = azProgress(azNow)
+
   const continueReading = () => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}`) : nav('/read/1'))
   const pagesToday = today.pages.length
   const tasks: { id: TaskId; title: string; sub: string; action?: () => void; actionLabel?: string }[] = [
     { id: 'read', title: 'Прочитать страницу Корана', sub: pagesToday ? `Сегодня: ${pagesToday} ${plural(pagesToday, 'страница', 'страницы', 'страниц')}` : 'Отметится само, когда почитаете', action: continueReading, actionLabel: 'Читать' },
-    { id: 'morning', title: 'Утренние азкары', sub: 'После утреннего намаза' },
-    { id: 'evening', title: 'Вечерние азкары', sub: 'После послеполуденного намаза' },
+    { id: 'morning', title: 'Утренние азкары', sub: azSub(MORNING, 'После утреннего намаза'), action: () => nav(`/azkar/ch/${MORNING}`), actionLabel: 'Читать' },
+    { id: 'evening', title: 'Вечерние азкары', sub: azSub(EVENING, 'После послеполуденного намаза'), action: () => nav(`/azkar/ch/${EVENING}`), actionLabel: 'Читать' },
     { id: 'memo', title: 'Повторить выученное', sub: 'Меню чтения → «Заучивание»', action: continueReading, actionLabel: 'Начать' },
   ]
   const doneCount = tasks.filter((t) => today.done.includes(t.id)).length
@@ -80,8 +90,10 @@ export default function Home() {
         </button>
         <button className="tile azkar" onClick={() => nav('/azkar')}>
           <div className="row"><div className="ib"><Icon id="hands" /></div></div>
-          <div className="label">Крепость мусульманина</div>
-          <div className="big" style={{ fontSize: 24 }}>Азкары</div>
+          <div className="label">{azNow === MORNING ? 'Утренние азкары' : 'Вечерние азкары'}</div>
+          {azNowP.total > 0 && <div className="big" style={{ fontSize: 34 }}>{azNowP.done}<span style={{ fontSize: 18, opacity: .6 }}>/{azNowP.total}</span></div>}
+          {azNowP.total > 0 && <div className="progress"><i style={{ width: `${(azNowP.done / azNowP.total) * 100}%` }} /></div>}
+          <div style={{ fontSize: 18, fontWeight: 800, marginTop: 8 }}>Азкары</div>
         </button>
         <button className="tile names" onClick={() => nav('/names')}>
           <div className="row"><div className="ib"><Icon id="star" /></div></div>

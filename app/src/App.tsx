@@ -3,6 +3,9 @@ import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-route
 import { IconSprite } from './components/Icon'
 import { cleanupOldData } from './lib/net'
 import { backButton, initTelegram, paintChrome, telegramScheme } from './lib/telegram'
+import Azkar from './screens/azkar/Azkar'
+import AzkarCategory from './screens/azkar/Category'
+import AzkarChapter from './screens/azkar/Chapter'
 import Home from './screens/Home'
 import Reader from './screens/reader/Reader'
 import Downloads from './screens/Downloads'
@@ -59,7 +62,9 @@ export default function App() {
             <Route path="/read/:surah" element={<Reader />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/downloads" element={<Downloads />} />
-            <Route path="/azkar" element={<Stub title="Азкары" icon="hands" text="«Крепость мусульманина» — следующий раздел, который мы сделаем." />} />
+            <Route path="/azkar" element={<Azkar />} />
+            <Route path="/azkar/ch/:id" element={<AzkarChapter />} />
+            <Route path="/azkar/cat/:id" element={<AzkarCategory />} />
             <Route path="/hadith" element={<Stub title="Хадисы" icon="scroll" text="Сборники хадисов появятся после раздела азкаров." />} />
             <Route path="/names" element={<Stub title="99 имён Аллаха" icon="star" text="Раздел в работе." />} />
             <Route path="/profile" element={<Stub title="Профиль" icon="flame" text="Профиль, анкета и план заучивания — в следующих версиях." />} />
