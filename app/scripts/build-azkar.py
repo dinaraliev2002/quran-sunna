@@ -34,8 +34,21 @@ def norm(s):
     return re.sub(r'[^ء-ي]', '', s)
 
 
+def fix_breaks(s):
+    """Переносы строк: «\\n» буквами → настоящий перенос; обрывы посреди предложения → пробел;
+    пустая строка — граница абзаца"""
+    s = s.replace('\\r', '').replace('\\n', '\n').replace('\r\n', '\n').replace('\r', '\n')
+    s = re.sub(r'[ \t]*\n[ \t]*', '\n', s)
+    s = re.sub(r'\n{2,}', ' ', s)  # абзацы
+    s = re.sub(r'(?<![.!?:»”…\)\]])\n', ' ', s)  # перенос внутри предложения — это пробел
+    s = s.replace('\n', ' ')
+    s = re.sub(r' +', '\n\n', s)
+    return s.strip()
+
+
 def clean_ru(s):
     """Убрать номера сносок, прилипшие к словам («прежде83» → «прежде»), и лишние пробелы"""
+    s = fix_breaks(s)
     # только цифры, прилипшие к букве или закрывающей кавычке (номера аятов вида «2:255» не трогаем)
     s = re.sub(r'(?<=[а-яёА-ЯЁ»])\d{1,3}(?=[\s,.;:!?»\)\]]|$)', '', s)
     s = re.sub(r'[ \t]+', ' ', s)
@@ -85,7 +98,7 @@ def main():
         na = norm(ar)[:80]
         best = max(H, key=lambda h: difflib.SequenceMatcher(None, na, h[0]).ratio())
         ratio = difflib.SequenceMatcher(None, na, best[0]).ratio()
-        item = {'ch': ch, 'ar': ar.strip(), 'ru': clean_ru(ru[0][0]) if ru else '', 'ref': ref[0][0].strip() if ref else ''}
+        item = {'ch': ch, 'ar': fix_breaks(ar), 'ru': clean_ru(ru[0][0]) if ru else '', 'ref': ref[0][0].strip() if ref else ''}
         # повторы — из hisnmuslim при уверенном совпадении, иначе по словам «три раза» и т.п. в тексте
         item['rep'] = best[1]['REPEAT'] if ratio >= 0.8 else repeat_from_text(ar)
         # аудио — только если текст совпадает почти полностью (у вечерних азкаров слова отличаются от утренних)

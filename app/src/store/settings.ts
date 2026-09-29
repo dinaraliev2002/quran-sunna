@@ -20,6 +20,13 @@ interface Settings {
   arSize: number
   trSize: number
   theme: ThemePref
+  // азкары
+  azArSize: number
+  azTrSize: number
+  azShowAr: boolean
+  azShowTr: boolean
+  azShowRef: boolean
+  azAuto: boolean // после последнего повтора — сама к следующей карточке
 }
 
 interface Progress {
@@ -54,6 +61,12 @@ const DEFAULT_SETTINGS: Settings = {
   arSize: 28,
   trSize: 16,
   theme: 'auto',
+  azArSize: 26,
+  azTrSize: 17,
+  azShowAr: true,
+  azShowTr: true,
+  azShowRef: true,
+  azAuto: true,
 }
 // YYYY-MM-DD в местном времени (вручную — не зависим от языковых форматов браузера)
 const dayStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
