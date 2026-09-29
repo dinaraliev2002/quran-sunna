@@ -38,7 +38,7 @@ export function SurahBanner({ sid, compact }: { sid: number; compact?: boolean }
           <Star cx={W - 46} cy={m} r={H * 0.3} />
         </g>
       </svg>
-      <span className="sb-name">{surahGlyph(sid)}</span>
+      <div className="sb-name">{surahGlyph(sid)}</div>
     </div>
   )
 }

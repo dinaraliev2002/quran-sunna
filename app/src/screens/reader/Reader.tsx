@@ -34,6 +34,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const [target, setTarget] = useState({ ayah: initAyah, nonce: 0 }) // куда прокрутить в режиме «Сура»
   const [page, setPage] = useState(Number(search.get('p')) || surahs[initSurah - 1].pages[0])
   const [overlay, setOverlay] = useState<Overlay>(null)
+  const [enter, setEnter] = useState<'' | 'from-left' | 'from-right'>('') // анимация появления соседней суры
   // режим «чистого чтения»: панели спрятаны, пока не тапнешь по экрану
   const [bare, setBare] = useState(false)
   const gesture = useRef({ x: 0, y: 0, t: 0, lastTouch: 0 })
@@ -204,7 +205,11 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     <div className={'reader' + (bare ? ' bare' : '')} style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
       <div className="view" onPointerDown={onViewDown} onPointerUp={onViewUp} onScrollCapture={onViewScroll}
         onWheel={() => { gesture.current.lastTouch = Date.now() }}>
-        {mode === 'sura' && <SuraView key={`${surahId}-${target.nonce}`} surah={surahs[surahId - 1]} scrollTo={target.ayah} opts={opts} act={act} onTop={onTop} />}
+        {mode === 'sura' && (
+          <SuraView key={`${surahId}-${target.nonce}`} surah={surahs[surahId - 1]} scrollTo={target.ayah} opts={opts} act={act} onTop={onTop}
+            prevName={surahId > 1 ? surahs[surahId - 2].name : null} nextName={surahId < 114 ? surahs[surahId].name : null}
+            enter={enter} onSwipe={(dir) => { setEnter(dir === 1 ? 'from-left' : 'from-right'); goSurah(surahs[surahId - 1 + dir]) }} />
+        )}
         {mode === 'page' && <Pager page={page} onChange={setPage} render={renderPage} />}
         {mode === 'mushaf' && <Pager page={page} onChange={setPage} render={renderMushaf} />}
       </div>
