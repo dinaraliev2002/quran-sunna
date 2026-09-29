@@ -7,7 +7,7 @@ import { useStore } from '../store/settings'
 type Place = 'all' | 'mk' | 'md'
 
 // Запоминаем место в списке, сортировку и фильтр — при возврате из суры список открывается там же
-const memory = { top: 0, sort: 'mushaf' as 'mushaf' | 'rev', place: 'all' as Place }
+const memory = { top: 0, offset: 0, sort: 'mushaf' as 'mushaf' | 'rev', place: 'all' as Place }
 
 export default function SurahList() {
   const nav = useNavigate()
@@ -16,10 +16,12 @@ export default function SurahList() {
   const [sort, setSortState] = useState(memory.sort)
   const [place, setPlaceState] = useState<Place>(memory.place)
   const [query, setQuery] = useState<string | null>(null)
-  const [collapsed, setCollapsed] = useState(false)
   const screen = useRef<HTMLDivElement>(null)
   const sub = useRef<HTMLDivElement>(null)
   const lastTop = useRef(0)
+  const wrap = useRef<HTMLDivElement>(null)
+  const offset = useRef(0) // на сколько пикселей уехал верхний блок
+  const settle = useRef<ReturnType<typeof setTimeout>>(undefined)
   const setSort = (v: typeof sort) => { memory.sort = v; setSortState(v) }
   const setPlace = (v: Place) => { memory.place = v; setPlaceState(v) }
 
@@ -33,25 +35,53 @@ export default function SurahList() {
     return sort === 'rev' ? [...l].sort((a, b) => a.rev - b.rev) : l
   }, [meta, sort, place, query])
 
+  // сдвинуть верхний блок (anim — плавно доехать, иначе строго за пальцем)
+  function apply(v: number, anim = false) {
+    const w = wrap.current, inner = sub.current
+    if (!w) return
+    offset.current = v
+    memory.offset = v
+    const h = inner?.offsetHeight ?? 0
+    w.style.transition = anim ? 'transform .28s cubic-bezier(.22, 1, .36, 1)' : 'none'
+    w.style.transform = v ? `translateY(${-v}px)` : ''
+    if (inner) {
+      inner.style.transition = anim ? 'opacity .28s ease' : 'none'
+      inner.style.opacity = h ? String(1 - Math.min(1, v / h) * 0.9) : '1'
+      inner.style.pointerEvents = v > h / 2 ? 'none' : ''
+    }
+  }
+
   // вернуться на то же место, когда список отрисован
   useLayoutEffect(() => {
     if (meta && screen.current && memory.top) {
       screen.current.scrollTop = memory.top
       lastTop.current = memory.top
-      setCollapsed(memory.top > (sub.current?.offsetHeight ?? 120))
+      apply(memory.offset)
     }
   }, [meta])
 
-  // верхний блок: вниз — уезжает, вверх — плавно возвращается
+  // верхний блок двигается вместе с пальцем: вниз — уезжает, вверх — выезжает обратно
   function onScroll() {
-    const top = screen.current!.scrollTop
+    const el = screen.current!
+    // «пружина» iOS у верхнего/нижнего края — не учитываем
+    const max = el.scrollHeight - el.clientHeight
+    const top = Math.min(max, Math.max(0, el.scrollTop))
     memory.top = top
     const d = top - lastTop.current
-    const h = sub.current?.offsetHeight ?? 120
-    if (top <= h) setCollapsed(false)
-    else if (d > 6) setCollapsed(true)
-    else if (d < -6) setCollapsed(false)
     lastTop.current = top
+    if (query !== null) return
+    const h = sub.current?.offsetHeight ?? 0
+    const v = Math.min(h, Math.max(0, offset.current + d))
+    apply(top <= 0 ? 0 : v)
+    // палец остановился на полпути — мягко доводим до открытого или закрытого положения
+    clearTimeout(settle.current)
+    settle.current = setTimeout(() => {
+      const cur = offset.current
+      if (cur > 0 && cur < h) {
+        const target = cur > h / 2 && lastTop.current > h ? h : 0
+        apply(target, true)
+      }
+    }, 140)
   }
 
   const counts = meta ? { all: 114, mk: meta.surahs.filter((s) => s.mk).length, md: meta.surahs.filter((s) => !s.mk).length } : { all: 114, mk: 0, md: 0 }
@@ -72,7 +102,7 @@ export default function SurahList() {
       </div>
 
       {/* блок под заголовком «прилипает» и при прокрутке вниз уезжает под заголовок (без скачков списка) */}
-      <div className={'sl-sub' + (collapsed && query === null ? ' collapsed' : '')} style={{ ['--sub-h' as string]: (sub.current?.offsetHeight ?? 0) + 'px' }}>
+      <div className="sl-sub" ref={wrap}>
         {query === null && (
           <div ref={sub} className="sl-sub-inner">
             <button className="continue" onClick={() => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}`) : nav('/read/1'))}>
