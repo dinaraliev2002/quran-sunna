@@ -8,6 +8,13 @@ import { useAzkarAudio } from '../../store/azkarAudio'
 import { useStore } from '../../store/settings'
 import { ArText, RuText } from './AzkarText'
 
+// шрифты арабского текста азкаров
+const AZ_FONTS = {
+  sch: { name: 'Шахерезада', css: '"Scheherazade New", "Amiri", serif' },
+  hafs: { name: 'Хафс', css: '"UthmanicHafs", "Scheherazade New", serif' },
+  amiri: { name: 'Амири', css: '"Amiri", "Scheherazade New", serif' },
+} as const
+
 // Раздел азкаров: карточки листаются вбок (свайп влево — следующая),
 // внизу закреплён большой счётчик — показывает, сколько раз осталось прочитать.
 
@@ -78,7 +85,7 @@ export default function Chapter() {
   }
 
   return (
-    <div className="azc" style={{ ['--az-ar' as string]: st.azArSize + 'px', ['--az-tr' as string]: st.azTrSize + 'px' }}>
+    <div className="azc" style={{ ['--az-ar' as string]: st.azArSize + 'px', ['--az-tr' as string]: st.azTrSize + 'px', ['--az-font' as string]: AZ_FONTS[st.azFont ?? 'sch'].css }}>
       <div className="azc-top">
         <button className="icon-btn" onClick={() => nav(-1)} aria-label="Назад"><Icon id="back" /></button>
         <div className="ttl"><b>{chapter?.name ?? 'Азкары'}</b><span>{category?.name ?? 'Крепость мусульманина'}</span></div>
@@ -133,6 +140,16 @@ export default function Chapter() {
         <Sheet onClose={() => setSettings(false)}>
           <SheetHead title="Настройки текста" onClose={() => setSettings(false)} />
           <div className="body">
+            <div className="fld"><label>Шрифт арабского текста</label>
+              <div className="az-fonts">
+                {(Object.keys(AZ_FONTS) as (keyof typeof AZ_FONTS)[]).map((k) => (
+                  <button key={k} className={(st.azFont ?? 'sch') === k ? 'on' : ''} onClick={() => st.set({ azFont: k })}>
+                    <span style={{ fontFamily: AZ_FONTS[k].css }}>سُبْحَانَ اللهِ</span>
+                    <b>{AZ_FONTS[k].name}</b>
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="fld"><label>Размер арабского текста</label>
               <div className="stepper"><small>{st.azArSize}</small><button onClick={() => st.set({ azArSize: Math.max(18, st.azArSize - 2) })}>−</button><button onClick={() => st.set({ azArSize: Math.min(44, st.azArSize + 2) })}>+</button></div>
             </div>

@@ -4,6 +4,7 @@ import { Sheet, SheetHead, SurahRow } from '../../components/ui'
 import { loadSurah, loadTafsir, tafsirFor, TOTAL_PAGES, type Ayah, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
 import { QpcText } from './views'
+import { TafsirText } from './TafsirText'
 import { RECITERS, type MemoOptions, type PauseMode } from '../../store/player'
 import { useStore, type ReadMode, type Translation } from '../../store/settings'
 
@@ -229,7 +230,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay }: { surah: Surah; ayah
             <div className="as-label">Тафсир ас-Саади{range ? ` · ${range}` : ''}</div>
             {tf === undefined && <div className="loading" style={{ height: 80 }}>Загрузка…</div>}
             {tf !== undefined && !t && <div className="empty">Для этого аята тафсир не найден</div>}
-            {t && <div className="tafsir">{t.text}</div>}
+            {t && <TafsirText text={t.text} />}
             <div className="tafsir-hint">Свайп влево — следующий аят, вправо — предыдущий</div>
           </div>
         )}

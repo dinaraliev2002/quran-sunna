@@ -27,6 +27,7 @@ interface Settings {
   azShowTr: boolean
   azShowRef: boolean
   azAuto: boolean // после последнего повтора — сама к следующей карточке
+  azFont: 'sch' | 'hafs' | 'amiri' // шрифт арабского текста азкаров
 }
 
 interface Progress {
@@ -67,6 +68,7 @@ const DEFAULT_SETTINGS: Settings = {
   azShowTr: true,
   azShowRef: true,
   azAuto: true,
+  azFont: 'sch',
 }
 // YYYY-MM-DD в местном времени (вручную — не зависим от языковых форматов браузера)
 const dayStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`

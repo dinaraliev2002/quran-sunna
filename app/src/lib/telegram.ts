@@ -18,6 +18,7 @@ interface TgWebApp {
   setHeaderColor?(c: string): void
   setBackgroundColor?(c: string): void
   setBottomBarColor?(c: string): void
+  openTelegramLink?(url: string): void
   onEvent(e: string, cb: () => void): void
   offEvent(e: string, cb: () => void): void
   BackButton: { show(): void; hide(): void; onClick(cb: () => void): void; offClick(cb: () => void): void }
@@ -64,6 +65,19 @@ export const haptic = {
   tap: () => inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('light'),
   tick: () => inTelegram && at('6.1') && wa!.HapticFeedback.selectionChanged(),
   success: () => inTelegram && at('6.1') && wa!.HapticFeedback.notificationOccurred('success'),
+}
+
+const APP_LINK = 'https://t.me/quran_sunna_app_bot?startapp'
+
+/** Поделиться текстом: в Telegram — выбор чата, в браузере — системное меню или буфер обмена */
+export function shareText(text: string) {
+  if (inTelegram && at('6.1') && wa!.openTelegramLink) {
+    wa!.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(APP_LINK)}&text=${encodeURIComponent(text)}`)
+  } else if (navigator.share) {
+    navigator.share({ text: `${text}\n\n${APP_LINK}` }).catch(() => {})
+  } else {
+    navigator.clipboard?.writeText(`${text}\n\n${APP_LINK}`)
+  }
 }
 
 export function backButton(visible: boolean, onClick: () => void) {
