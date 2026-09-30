@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead } from '../../components/ui'
-import { chapterTitle, EVENING, loadAzkar, MORNING, timesLabel, type AzkarData } from '../../lib/azkar'
+import { ARABIC_FONTS, chapterTitle, EVENING, loadAzkar, MORNING, timesLabel, type AzkarData } from '../../lib/azkar'
 import { loadSurahs, type Surah } from '../../lib/data'
 
 // на какой карточке был человек в каждом разделе (чтобы вернуться туда же после перехода в Коран)
@@ -12,12 +12,7 @@ import { useAzkarAudio } from '../../store/azkarAudio'
 import { useStore } from '../../store/settings'
 import { ArText, RuText } from './AzkarText'
 
-// шрифты арабского текста азкаров
-const AZ_FONTS = {
-  sch: { name: 'Шахерезада', css: '"Scheherazade New", "Amiri", serif' },
-  hafs: { name: 'Хафс', css: '"UthmanicHafs", "Scheherazade New", serif' },
-  amiri: { name: 'Амири', css: '"Amiri", "Scheherazade New", serif' },
-} as const
+const AZ_FONTS = ARABIC_FONTS
 
 // Раздел азкаров: карточки листаются вбок (свайп влево — следующая),
 // внизу закреплён большой счётчик — показывает, сколько раз осталось прочитать.

@@ -28,6 +28,10 @@ interface Settings {
   azShowRef: boolean
   azAuto: boolean // после последнего повтора — сама к следующей карточке
   azFont: 'sch' | 'hafs' | 'amiri' // шрифт арабского текста азкаров
+  // хадисы
+  hdArSize: number
+  hdTrSize: number
+  hdShowAr: boolean
 }
 
 interface Progress {
@@ -36,10 +40,13 @@ interface Progress {
   streak: number
   lastDay: string // YYYY-MM-DD последнего дня чтения
   today: Today
+  /** где остановились в сборнике хадисов */
+  hadithLast: { c: string; n: number; i: number } | null
 }
 
 interface Store extends Settings, Progress {
   bookmarks: string[] // "сура:аят"
+  hfav: string[] // избранные хадисы (см. lib/hadith favBook/favEnc)
   hydrated: boolean
   set: (patch: Partial<Settings>) => void
   setLastRead: (lr: LastRead) => void
@@ -51,6 +58,8 @@ interface Store extends Settings, Progress {
   /** +1 к счётчику азкара (не больше нужного числа повторов); вернёт новое значение */
   azkarTap: (ch: number, item: number, rep: number) => number
   azkarReset: (ch: number, items: number[]) => void
+  toggleHadithFav: (key: string) => void
+  setHadithLast: (v: { c: string; n: number; i: number }) => void
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -69,16 +78,20 @@ const DEFAULT_SETTINGS: Settings = {
   azShowRef: true,
   azAuto: true,
   azFont: 'sch',
+  hdArSize: 24,
+  hdTrSize: 17,
+  hdShowAr: true,
 }
 // YYYY-MM-DD в местном времени (вручную — не зависим от языковых форматов браузера)
 const dayStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const emptyToday = (): Today => ({ d: dayStr(), done: [], pages: [] })
-const DEFAULT_PROGRESS: Progress = { lastRead: null, recent: [], streak: 0, lastDay: '', today: emptyToday() }
+const DEFAULT_PROGRESS: Progress = { lastRead: null, recent: [], streak: 0, lastDay: '', today: emptyToday(), hadithLast: null }
 
 // Отдельные ключи: у CloudStorage Telegram лимит 4096 символов на значение
 const SETTINGS_KEY = 'settings_v1'
 const PROGRESS_KEY = 'progress_v2'
 const BOOKMARKS_KEY = 'bookmarks_v1'
+const HFAV_KEY = 'hadith_fav_v1'
 
 const pick = <T extends object>(obj: T, keys: (keyof T)[]) => Object.fromEntries(keys.map((k) => [k, obj[k]]))
 
@@ -93,6 +106,7 @@ function snapshot(s: Store): [string, string][] {
     [SETTINGS_KEY, JSON.stringify({ ...pick(s, Object.keys(DEFAULT_SETTINGS) as (keyof Store)[]), _t: t })],
     [PROGRESS_KEY, JSON.stringify({ ...pick(s, Object.keys(DEFAULT_PROGRESS) as (keyof Store)[]), _t: t })],
     [BOOKMARKS_KEY, s.bookmarks.join(',')],
+    [HFAV_KEY, favString(s.hfav)],
   ]
 }
 function flushCloud() {
@@ -111,6 +125,16 @@ if (typeof document !== 'undefined') {
   window.addEventListener('pagehide', flushCloud)
 }
 
+/** Избранное одной строкой — в пределах лимита облака Telegram (4096 символов); старые записи отбрасываются */
+function favString(list: string[]) {
+  let out = ''
+  for (const k of list) {
+    if (out.length + k.length + 1 > 4000) break
+    out += (out ? ',' : '') + k
+  }
+  return out
+}
+
 /** Сегодняшняя запись (если наступил новый день — пустая) */
 const currentToday = (t: Today) => (t.d === dayStr() ? t : emptyToday())
 
@@ -118,6 +142,7 @@ export const useStore = create<Store>((set, get) => ({
   ...DEFAULT_SETTINGS,
   ...DEFAULT_PROGRESS,
   bookmarks: [],
+  hfav: [],
   hydrated: false,
   set: (patch) => { set(patch); persist(get()) },
   setLastRead: (lastRead) => {
@@ -167,6 +192,17 @@ export const useStore = create<Store>((set, get) => ({
     set({ today: { ...today, az } })
     persist(get())
   },
+  toggleHadithFav: (key) => {
+    const f = get().hfav
+    set({ hfav: f.includes(key) ? f.filter((x) => x !== key) : [key, ...f] })
+    persist(get())
+  },
+  setHadithLast: (v) => {
+    const cur = get().hadithLast
+    if (cur && cur.c === v.c && cur.n === v.n && cur.i === v.i) return
+    set({ hadithLast: v })
+    persist(get())
+  },
   markTask: (id, done) => {
     const today = currentToday(get().today)
     const has = today.done.includes(id)
@@ -185,7 +221,7 @@ export async function hydrateStore() {
     const l = parse(local), c = parse(cloud)
     return JSON.stringify((l._t ?? 0) >= (c._t ?? 0) && local ? l : cloud ? c : l)
   }
-  const [s, p, b, old] = await Promise.all([newest(SETTINGS_KEY), newest(PROGRESS_KEY), cloudGet(BOOKMARKS_KEY), cloudGet('progress_v1')])
+  const [s, p, b, old, hf] = await Promise.all([newest(SETTINGS_KEY), newest(PROGRESS_KEY), cloudGet(BOOKMARKS_KEY), cloudGet('progress_v1'), cloudGet(HFAV_KEY)])
   const legacy = parse(old) // первая версия хранила всё в одном ключе
   const progress: Progress = { ...DEFAULT_PROGRESS, ...pick(legacy, ['lastRead', 'streak', 'lastDay']), ...parse(p) }
   progress.today = currentToday(progress.today ?? emptyToday())
@@ -196,7 +232,8 @@ export async function hydrateStore() {
   const settings = parse(s)
   delete settings._t
   delete (progress as unknown as { _t?: number })._t
-  useStore.setState({ ...DEFAULT_SETTINGS, ...settings, ...progress, bookmarks, hydrated: true })
+  const hfav = hf ? hf.split(',').filter(Boolean) : []
+  useStore.setState({ ...DEFAULT_SETTINGS, ...settings, ...progress, bookmarks, hfav, hydrated: true })
 }
 
 // Telegram держит приложение в памяти — проверяем смену дня при каждом возвращении и раз в минуту

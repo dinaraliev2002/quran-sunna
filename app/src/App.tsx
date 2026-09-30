@@ -6,6 +6,11 @@ import { backButton, initTelegram, paintChrome, telegramScheme } from './lib/tel
 import Azkar from './screens/azkar/Azkar'
 import AzkarCategory from './screens/azkar/Category'
 import AzkarChapter from './screens/azkar/Chapter'
+import Hadith from './screens/hadith/Hadith'
+import HadithBook from './screens/hadith/Book'
+import HadithCollection from './screens/hadith/Collection'
+import HadithEnc from './screens/hadith/EncHadith'
+import HadithTopic from './screens/hadith/Topic'
 import Home from './screens/Home'
 import Reader from './screens/reader/Reader'
 import Downloads from './screens/Downloads'
@@ -15,7 +20,7 @@ import SurahList from './screens/SurahList'
 import { hydrateStore, useStore } from './store/settings'
 import { useUi } from './store/ui'
 
-const ROOTS = ['/', '/quran', '/azkar', '/settings']
+const ROOTS = ['/', '/quran', '/azkar', '/hadith', '/settings']
 
 function useTheme() {
   const pref = useStore((s) => s.theme)
@@ -65,7 +70,11 @@ export default function App() {
             <Route path="/azkar" element={<Azkar />} />
             <Route path="/azkar/ch/:id" element={<AzkarChapter />} />
             <Route path="/azkar/cat/:id" element={<AzkarCategory />} />
-            <Route path="/hadith" element={<Stub title="Хадисы" icon="scroll" text="Сборники хадисов появятся после раздела азкаров." />} />
+            <Route path="/hadith" element={<Hadith />} />
+            <Route path="/hadith/c/:cid" element={<HadithCollection />} />
+            <Route path="/hadith/c/:cid/:n" element={<HadithBook />} />
+            <Route path="/hadith/t/:id" element={<HadithTopic />} />
+            <Route path="/hadith/e/:id" element={<HadithEnc />} />
             <Route path="/names" element={<Stub title="99 имён Аллаха" icon="star" text="Раздел в работе." />} />
             <Route path="/profile" element={<Stub title="Профиль" icon="flame" text="Профиль, анкета и план заучивания — в следующих версиях." />} />
             <Route path="/notifications" element={<Stub title="Уведомления" icon="bell" text="Здесь будут напоминания и сообщения." />} />

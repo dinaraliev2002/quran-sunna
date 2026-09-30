@@ -58,3 +58,10 @@ export function snippet(text: string, n = 110) {
 }
 
 export const timesLabel = (n: number) => (n === 1 ? '1 раз' : n >= 2 && n <= 4 ? `${n} раза` : `${n} раз`)
+
+/** Шрифты арабского текста азкаров и хадисов (одна общая настройка) */
+export const ARABIC_FONTS = {
+  sch: { name: 'Шахерезада', css: '"Scheherazade New", "Amiri", serif' },
+  hafs: { name: 'Хафс', css: '"UthmanicHafs", "Scheherazade New", serif' },
+  amiri: { name: 'Амири', css: '"Amiri", "Scheherazade New", serif' },
+} as const

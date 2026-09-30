@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon'
 import { plural, useQuranMeta } from '../components/ui'
 import { EVENING, loadAzkar, MORNING, nowIsMorning, type AzkarData } from '../lib/azkar'
 import { loadSurah, surahGlyph, TOTAL_PAGES, type Ayah } from '../lib/data'
+import { hadithOfDay, type EncHadith } from '../lib/hadith'
 import { haptic, shareText, tgUser } from '../lib/telegram'
 import { useStore, type TaskId } from '../store/settings'
 import { useChapterProgress } from './azkar/Azkar'
@@ -74,6 +75,8 @@ export default function Home() {
   const user = tgUser()
   const last = lastRead && meta ? meta.surahs[lastRead.s - 1] : null
   const aod = useAyahOfDay()
+  const [hod, setHod] = useState<EncHadith | null>(null)
+  useEffect(() => { hadithOfDay().then(setHod).catch(() => {}) }, [])
 
   // азкары: прогресс утренних/вечерних
   const [azkar, setAzkar] = useState<AzkarData | null>(null)
@@ -139,7 +142,7 @@ export default function Home() {
         </button>
         <button className="h-tile hadith" onClick={() => nav('/hadith')}>
           <div className="ib"><Icon id="scroll" /></div>
-          <div className="h-tile-b"><b>Хадисы</b><small className="soon">Скоро</small></div>
+          <div className="h-tile-b"><b>Хадисы</b><small>Сборники и темы</small></div>
         </button>
         <button className="h-tile azkar" onClick={() => nav('/azkar')}>
           <Pattern id="ta" opacity={0.16} />
@@ -212,6 +215,20 @@ export default function Home() {
           <div className="h-aod-act">
             <button onClick={() => nav(`/read/${aod.key.split(':')[0]}?a=${aod.a.n}`)}><Icon id="book" />Открыть</button>
             <button onClick={() => shareText(`${aod.a.ku}\n— ${meta.surahs[Number(aod.key.split(':')[0]) - 1].name}, ${aod.key}`)}><Icon id="share" />Поделиться</button>
+          </div>
+        </section>
+      )}
+      {/* ===== хадис дня ===== */}
+      {hod && (
+        <section className="h-card h-hod">
+          <div className="h-aod-label">۞ Хадис дня ۞</div>
+          {hod.in && <p className="h-hod-in">{hod.in}</p>}
+          <p className="h-hod-q">{hod.in ? hod.ru.slice(hod.in.length).trim() : hod.ru}</p>
+          <div className="h-aod-ref">{hod.src}{hod.grade ? ` · ${hod.grade}` : ''}</div>
+          <div className="h-aod-act">
+            <button onClick={() => nav(`/hadith/e/${hod.id}`)}><Icon id="info" />Объяснение</button>
+            <button onClick={() => shareText(`${hod.ru}
+— ${hod.src}`)}><Icon id="share" />Поделиться</button>
           </div>
         </section>
       )}
