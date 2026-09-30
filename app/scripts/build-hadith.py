@@ -166,6 +166,8 @@ def build_collection(c):
     n = 0
     for (grp, b, _), page in zip(chapters, loaded):
         items = [it for it in section_items(page) if it['ru'] or it['ar']]
+        if c['id'] in ('bukhari', 'muslim'):
+            items = split_hadiths(items, c['id'])
         if not items:
             continue
         n += 1
@@ -179,6 +181,82 @@ def build_collection(c):
         g['count'] = sum(1 for x in meta_books if x.get('grp') == g['g'])
     c['groups'] = groups
     return meta_books
+
+
+AR_DIG = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
+# начало хадиса в русском тексте: «1224 — », «435, 436 — », Муслим: «1 (293) — », «(…) — »
+RU_START = re.compile(r'^(\d{1,4}(?:\s*(?:,|и|[-–])\s*\d{1,4})*|\d{1,4}\s*\((?:\d{1,4}|…|\.\.\.)\)|\((?:\d{1,4}|…|\.\.\.)\))\s*[—–-]\s+')
+# начало хадиса в арабском: аль-Бухари «**١٢٢٤:**», Муслим «**١** - (٢٩٣)»
+AR_START = {'bukhari': re.compile(r'^\*\*\s*([٠-٩]+)\s*:\s*\*\*\s*'), 'muslim': re.compile(r'^\*\*\s*([٠-٩]+)\s*\*\*\s*[-–]?\s*')}
+
+
+def ru_nums(label, cid):
+    """Номера из метки: для Муслима — номер в книге (по нему сверяем с арабским), для аль-Бухари — общий"""
+    if cid == 'muslim':
+        m = re.match(r'^(\d+)', label)
+        return {int(m.group(1))} if m else set()
+    nums = set()
+    for part in re.split(r'\s*,\s*|\s+и\s+', label):
+        r = [int(x) for x in re.split(r'\s*[-–]\s*', part) if x.strip().isdigit()]
+        nums.update(range(r[0], r[1] + 1) if len(r) == 2 and r[1] - r[0] < 20 else r[:1])
+    return nums
+
+
+def hadith_label(label, cid):
+    """Что показать на значке: аль-Бухари — «1224» / «435, 436»; Муслим — общий номер «293» (или номер в книге)"""
+    if cid == 'muslim':
+        m = re.search(r'\((\d+)\)', label)
+        return m.group(1) if m else ''
+    return re.sub(r'\s+', ' ', label)
+
+
+def split_hadiths(items, cid):
+    """isnad.link кладёт все хадисы главы (баба) в один блок — делим: каждый хадис отдельно,
+    арабский текст прикрепляем по номеру. Вступление главы (слова автора, аяты) — отдельная карточка."""
+    out = []
+    for it in items:
+        pre_ru, segs = [], []  # segs: [метка, номера, абзацы]
+        for p in it['ru']:
+            m = RU_START.match(p)
+            if m:
+                label = m.group(1)
+                nums = ru_nums(label, cid)
+                if cid == 'muslim' and not nums and segs:  # «(…) — Этот хадис подобен…» — вариант предыдущего
+                    segs[-1][2].append(p[m.end():])
+                    continue
+                segs.append([label, nums, [p[m.end():]]])
+            elif segs:
+                segs[-1][2].append(p)
+            else:
+                pre_ru.append(p)
+        pre_ar, ar_segs = [], []  # ar_segs: [номер, абзацы]
+        for p in it['ar']:
+            m = AR_START[cid].match(p)
+            if m:
+                ar_segs.append([int(m.group(1).translate(AR_DIG)), [p[m.end():]]])
+            elif ar_segs:
+                ar_segs[-1][1].append(p)
+            else:
+                pre_ar.append(p)
+        if not segs:  # номеров нет — оставляем как есть
+            out.append(it)
+            continue
+        if pre_ru:
+            out.append({'t': it['t'], 'ru': pre_ru, 'ar': pre_ar})
+        used = set()
+        for label, nums, paras in segs:
+            ar = [x for n, ps in ar_segs if n in nums for x in ps]
+            used |= {n for n, _ in ar_segs if n in nums}
+            out.append({'t': it['t'], 'h': hadith_label(label, cid), 'ru': paras, 'ar': ar})
+        # хадисы без перевода — только арабский текст, на своём месте по номеру
+        for n, ps in ar_segs:
+            if n in used:
+                continue
+            item = {'t': it['t'], 'h': str(n) if cid == 'bukhari' else '', 'ru': [], 'ar': ps}
+            pos = next((k for k, x in enumerate(out) if x.get('h', '').split(',')[0].strip().isdigit()
+                        and cid == 'bukhari' and int(x['h'].split(',')[0]) > n and x['t'] == it['t']), len(out))
+            out.insert(pos, item)
+    return out
 
 
 def write(cid, n, obj):
@@ -277,8 +355,10 @@ def main():
             items = json.load(open(os.path.join(OUT, c['id'], f"{b['n']}.json"), encoding='utf-8'))['items']
             if c['id'] == 'nawawi':
                 nums |= set(range(1, len(items) + 1))
-            elif c['id'] == 'muslim':  # «1 (293) — » / «2 (…) — »: номер в книге и общий номер
-                nums |= {(b['n'], k, j) for k, it in enumerate(items) for j, p in enumerate(it['ru']) if re.match(r'^(\d+\s*)?\((\d+|…|\.\.\.)\)\s*[—–-]', p)}
+            elif c['id'] == 'bukhari':  # хадисы уже разделены: номер — на значке
+                nums |= {n for it in items if it['ru'] and it.get('h') for n in ru_nums(it['h'], 'bukhari')}
+            elif c['id'] == 'muslim':
+                nums |= {(b['n'], k) for k, it in enumerate(items) if it['ru'] and 'h' in it}
             else:
                 nums |= hadith_numbers(items)
         total = len(nums)

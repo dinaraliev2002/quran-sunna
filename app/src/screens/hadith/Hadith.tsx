@@ -88,13 +88,13 @@ export default function Hadith() {
                   <span className="hd-go"><Icon id="right" /></span>
                 </button>
               )}
+              <div className="hd-cols">
               {idx.collections.map((c, k) => (
                 <button key={c.id} className={'hd-col' + (k === 0 ? ' first' : '')} onClick={() => nav(`/hadith/c/${c.id}`)}>
                   <div className="hd-col-ar">{c.ar}</div>
                   <div className="t">
                     <b>{c.name}</b>
                     <span>{c.author}</span>
-                    <p>{c.about}</p>
                   </div>
                   {c.part && <p className="hd-col-part">Перевод частичный</p>}
                   <div className="hd-col-stat">
@@ -107,6 +107,7 @@ export default function Hadith() {
                   </div>
                 </button>
               ))}
+              </div>
               <p className="hd-note">
                 Другие сборники («Сунан» Абу Дауда, ат-Тирмизи, ан-Насаи, Ибн Маджи) появятся, когда будет готов их перевод на русский.
               </p>

@@ -51,8 +51,8 @@ export default function EncHadithView() {
                 <button onClick={() => shareText(shareBody('', h.ru, h.src))} aria-label="Поделиться"><Icon id="share" /></button>
               </div>
             </div>
-            {st.hdShowAr && h.ar && <div className="hd-ar" dir="rtl"><p>{h.ar}</p></div>}
-            {st.hdShowAr && h.ar && <div className="azc-divider"><span>۞</span></div>}
+            {st.hdAr && h.ar && <div className="hd-ar" dir="rtl"><p>{h.ar}</p></div>}
+            {st.hdAr && h.ar && <div className="azc-divider"><span>۞</span></div>}
             <div className="hd-ru">
               {h.in && <p className="hd-intro">{h.in}</p>}
               <p className="hd-quote">{quote}</p>

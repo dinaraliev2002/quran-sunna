@@ -83,25 +83,29 @@ export default function Book() {
           // рисуем только соседние карточки — в книге бывает больше сотни разделов
           if (Math.abs(i - cur) > 2) return <section key={i} className="azc-card" />
           const { no, title: t } = splitTitle(it.t)
+          const isHadith = it.h !== undefined // отдельный хадис из главы (аль-Бухари, Муслим)
           const key = favBook(cid, bn, i)
           const fav = st.hfav.includes(key)
-          const ref = `${col?.name ?? ''}${no ? `, ${/^\d/.test(no) ? '№ ' + no : no.toLowerCase()}` : ''}`
+          const ref = `${col?.name ?? ''}${isHadith ? (it.h ? `, № ${it.h}` : '') : no ? `, ${/^\d/.test(no) ? '№ ' + no : no.toLowerCase()}` : ''}`
+          // хадис без перевода — арабский текст показываем всегда
+          const showAr = (st.hdAr || it.ru.length === 0) && it.ar.length > 0
           return (
             <section key={i} className="azc-card">
               <article className="hdk-body">
                 <div className="hd-card-h">
-                  {no ? <span className="hd-no">{no}</span> : <span className="hd-count">{i + 1} из {items.length}</span>}
+                  {isHadith ? <span className="hd-no">{it.h ? `Хадис № ${it.h}` : 'Другая версия'}</span>
+                    : no ? <span className="hd-no">{no}</span> : <span className="hd-count">{i + 1} из {items.length}</span>}
                   <div className="hd-acts">
                     <button className={fav ? 'on' : ''} onClick={() => { haptic.tap(); st.toggleHadithFav(key) }} aria-label={fav ? 'Убрать из избранного' : 'В избранное'}>
                       <Icon id="bookmark" />
                     </button>
-                    <button onClick={() => shareText(shareBody(t, it.ru.join('\n\n'), ref))} aria-label="Поделиться"><Icon id="share" /></button>
+                    <button onClick={() => shareText(shareBody(isHadith ? '' : t, it.ru.join('\n\n'), ref))} aria-label="Поделиться"><Icon id="share" /></button>
                   </div>
                 </div>
-                {t && <h3 className="hd-title">{t}</h3>}
-                {st.hdShowAr && it.ar.length > 0 && <ArParas paras={it.ar} />}
-                {st.hdShowAr && it.ar.length > 0 && it.ru.length > 0 && <div className="azc-divider"><span>۞</span></div>}
-                {it.ru.length > 0 ? <RuParas paras={it.ru} /> : <p className="hd-src">Перевода пока нет</p>}
+                {isHadith ? (t || no) && <div className="hd-bab">{no}{no && t ? ' · ' : ''}{t}</div> : t && <h3 className="hd-title">{t}</h3>}
+                {showAr && <ArParas paras={it.ar} />}
+                {showAr && it.ru.length > 0 && <div className="azc-divider"><span>۞</span></div>}
+                {it.ru.length > 0 ? <RuParas paras={it.ru} hadith={isHadith || undefined} /> : <p className="hd-src">Перевода на русский пока нет</p>}
               </article>
             </section>
           )

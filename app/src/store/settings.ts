@@ -31,7 +31,7 @@ interface Settings {
   // хадисы
   hdArSize: number
   hdTrSize: number
-  hdShowAr: boolean
+  hdAr: boolean
 }
 
 interface Progress {
@@ -80,7 +80,7 @@ const DEFAULT_SETTINGS: Settings = {
   azFont: 'sch',
   hdArSize: 24,
   hdTrSize: 17,
-  hdShowAr: true,
+  hdAr: false, // арабский текст хадисов — по умолчанию выключен (новое имя, чтобы не взять старое сохранённое «вкл»)
 }
 // YYYY-MM-DD в местном времени (вручную — не зависим от языковых форматов браузера)
 const dayStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`

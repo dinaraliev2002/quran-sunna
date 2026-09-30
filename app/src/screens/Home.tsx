@@ -95,8 +95,6 @@ export default function Home() {
     { id: 'memo', title: 'Повторить выученное', sub: 'Меню чтения → «Заучивание»', action: continueReading },
   ]
   const doneCount = tasks.filter((t) => today.done.includes(t.id)).length
-  const hour = new Date().getHours()
-  const hello = hour < 5 ? 'Доброй ночи' : hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер'
 
   return (
     <div className="screen home">
@@ -115,7 +113,7 @@ export default function Home() {
         </div>
         <div className="h-greet">
           <div className="h-salam">السَّلَامُ عَلَيْكُمْ</div>
-          <h1>{hello}{user?.first_name ? `, ${user.first_name}` : ''}</h1>
+          {user?.first_name && <h1>{user.first_name}</h1>}
           <p><span className="h-cap">{gregToday()}</span> · {hijriToday()}</p>
         </div>
         <button className="h-continue" onClick={continueReading}>

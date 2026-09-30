@@ -10,7 +10,7 @@ export interface HGroup { g: number; no: number; title: string; ar: string; rang
 export interface HCollection { id: string; name: string; ar: string; author: string; about: string; hadiths: number; books: HBook[]; groups: HGroup[]; /** перевод неполный — пояснение */ part?: string }
 export interface HIndex { collections: HCollection[]; /** кандидаты в «Хадис дня»: [id, номер файла enc] */ daily: [number, number][]; source: string }
 /** Хадис или раздел главы: заголовок, абзацы перевода, абзацы арабского текста */
-export interface HItem { t: string; ru: string[]; ar: string[] }
+export interface HItem { t: string; ru: string[]; ar: string[]; /** номер хадиса, если это отдельный хадис из главы («» — другая версия предыдущего) */ h?: string }
 export interface HBookData { title: string; ar: string; items: HItem[] }
 
 export interface Topic { id: number; title: string; parent: number; count: number; ids: number[] }
@@ -18,7 +18,7 @@ export interface TopicsData { topics: Topic[]; hadiths: Record<string, [number, 
 export interface EncHadith { id: number; t: string; ru: string; /** вводные слова («От Абу Хурайры передаётся…») — начало ru */ in: string; ar: string; src: string; grade: string; ex: string; hints: string[] }
 
 // версия данных хадисов — увеличиваем при пересборке, чтобы телефоны не держали старую копию
-const HADITH_VERSION = 2
+const HADITH_VERSION = 3
 const cache = new Map<string, Promise<unknown>>()
 function load<T>(path: string): Promise<T> {
   if (!cache.has(path)) {

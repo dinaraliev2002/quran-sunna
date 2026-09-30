@@ -9,8 +9,8 @@ export function HadithSettings({ onClose }: { onClose: () => void }) {
     <Sheet onClose={onClose}>
       <SheetHead title="Настройки текста" onClose={onClose} />
       <div className="body">
-        <button className="srow2" onClick={() => st.set({ hdShowAr: !st.hdShowAr })}><div>Арабский текст</div><span className={'switch' + (st.hdShowAr ? ' on' : '')} /></button>
-        {st.hdShowAr && (
+        <button className="srow2" onClick={() => st.set({ hdAr: !st.hdAr })}><div>Арабский текст</div><span className={'switch' + (st.hdAr ? ' on' : '')} /></button>
+        {st.hdAr && (
           <>
             <div className="fld"><label>Шрифт арабского текста</label>
               <div className="az-fonts">
