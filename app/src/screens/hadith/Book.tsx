@@ -47,8 +47,8 @@ export default function Book() {
   const next = col && pos >= 0 && pos < col.books.length - 1 ? col.books[pos + 1] : null
   const single = col?.books.length === 1
   const items = book?.items ?? []
-  const withChapters = cid === 'bukhari' || cid === 'muslim'
-  const bookWord = withChapters && !meta?.grp ? 'книга' : 'глава'
+  const byBooks = cid === 'bukhari' || cid === 'muslim'
+  const bookWord = byBooks && !meta?.grp ? 'книга' : 'глава'
 
   // открыть на той же карточке, что в прошлый раз, или на нужном хадисе (из избранного / «Продолжить»)
   useLayoutEffect(() => {
@@ -72,7 +72,8 @@ export default function Book() {
   const goCard = (k: number) => track.current?.scrollTo({ left: k * track.current.clientWidth, behavior: 'smooth' })
   const goBook = (b: { n: number } | null) => b && nav(`/hadith/c/${cid}/${b.n}?i=0`, { replace: true })
 
-  if (withChapters && focus === null) return <ChapterList cid={cid} bn={bn} book={book} title={book?.title ?? meta?.title ?? ''} sub={col?.name ?? ''} range={meta?.range} />
+  // сначала — список: у аль-Бухари и Муслима главы книги, у Рияд ас-Салихин и ан-Навави — хадисы главы
+  if (focus === null) return <ChapterList cid={cid} bn={bn} book={book} title={single ? col?.name ?? '' : book?.title ?? meta?.title ?? ''} sub={single ? col?.author ?? '' : col?.name ?? ''} range={meta?.range} byChapters={byBooks} />
 
   const title = single ? col?.name : book?.title ?? meta?.title ?? col?.name ?? 'Хадисы'
   const sub = single ? col?.author : [col?.name, meta?.range && `хадисы ${meta.range}`].filter(Boolean).join(' · ')
@@ -153,8 +154,8 @@ export default function Book() {
   )
 }
 
-/** Список глав (бабов) книги: номер, название, сколько хадисов */
-function ChapterList({ cid, bn, book, title, sub, range }: { cid: string; bn: number; book: HBookData | null; title: string; sub: string; range?: string }) {
+/** Список перед карточками: главы (бабы) книги с числом хадисов — или сами хадисы главы по названиям */
+function ChapterList({ cid, bn, book, title, sub, range, byChapters }: { cid: string; bn: number; book: HBookData | null; title: string; sub: string; range?: string; byChapters: boolean }) {
   const nav = useNavigate()
   const screen = useRef<HTMLDivElement>(null)
   const memKey = `${cid}/${bn}`
@@ -162,9 +163,12 @@ function ChapterList({ cid, bn, book, title, sub, range }: { cid: string; bn: nu
   const chapters: { t: string; first: number; count: number }[] = []
   book?.items.forEach((it, i) => {
     const last = chapters[chapters.length - 1]
-    if (last && last.t === it.t) { if (it.h !== undefined) last.count++ }
+    if (byChapters && last && last.t === it.t) { if (it.h !== undefined) last.count++ }
     else chapters.push({ t: it.t, first: i, count: it.h !== undefined ? 1 : 0 })
   })
+  // хадисы главы — строки с номером; вступление главы (аяты) — без номера
+  const numOf = (c: { t: string; first: number }) => (cid === 'nawawi' ? String(c.first + 1) : splitTitle(c.t).no) // у ан-Навави номера нет в названии
+  const hadiths = chapters.filter((c) => /^\d/.test(numOf(c))).length
   return (
     <div className="screen hdb" ref={screen} onScroll={(e) => listMemory.set(memKey, e.currentTarget.scrollTop)}>
       <div className="hdb-top">
@@ -176,11 +180,12 @@ function ChapterList({ cid, bn, book, title, sub, range }: { cid: string; bn: nu
       {book && (
         <div className="hd-cover">
           {book.ar && <div className="hd-cover-ar small">{book.ar.replace(/^[٠-٩\d]+\s*[-–]\s*/, '')}</div>}
-          <span>{chapters.length} {plural(chapters.length, 'глава', 'главы', 'глав')}{range ? ` · хадисы ${range}` : ''}</span>
+          <span>{byChapters ? `${chapters.length} ${plural(chapters.length, 'глава', 'главы', 'глав')}` : `${hadiths} ${plural(hadiths, 'хадис', 'хадиса', 'хадисов')}`}{range ? ` · № ${range}` : ''}</span>
         </div>
       )}
       {chapters.map((c) => {
-        const { no, title: t } = splitTitle(c.t)
+        const { title: t } = splitTitle(c.t)
+        const no = numOf(c)
         return (
           <button key={c.first} className="hd-book" onClick={() => nav(`/hadith/c/${cid}/${bn}?i=${c.first}`)}>
             <div className="num-badge"><span>{no.replace(/^Глава\s*/, '') || '•'}</span></div>

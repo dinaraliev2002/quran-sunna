@@ -9,6 +9,8 @@ import { isSourcePara } from '../../lib/hadith'
 
 const NUM = /^(\d{1,4}(?:\s*\((?:\d{1,4}|…|\.\.\.)\))?(?:\s*(?:,|и|[-–])\s*\d{1,4})*|\((?:\d{1,4}|…)\))\s*[—–]\s+/
 
+const SOURCE_END = /\((?:[^()]*\s)?(?:аль-Бухари|Муслим|ат-Тирмизи|Абу Дауд|ан-Насаи|Ибн Маджа|Ахмад|Малик|аль-Байхаки|ад-Даракутни|Ибн Хиббан)[^()]*\d[^()]*\)\.?\s*$/
+
 /** жирное из разметки **…** */
 function bold(text: string, k = '') {
   return text.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? <b key={k + i}>{part}</b> : <Fragment key={k + i}>{part}</Fragment>))
@@ -38,6 +40,8 @@ export function RuParas({ paras, hadith }: { paras: string[]; hadith?: boolean }
         // только вводные слова («…передают, что Пророк ﷺ сказал:»)
         if (/:$/.test(body.trim()) && body.length < 400) return <p key={i} className="hd-intro">{badge}{bold(body)}</p>
         const [intro, rest] = i === 0 || num ? splitIntro(body) : ['', body]
+        // абзац заканчивается ссылкой на источник «(аль-Бухари 5673, Муслим 2816)» — дальше идёт комментарий
+        if (SOURCE_END.test(rest)) afterSource = true
         // вводные слова — отдельной строкой, после пустой строки — сам текст хадиса
         return (
           <Fragment key={i}>
