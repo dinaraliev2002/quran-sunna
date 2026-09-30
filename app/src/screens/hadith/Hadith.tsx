@@ -96,15 +96,19 @@ export default function Hadith() {
                     <span>{c.author}</span>
                     <p>{c.about}</p>
                   </div>
+                  {c.part && <p className="hd-col-part">Перевод частичный</p>}
                   <div className="hd-col-stat">
                     <span><b>{c.hadiths.toLocaleString('ru-RU')}</b> {plural(c.hadiths, 'хадис', 'хадиса', 'хадисов')}</span>
-                    {c.books.length > 1 && <span><b>{c.books.length}</b> {c.id === 'bukhari' ? plural(c.books.length, 'книга', 'книги', 'книг') : plural(c.books.length, 'глава', 'главы', 'глав')}</span>}
+                    {c.books.length > 1 && (() => {
+                      const byBooks = c.id === 'bukhari' || c.id === 'muslim'
+                      const k = byBooks ? c.books.filter((b) => !b.grp && !b.intro).length + c.groups.length : c.books.filter((b) => !b.intro).length
+                      return <span><b>{k}</b> {byBooks ? plural(k, 'книга', 'книги', 'книг') : plural(k, 'глава', 'главы', 'глав')}</span>
+                    })()}
                   </div>
                 </button>
               ))}
               <p className="hd-note">
-                Здесь только сборники с полным переводом на русский. Остальные («Сунан» Абу Дауда, ат-Тирмизи, ан-Насаи, Ибн Маджи, «Сахих» Муслима)
-                появятся, когда их перевод будет завершён.
+                Другие сборники («Сунан» Абу Дауда, ат-Тирмизи, ан-Насаи, Ибн Маджи) появятся, когда будет готов их перевод на русский.
               </p>
             </>
           )}

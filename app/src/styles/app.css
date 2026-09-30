@@ -671,4 +671,29 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .hd-hints li + li { margin-top: .5em; }
 .hd-hints li::marker { color: var(--gold-ink); font-weight: 800; }
 .hd-credit { font-size: 11px; color: var(--text-2); text-align: center; margin-top: 6px; opacity: .8; }
-.hd-sec-h { position: sticky; top: calc(var(--content-top) - 12px); z-index: 2; background: var(--bg); font-size: 12px; font-weight: 800; color: var(--gold-ink); text-transform: uppercase; letter-spacing: .05em; padding: 16px 4px 8px; line-height: 1.4; }
+
+/* хадисы: карточки вбок */
+.hdk { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
+.hdk .azc-top .ttl b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdk .azc-top .ttl span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdk-progress { flex: none; height: 3px; margin: 4px 30px 10px; border-radius: 2px; background: var(--surface-3); overflow: hidden; }
+.hdk-progress i { display: block; height: 100%; background: var(--gold); border-radius: 2px; transition: width .25s; }
+.hdk-body { height: 100%; overflow-y: auto; overscroll-behavior-y: contain; background: var(--surface); border-radius: var(--r-tile); padding: 14px 18px 24px; }
+.hd-count { font-size: 12px; font-weight: 800; color: var(--text-2); }
+.hdk-bar { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 14px calc(var(--safe-bottom) + 12px); }
+.hdk-book { flex: 1; min-width: 0; height: 48px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 16px; background: var(--surface); font-size: 12.5px; font-weight: 800; color: var(--text); }
+.hdk-book .icon { width: 16px; height: 16px; flex: none; color: var(--emerald-bright); }
+.hdk-book span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdk-book:disabled { opacity: .35; }
+.hdk-pager { flex: none; display: flex; align-items: center; gap: 2px; height: 48px; padding: 0 4px; border-radius: 24px; background: var(--emerald); color: var(--on-emerald); }
+.hdk-pager span { min-width: 58px; text-align: center; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hdk-pager button { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: inherit; }
+.hdk-pager button .icon { width: 18px; height: 18px; }
+.hdk-pager button:disabled { opacity: .35; }
+.hdk-bar:has(.hdk-pager:only-child) { justify-content: center; }
+.hd-book.grp { background: var(--surface); border-radius: 18px; border: 0; padding: 12px 10px; margin: 6px 0; }
+.hd-grp-go { display: flex; align-items: center; gap: 2px; color: var(--gold-ink); }
+.hd-grp-go .icon { width: 17px; height: 17px; }
+.hd-cover em { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: var(--gold-ink); margin-top: 8px; line-height: 1.5; }
+.hd-cover-ar.small { font-size: 26px; }
+.hd-col-part { display: inline-block; font-size: 11px; font-weight: 800; color: var(--gold-ink); background: rgba(217, 164, 65, .14); padding: 3px 8px; border-radius: 8px; margin-top: 10px; }

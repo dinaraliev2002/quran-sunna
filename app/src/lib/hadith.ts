@@ -4,8 +4,10 @@
 import { DATA_BASE } from './data'
 import { cachedJson, dataKey } from './net'
 
-export interface HBook { n: number; /** номер книги/главы в самом сборнике (0 — вступление) */ no: number; title: string; ar: string; range: string; count: number; intro?: 1; /** раздел сборника (группа глав) */ sec?: string }
-export interface HCollection { id: string; name: string; ar: string; author: string; about: string; hadiths: number; books: HBook[] }
+export interface HBook { n: number; /** номер книги/главы в самом сборнике (0 — вступление) */ no: number; title: string; ar: string; range: string; count: number; intro?: 1; /** номер группы, если глава входит в книгу со вложенными главами */ grp?: number }
+/** Книга со вложенными главами («Толкование Корана» у аль-Бухари, книги Рияд ас-Салихин) */
+export interface HGroup { g: number; no: number; title: string; ar: string; range: string; count: number }
+export interface HCollection { id: string; name: string; ar: string; author: string; about: string; hadiths: number; books: HBook[]; groups: HGroup[]; /** перевод неполный — пояснение */ part?: string }
 export interface HIndex { collections: HCollection[]; /** кандидаты в «Хадис дня»: [id, номер файла enc] */ daily: [number, number][]; source: string }
 /** Хадис или раздел главы: заголовок, абзацы перевода, абзацы арабского текста */
 export interface HItem { t: string; ru: string[]; ar: string[] }
@@ -16,7 +18,7 @@ export interface TopicsData { topics: Topic[]; hadiths: Record<string, [number, 
 export interface EncHadith { id: number; t: string; ru: string; /** вводные слова («От Абу Хурайры передаётся…») — начало ru */ in: string; ar: string; src: string; grade: string; ex: string; hints: string[] }
 
 // версия данных хадисов — увеличиваем при пересборке, чтобы телефоны не держали старую копию
-const HADITH_VERSION = 1
+const HADITH_VERSION = 2
 const cache = new Map<string, Promise<unknown>>()
 function load<T>(path: string): Promise<T> {
   if (!cache.has(path)) {

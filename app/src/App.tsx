@@ -72,6 +72,7 @@ export default function App() {
             <Route path="/azkar/cat/:id" element={<AzkarCategory />} />
             <Route path="/hadith" element={<Hadith />} />
             <Route path="/hadith/c/:cid" element={<HadithCollection />} />
+            <Route path="/hadith/c/:cid/g/:g" element={<HadithCollection />} />
             <Route path="/hadith/c/:cid/:n" element={<HadithBook />} />
             <Route path="/hadith/t/:id" element={<HadithTopic />} />
             <Route path="/hadith/e/:id" element={<HadithEnc />} />

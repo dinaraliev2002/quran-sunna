@@ -33,6 +33,9 @@ COLLECTIONS = [
      'author': 'Имам ан-Навави', 'about': '«Сады праведных» — хадисы о нравственности, поклонении и поведении мусульманина, по главам.'},
     {'id': 'bukhari', 'slug': 'sahih-al-buhari', 'name': 'Сахих аль-Бухари', 'ar': 'صحيح البخاري',
      'author': 'Имам аль-Бухари', 'about': 'Самый достоверный сборник хадисов после Корана. 97 книг по темам.'},
+    {'id': 'muslim', 'slug': 'sahih-muslim', 'name': 'Сахих Муслим', 'ar': 'صحيح مسلم',
+     'author': 'Имам Муслим', 'about': 'Второй по достоверности сборник после «Сахиха» аль-Бухари. 54 книги по темам.',
+     'part': 'Перевод на русский ещё не завершён: у части хадисов пока только арабский текст.'},
 ]
 
 
@@ -63,6 +66,8 @@ def paras(fragment):
     for p in re.findall(r'<p[^>]*>(.*?)</p>', fragment, re.S) or [fragment]:
         t = html.unescape(re.sub(r'<br\s*/?>', ' ', p))
         t = re.sub(r'<[^>]+>', '', t)
+        t = re.sub(r'^\**\s*\[[0-9]{1,5}\]\s*\**\s*', '', t)
+        t = re.sub(r'\[[٠-٩]{1,5}\]\s*', '', t)  # то же в арабском тексте  # «[1161] 1 (520) — …» (Муслим): сквозной номер не нужен
         t = re.sub(r'\[\d{1,3}\]', '', t)  # номера сносок: самих сносок на странице раздела нет
         t = t.replace('‏', '').replace('\xa0', ' ')
         t = re.sub(r'\*\*\s*\*\*', '', t)
@@ -140,24 +145,26 @@ def build_collection(c):
         return meta_books
     with cf.ThreadPoolExecutor(4) as ex:
         pages = list(ex.map(lambda b: get(ISNAD + b['href']), books))
-    # Рияд ас-Салихин: после глав 1–83 идут «книги», внутри которых свои главы (84–372) — раскрываем их
-    chapters = []  # (раздел, глава, страница)
+    # «Книги» со вложенными главами (Рияд ас-Салихин 84–372, «Толкование Корана» у аль-Бухари) — одна группа:
+    # в списке сборника это один пункт, а его главы открываются отдельным списком
+    chapters = []  # (номер группы или None, глава, страница)
+    groups = []
     for b, page in zip(books, pages):
-        subs = [x for x in re.findall(r'href="(' + re.escape(b['href']) + r'/[^"/]+)"[^>]*>(.*?)</a>', page, re.S)]
+        subs = re.findall(r'href="(' + re.escape(b['href']) + r'/[^"/]+)"[^>]*>(.*?)</a>', page, re.S)
         if 'hadeeth-num' not in page and subs:
-            sec = short_title(b['title'])[0]
+            title, rng = short_title(b['title'])
+            num = re.match(r'^(\d+)\.', b['title'])
+            groups.append({'g': len(groups) + 1, 'no': int(num.group(1)) if num else 0, 'title': title, 'ar': b['ar'], 'range': rng})
             for href, inner in subs:
                 parts = [clean_title(x) for x in re.split(r'<[^>]+>', inner) if clean_title(x)]
-                title = parts[0]
                 ar = next((x for x in parts[1:] if re.search(r'[ء-ي]', x)), '')
-                chapters.append((sec, {'href': href, 'title': title, 'ar': ar}, None))
+                chapters.append((len(groups), {'href': href, 'title': parts[0], 'ar': ar}, None))
         else:
-            chapters.append(('', b, page))
+            chapters.append((None, b, page))
     with cf.ThreadPoolExecutor(4) as ex:
         loaded = list(ex.map(lambda x: x[2] or get(ISNAD + x[1]['href']), chapters))
     n = 0
-    has_secs = any(sec for sec, _, _ in chapters)
-    for (sec, b, _), page in zip(chapters, loaded):
+    for (grp, b, _), page in zip(chapters, loaded):
         items = [it for it in section_items(page) if it['ru'] or it['ar']]
         if not items:
             continue
@@ -166,28 +173,11 @@ def build_collection(c):
         intro = bool(re.match(r'(Предисловие|О сборнике)', b['title']))
         write(c['id'], n, {'title': title, 'ar': b['ar'], 'items': items})
         num = re.match(r'^(?:Глава\s*)?(\d+)\.', b['title'])
-        if intro:
-            sec = 'Вступление'
         meta_books.append({'n': n, 'no': int(num.group(1)) if num else 0, 'title': title, 'ar': b['ar'], 'range': rng,
-                           'count': len(items), 'sec': sec, **({'intro': 1} if intro else {})})
-    # подписи групп для книг/глав без своего раздела: «Главы 1–83», «Книги 66–97»
-    if has_secs:
-        unit = 'Книги' if c['id'] == 'bukhari' else 'Главы'
-        k = 0
-        while k < len(meta_books):
-            if meta_books[k]['sec']:
-                k += 1
-                continue
-            j = k
-            while j + 1 < len(meta_books) and not meta_books[j + 1]['sec']:
-                j += 1
-            label = f"{unit} {meta_books[k]['no']}–{meta_books[j]['no']}" if j > k else f"{unit[:-1]}а {meta_books[k]['no']}"
-            for x in meta_books[k:j + 1]:
-                x['sec'] = label
-            k = j + 1
-    for x in meta_books:
-        if not x['sec']:
-            del x['sec']
+                           'count': len(items), **({'grp': grp} if grp else {}), **({'intro': 1} if intro else {})})
+    for g in groups:
+        g['count'] = sum(1 for x in meta_books if x.get('grp') == g['g'])
+    c['groups'] = groups
     return meta_books
 
 
@@ -285,10 +275,16 @@ def main():
         nums = set()
         for b in books:
             items = json.load(open(os.path.join(OUT, c['id'], f"{b['n']}.json"), encoding='utf-8'))['items']
-            nums |= set(range(1, len(items) + 1)) if c['id'] == 'nawawi' else hadith_numbers(items)
+            if c['id'] == 'nawawi':
+                nums |= set(range(1, len(items) + 1))
+            elif c['id'] == 'muslim':  # «1 (293) — » / «2 (…) — »: номер в книге и общий номер
+                nums |= {(b['n'], k, j) for k, it in enumerate(items) for j, p in enumerate(it['ru']) if re.match(r'^(\d+\s*)?\((\d+|…|\.\.\.)\)\s*[—–-]', p)}
+            else:
+                nums |= hadith_numbers(items)
         total = len(nums)
         print(f'  книг/глав: {len(books)}, хадисов: {total}')
-        meta.append({k: c[k] for k in ('id', 'name', 'ar', 'author', 'about')} | {'hadiths': total, 'books': books})
+        meta.append({k: c[k] for k in ('id', 'name', 'ar', 'author', 'about')} | {'hadiths': total, 'books': books, 'groups': c.get('groups', [])}
+                    | ({'part': c['part']} if c.get('part') else {}))
     print('Темы (HadeethEnc)…')
     hadiths = build_topics()
     # «Хадис дня» — короткие хадисы из энциклопедии (с объяснением)

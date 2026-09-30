@@ -14,7 +14,7 @@ export function RuParas({ paras }: { paras: string[] }) {
   return (
     <div className="hd-ru">
       {paras.map((p, i) => {
-        const num = p.match(/^(\d{1,4})\s*[—–-]\s+/)
+        const num = p.match(/^(\d{1,4}(?:\s*\((?:\d{1,4}|…|\.\.\.)\))?(?:\s*(?:,|и|[-–])\s*\d{1,4})*)\s*[—–]\s+/) ?? p.match(/^(\((?:\d{1,4}|…)\))\s*[—–]\s+/) ?? p.match(/^(\d{1,4})\s*-\s+/)
         const body = num ? p.slice(num[0].length) : p
         if (isSourcePara(body)) return <p key={i} className="hd-src">{bold(body)}</p>
         const intro = /:$/.test(body.trim()) && body.length < 400
@@ -39,6 +39,8 @@ export function ArParas({ paras }: { paras: string[] }) {
 
 /** «54. Поистине, правдивость…» → номер и заголовок; «1. Глава: О том…» → «Глава 1» и заголовок */
 export function splitTitle(t: string): { no: string; title: string } {
+  const g = t.match(/^Глава\s+(\d{1,4})\.\s*(.*)$/)
+  if (g) return { no: `Глава ${g[1]}`, title: g[2] }
   const m = t.match(/^(\d{1,4})\.\s*(Глава:?\s*)?(.*)$/)
   if (!m) return { no: '', title: t }
   return { no: m[2] ? `Глава ${m[1]}` : m[1], title: m[3] }
