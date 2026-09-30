@@ -56,6 +56,24 @@ def clean_ru(s):
     return s.strip()
 
 
+def dua_only_istikhara(ar):
+    """Истихара: в арабском оставить только саму дуа — без слов передатчика (Джабир…),
+    пояснений («и называет своё дело», «или он сказал…») и добавления автора после неё"""
+    start = ar.find('اللَّهُمَّ إِنِّي أَسْتَخِيرُكَ')
+    end_mark = 'ثُمَّ أَرْضِنِي بِهِ'
+    end = ar.find(end_mark)
+    if start < 0 or end < 0:
+        return ar
+    dua = ar[start:end + len(end_mark)]
+    dua = re.sub(r'\s*[-–]\s*وَيُسَمِّي حَاجَتَهُ\s*[-–]\s*', ' ', dua)
+    dua = re.sub(r'\s*[-–]\s*أَوْ قَالَ:?\s*عَاجِلِهِ وَآجِلِهِ\s*[-–]\s*', ' ', dua)
+    return re.sub(r'\s+', ' ', dua).strip() + '.'
+
+
+# точечные правки арабского текста: номер азкара → функция
+AR_FIX = {74: dua_only_istikhara}
+
+
 REPEAT_WORDS = [('مائة مرة', 100), ('مئة مرة', 100), ('عشر مرات', 10), ('سبع مرات', 7), ('أربع مرات', 4),
                 ('ثلاث مرات', 3), ('ثلاثَ مرَّاتٍ', 3), ('مرتين', 2)]
 
@@ -107,6 +125,9 @@ def main():
             item['audio'] = best[1]['AUDIO'].replace('http://', 'https://')
         if ratio < 0.8:
             weak += 1
+        if iid in AR_FIX:
+            item['ar'] = AR_FIX[iid](item['ar'])
+            item.pop('audio', None)  # запись читает весь хадис целиком — со «сжатым» текстом не совпадёт
         items[iid] = item
 
     data = {'categories': cats, 'chapters': chapters, 'items': items,
