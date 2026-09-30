@@ -38,12 +38,12 @@ export function RuParas({ paras, hadith }: { paras: string[]; hadith?: boolean }
         // только вводные слова («…передают, что Пророк ﷺ сказал:»)
         if (/:$/.test(body.trim()) && body.length < 400) return <p key={i} className="hd-intro">{badge}{bold(body)}</p>
         const [intro, rest] = i === 0 || num ? splitIntro(body) : ['', body]
+        // вводные слова — отдельной строкой, после пустой строки — сам текст хадиса
         return (
-          <p key={i}>
-            {badge}
-            {intro && <span className="hd-intro">{bold(intro)} </span>}
-            <span className="hd-text">{hadithText(rest)}</span>
-          </p>
+          <Fragment key={i}>
+            {intro && <p className="hd-intro">{badge}{bold(intro)}</p>}
+            <p className={'hd-text' + (intro ? ' after-intro' : '')}>{!intro && badge}{hadithText(rest)}</p>
+          </Fragment>
         )
       })}
     </div>

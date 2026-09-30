@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { plural, useQuranMeta } from '../components/ui'
 import { EVENING, loadAzkar, MORNING, nowIsMorning, type AzkarData } from '../lib/azkar'
-import { loadSurah, surahGlyph, TOTAL_PAGES, type Ayah } from '../lib/data'
+import { loadSurah, surahGlyph, type Ayah } from '../lib/data'
 import { hadithOfDay, type EncHadith } from '../lib/hadith'
 import { haptic, shareText, tgUser } from '../lib/telegram'
 import { useStore, type TaskId } from '../store/settings'
@@ -103,8 +103,9 @@ export default function Home() {
         <Pattern id="hp" />
         <div className="h-glow" />
         <div className="h-top">
-          <button className="h-avatar" onClick={() => nav('/settings')} aria-label="Профиль и настройки">
-            {user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? 'А')}
+          <button className="h-me" onClick={() => nav('/settings')} aria-label="Профиль и настройки">
+            <span className="h-avatar">{user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? 'А')}</span>
+            {user?.first_name && <b>{user.first_name}</b>}
           </button>
           <div className="h-top-r">
             <div className="h-pill" title="Дней подряд с чтением Корана"><Icon id="flame" />{streak} {plural(streak, 'день', 'дня', 'дней')}</div>
@@ -113,15 +114,13 @@ export default function Home() {
         </div>
         <div className="h-greet">
           <div className="h-salam">السَّلَامُ عَلَيْكُمْ</div>
-          {user?.first_name && <h1>{user.first_name}</h1>}
           <p><span className="h-cap">{gregToday()}</span> · {hijriToday()}</p>
         </div>
         <button className="h-continue" onClick={continueReading}>
           <div className="t">
             <span>{last ? 'Продолжить чтение' : 'Начать чтение Корана'}</span>
             <b>{last && lastRead ? `${last.name}, аят ${lastRead.a}` : 'Аль-Фатиха'}</b>
-            <div className="h-bar"><i style={{ width: `${((lastRead?.p ?? 0) / TOTAL_PAGES) * 100}%` }} /></div>
-            <small>Страница {lastRead?.p ?? 1} из {TOTAL_PAGES} · {Math.round(((lastRead?.p ?? 0) / TOTAL_PAGES) * 100)}% Корана</small>
+            <small>Страница {lastRead?.p ?? 1}</small>
           </div>
           <div className="h-play"><Icon id="play" /></div>
         </button>
