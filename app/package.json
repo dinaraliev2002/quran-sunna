@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "data": "node scripts/fetch-data.mjs",
-    "deploy": "npm run build && gh-pages -d dist --nojekyll -m \"Публикация приложения\""
+    "deploy": "npm run build && node scripts/deploy.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",
