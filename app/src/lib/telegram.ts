@@ -102,6 +102,21 @@ export function cloudGet(key: string): Promise<string | null> {
   })
 }
 
+/** Обе копии: на телефоне и в облаке Telegram (чтобы выбрать более свежую) */
+export function cloudGetBoth(key: string): Promise<{ local: string | null; cloud: string | null }> {
+  let local: string | null = null
+  try { local = localStorage.getItem(key) } catch { /* приватный режим */ }
+  if (!hasCloud()) return Promise.resolve({ local, cloud: null })
+  return new Promise((resolve) => {
+    wa!.CloudStorage.getItem(key, (err, v) => resolve({ local, cloud: !err && v ? v : null }))
+  })
+}
+
+/** Записать только на телефон (мгновенно) */
+export function localSet(key: string, value: string) {
+  try { localStorage.setItem(key, value) } catch { /* ignore */ }
+}
+
 export function cloudSet(key: string, value: string) {
   try { localStorage.setItem(key, value) } catch { /* ignore */ }
   // лимит CloudStorage — 4096 символов на значение

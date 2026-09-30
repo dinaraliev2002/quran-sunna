@@ -76,10 +76,12 @@ export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, h
     <div className={'a-block' + (playing ? ' playing' : '')} data-key={key} data-page={a.p}>
       <div className="a-head">
         <span className="a-key">{key}{playing ? ' · звучит' : ''}</span>
-        <button className={'a-act' + (playing ? ' on' : '')} onClick={() => (playing ? act.onToggle() : act.onPlay(sid, a.n))}
-          aria-label={playing && act.sounding ? 'Пауза' : 'Слушать'}><Icon id={playing && act.sounding ? 'pause' : 'play'} /></button>
-        <button className="a-act" onClick={() => act.onInfo(sid, a.n)} aria-label="Перевод и тафсир"><Icon id="info" /></button>
-        <button className={'a-act' + (marked ? ' on' : '')} onClick={() => act.onBookmark(key)} aria-label="Закладка"><Icon id="bookmark" /></button>
+        <div className="a-acts">
+          <button className={'a-act' + (playing ? ' playing' : '')} onClick={() => (playing ? act.onToggle() : act.onPlay(sid, a.n))}
+            aria-label={playing && act.sounding ? 'Пауза' : 'Слушать'}><Icon id={playing && act.sounding ? 'pause' : 'play'} /></button>
+          <button className="a-act" onClick={() => act.onInfo(sid, a.n)} aria-label="Перевод и тафсир"><Icon id="info" /></button>
+          <button className={'a-act' + (marked ? ' on' : '')} onClick={() => act.onBookmark(key)} aria-label="Закладка"><Icon id="bookmark" /></button>
+        </div>
       </div>
       <QpcText page={a.p} glyphs={a.g} tajweed={opts.tajweed} className={'a-ar' + (hidden ? ' hidden' : '')} />
       <div className="a-tr">{opts.translation === 'aa' ? a.aa : a.ku}</div>
@@ -308,8 +310,9 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
         maxW = Math.max(maxW, w)
       })
       // на страницах 1–2 строки по центру с промежутками между словами — оставляем запас
-      const byWidth = maxW ? (20 * lines.clientWidth) / maxW * (page <= 2 ? 0.84 : 0.96) : 20
-      const byHeight = lines.clientHeight / 15 / 1.6
+      // строки растягиваются по ширине (space-between), так что запас почти не нужен
+      const byWidth = maxW ? (20 * lines.clientWidth) / maxW * (page <= 2 ? 0.86 : 0.995) : 20
+      const byHeight = lines.clientHeight / 15 / 1.45
       m.style.fontSize = Math.min(byWidth, page <= 2 ? byWidth : byHeight).toFixed(2) + 'px'
     }
     fit()

@@ -34,7 +34,12 @@ export const DAILY_MAIN: { ch: number; title: string; hint: string; icon: string
   { ch: 25, title: 'После намаза', hint: 'После приветствия в конце молитвы', icon: 'hands' },
   { ch: 29, title: 'Перед сном', hint: 'Когда ложитесь спать', icon: 'bed' },
   { ch: 1, title: 'При пробуждении', hint: 'Как только проснулись', icon: 'sunrise' },
+  { ch: 26, title: 'Дуа истихара', hint: 'Когда предстоит выбор в важном деле', icon: 'compass' },
 ]
+
+/** Понятные названия для некоторых глав (в книге они сформулированы описательно) */
+const TITLES: Record<number, string> = { 26: 'Дуа истихара' }
+export const chapterTitle = (c: AzkarChapter) => TITLES[c.id] ?? c.name
 /** Короткие мольбы, которые встречаются в течение дня */
 export const DAILY_ROUTINE: number[] = [10, 11, 70, 71, 13, 14, 6, 7, 2, 8, 9]
 

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { TabBar, plural } from '../../components/ui'
-import { CATEGORY_ICON, DAILY_MAIN, DAILY_ROUTINE, EVENING, loadAzkar, MORNING, nowIsMorning, snippet, timesLabel, type AzkarData } from '../../lib/azkar'
+import { CATEGORY_ICON, chapterTitle, DAILY_MAIN, DAILY_ROUTINE, EVENING, loadAzkar, MORNING, nowIsMorning, snippet, timesLabel, type AzkarData } from '../../lib/azkar'
 import { useStore } from '../../store/settings'
 
 type Tab = 'daily' | 'all' | 'groups'
@@ -50,7 +50,7 @@ export default function Azkar() {
     if (!data) return []
     const list = data.chapters.flatMap((c) => c.items.map((i, k) => ({ id: i, ch: c, k })))
     if (!query) return list
-    return list.filter(({ id, ch }) => ch.name.toLowerCase().includes(query) || data.items[id].ru.toLowerCase().includes(query))
+    return list.filter(({ id, ch }) => chapterTitle(ch).toLowerCase().includes(query) || ch.name.toLowerCase().includes(query) || data.items[id].ru.toLowerCase().includes(query))
   }, [data, query])
 
   const morningFirst = nowIsMorning()
@@ -79,7 +79,7 @@ export default function Azkar() {
           <button className={tab === 'groups' ? 'on' : ''} onClick={() => setTab('groups')}>Группы</button>
         </div>
       </div>
-      <p className="az-sub">Крепость мусульманина · Саид аль-Кахтани</p>
+      <div style={{ height: 8 }} />
 
       {!data && <div className="loading">Загрузка…</div>}
 
@@ -139,7 +139,7 @@ export default function Azkar() {
               <button key={id} className="az-row" onClick={() => nav(`/azkar/ch/${ch.id}?item=${id}`)}>
                 <div className="az-num">{id}</div>
                 <div className="t">
-                  <span className="az-ch">{ch.name}</span>
+                  <span className="az-ch">{chapterTitle(ch)}</span>
                   <b>{snippet(it.ru)}</b>
                 </div>
                 {it.rep > 1 && <span className="az-rep">{timesLabel(it.rep)}</span>}

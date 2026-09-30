@@ -37,11 +37,11 @@ export function MenuPanel({ sub, tajweed, onClose, onPlay, onBookmarks, onSearch
   sub: string; tajweed: boolean; mode: ReadMode
   onClose: () => void; onPlay: () => void; onBookmarks: () => void; onSearch: () => void; onMemo: () => void; onTajweed: () => void; onSettings: () => void
 }) {
+  // окно снизу — закрывается свайпом вниз, как и остальные
   return (
-    <>
-      <div className="dim" onClick={onClose} />
-      <div className="panel">
-        <div className="ph"><div><h3>Меню</h3><span>{sub}</span></div><button className="xbtn" onClick={onClose}><Icon id="close" /></button></div>
+    <Sheet onClose={onClose}>
+      <SheetHead title="Меню" sub={sub} onClose={onClose} />
+      <div className="menu-body">
         <div className="quick">
           <button onClick={onPlay}><Icon id="play" />Слушать</button>
           <button onClick={onBookmarks}><Icon id="bookmark" />Закладки</button>
@@ -68,7 +68,7 @@ export function MenuPanel({ sub, tajweed, onClose, onPlay, onBookmarks, onSearch
           <Icon id="right" className="icon chev" />
         </button>
       </div>
-    </>
+    </Sheet>
   )
 }
 

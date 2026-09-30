@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { plural, TabBar } from '../../components/ui'
-import { CATEGORY_ICON, loadAzkar, type AzkarData } from '../../lib/azkar'
+import { CATEGORY_ICON, chapterTitle, loadAzkar, type AzkarData } from '../../lib/azkar'
 import { useChapterProgress } from './Azkar'
 
 // Группа азкаров (например, «Путешествие») → список её разделов
@@ -28,7 +28,7 @@ export default function Category() {
         const p = progress(c.id)
         return (
           <button key={c.id} className="list-item" onClick={() => nav(`/azkar/ch/${c.id}`)}>
-            <div className="t"><b>{c.name}</b><span>{c.items.length} {plural(c.items.length, 'мольба', 'мольбы', 'мольб')}</span></div>
+            <div className="t"><b>{chapterTitle(c)}</b><span>{c.items.length} {plural(c.items.length, 'мольба', 'мольбы', 'мольб')}</span></div>
             {p.done > 0 ? <span className="az-count">{p.done}/{p.total}</span> : <Icon id="right" className="icon chev-s" />}
           </button>
         )

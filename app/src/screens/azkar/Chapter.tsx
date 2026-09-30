@@ -2,7 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead } from '../../components/ui'
-import { EVENING, loadAzkar, MORNING, timesLabel, type AzkarData } from '../../lib/azkar'
+import { chapterTitle, EVENING, loadAzkar, MORNING, timesLabel, type AzkarData } from '../../lib/azkar'
+import { loadSurahs, type Surah } from '../../lib/data'
+
+// на какой карточке был человек в каждом разделе (чтобы вернуться туда же после перехода в Коран)
+const lastCard = new Map<string, number>()
 import { haptic } from '../../lib/telegram'
 import { useAzkarAudio } from '../../store/azkarAudio'
 import { useStore } from '../../store/settings'
@@ -31,8 +35,9 @@ export default function Chapter() {
   const [cur, setCur] = useState(0) // индекс текущей карточки
   const [settings, setSettings] = useState(false)
   const [pop, setPop] = useState(0) // «пульс» счётчика при нажатии
+  const [surahs, setSurahs] = useState<Surah[] | null>(null) // для ссылок на суры в тексте
 
-  useEffect(() => { loadAzkar().then(setData) }, [])
+  useEffect(() => { loadAzkar().then(setData); loadSurahs().then(setSurahs) }, [])
   useEffect(() => () => useAzkarAudio.getState().stop(), [])
 
   const chapter = data?.chapters.find((c) => c.id === ch)
@@ -45,7 +50,9 @@ export default function Chapter() {
   // открыть на нужной карточке: из «Все» — на выбранной, иначе — на первой непрочитанной
   useLayoutEffect(() => {
     if (!chapter || !data || !track.current) return
-    let idx = focusItem ? items.indexOf(focusItem) : items.findIndex((i) => count(i) < data.items[i].rep)
+    // вернулись из Корана (по ссылке) — на ту же карточку; иначе из «Все» — на выбранную, иначе — первая непрочитанная
+    const memKey = `${ch}:${focusItem}`
+    let idx = lastCard.has(memKey) ? lastCard.get(memKey)! : focusItem ? items.indexOf(focusItem) : items.findIndex((i) => count(i) < data.items[i].rep)
     if (idx < 0) idx = 0
     track.current.scrollLeft = idx * track.current.clientWidth
     setCur(idx)
@@ -65,6 +72,7 @@ export default function Chapter() {
   const onScroll = () => {
     const el = track.current!
     const idx = Math.round(el.scrollLeft / el.clientWidth)
+    lastCard.set(`${ch}:${focusItem}`, idx)
     if (idx !== cur) { setCur(idx); haptic.tick(); if (audio.id !== null) audio.stop() }
   }
 
@@ -88,7 +96,7 @@ export default function Chapter() {
     <div className="azc" style={{ ['--az-ar' as string]: st.azArSize + 'px', ['--az-tr' as string]: st.azTrSize + 'px', ['--az-font' as string]: AZ_FONTS[st.azFont ?? 'sch'].css }}>
       <div className="azc-top">
         <button className="icon-btn" onClick={() => nav(-1)} aria-label="Назад"><Icon id="back" /></button>
-        <div className="ttl"><b>{chapter?.name ?? 'Азкары'}</b><span>{category?.name ?? 'Крепость мусульманина'}</span></div>
+        <div className="ttl"><b>{chapter ? chapterTitle(chapter) : 'Азкары'}</b><span>{category?.name ?? ''}</span></div>
         <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Настройки"><Icon id="gear" /></button>
       </div>
 
@@ -118,7 +126,7 @@ export default function Chapter() {
                 </div>
                 {st.azShowAr && <ArText text={it.ar} />}
                 {st.azShowAr && st.azShowTr && it.ru && <div className="azc-divider"><span>۞</span></div>}
-                {st.azShowTr && it.ru && <RuText text={it.ru} />}
+                {st.azShowTr && it.ru && <RuText text={it.ru} surahs={surahs} onOpen={(s, a) => nav(`/read/${s}?a=${a}`)} />}
                 {st.azShowRef && it.ref && <div className="azc-ref">Источник: {it.ref}</div>}
               </div>
             </section>

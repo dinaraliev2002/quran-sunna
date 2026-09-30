@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { cloudGet, cloudSet } from '../lib/telegram'
+import { cloudGet, cloudGetBoth, cloudSet, localSet } from '../lib/telegram'
 
 export type ReadMode = 'mushaf' | 'page' | 'sura'
 export type Translation = 'ku' | 'aa'
@@ -82,14 +82,33 @@ const BOOKMARKS_KEY = 'bookmarks_v1'
 
 const pick = <T extends object>(obj: T, keys: (keyof T)[]) => Object.fromEntries(keys.map((k) => [k, obj[k]]))
 
+// Сохранение: на телефон — сразу (ничего не теряется, даже если приложение тут же закрыли),
+// в облако Telegram — с небольшой задержкой и сразу при сворачивании приложения.
+// В каждую запись кладём время (_t), чтобы при запуске взять более свежую копию.
 let saveTimer: ReturnType<typeof setTimeout> | undefined
-function persist(s: Store) {
+let pending: [string, string][] = []
+function snapshot(s: Store): [string, string][] {
+  const t = Date.now()
+  return [
+    [SETTINGS_KEY, JSON.stringify({ ...pick(s, Object.keys(DEFAULT_SETTINGS) as (keyof Store)[]), _t: t })],
+    [PROGRESS_KEY, JSON.stringify({ ...pick(s, Object.keys(DEFAULT_PROGRESS) as (keyof Store)[]), _t: t })],
+    [BOOKMARKS_KEY, s.bookmarks.join(',')],
+  ]
+}
+function flushCloud() {
   clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
-    cloudSet(SETTINGS_KEY, JSON.stringify(pick(s, Object.keys(DEFAULT_SETTINGS) as (keyof Store)[])))
-    cloudSet(PROGRESS_KEY, JSON.stringify(pick(s, Object.keys(DEFAULT_PROGRESS) as (keyof Store)[])))
-    cloudSet(BOOKMARKS_KEY, s.bookmarks.join(','))
-  }, 600)
+  pending.forEach(([k, v]) => cloudSet(k, v))
+  pending = []
+}
+function persist(s: Store) {
+  pending = snapshot(s)
+  pending.forEach(([k, v]) => localSet(k, v))
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(flushCloud, 600)
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushCloud() })
+  window.addEventListener('pagehide', flushCloud)
 }
 
 /** Сегодняшняя запись (если наступил новый день — пустая) */
@@ -159,8 +178,14 @@ export const useStore = create<Store>((set, get) => ({
 }))
 
 export async function hydrateStore() {
-  const [s, p, b, old] = await Promise.all([cloudGet(SETTINGS_KEY), cloudGet(PROGRESS_KEY), cloudGet(BOOKMARKS_KEY), cloudGet('progress_v1')])
   const parse = (v: string | null) => { try { return v ? JSON.parse(v) : {} } catch { return {} } }
+  // из двух копий (телефон / облако Telegram) берём более свежую — по времени сохранения _t
+  const newest = async (key: string) => {
+    const { local, cloud } = await cloudGetBoth(key)
+    const l = parse(local), c = parse(cloud)
+    return JSON.stringify((l._t ?? 0) >= (c._t ?? 0) && local ? l : cloud ? c : l)
+  }
+  const [s, p, b, old] = await Promise.all([newest(SETTINGS_KEY), newest(PROGRESS_KEY), cloudGet(BOOKMARKS_KEY), cloudGet('progress_v1')])
   const legacy = parse(old) // первая версия хранила всё в одном ключе
   const progress: Progress = { ...DEFAULT_PROGRESS, ...pick(legacy, ['lastRead', 'streak', 'lastDay']), ...parse(p) }
   progress.today = currentToday(progress.today ?? emptyToday())
@@ -168,7 +193,10 @@ export async function hydrateStore() {
   const yesterday = dayStr(new Date(Date.now() - 864e5))
   if (progress.lastDay && progress.lastDay !== dayStr() && progress.lastDay !== yesterday) progress.streak = 0
   const bookmarks = b ? b.split(',').filter(Boolean) : Array.isArray(legacy.bookmarks) ? legacy.bookmarks : []
-  useStore.setState({ ...DEFAULT_SETTINGS, ...parse(s), ...progress, bookmarks, hydrated: true })
+  const settings = parse(s)
+  delete settings._t
+  delete (progress as unknown as { _t?: number })._t
+  useStore.setState({ ...DEFAULT_SETTINGS, ...settings, ...progress, bookmarks, hydrated: true })
 }
 
 // Telegram держит приложение в памяти — проверяем смену дня при каждом возвращении и раз в минуту
