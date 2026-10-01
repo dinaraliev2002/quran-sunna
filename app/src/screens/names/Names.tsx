@@ -103,7 +103,6 @@ export default function Names() {
         </button>
       )))}
       {data && list.length === 0 && <div className="empty">{filter === 'learned' ? 'Пока ни одного выученного имени' : 'Ничего не найдено'}</div>}
-      {data && <p className="hd-note" style={{ marginTop: 18 }}>Список и толкования — по книге Са‘ида аль-Кахтани «Толкование прекрасных имён Аллаха в свете Корана и Сунны» (пер. Э. Кулиева).</p>}
       <TabBar />
     </div>
   )

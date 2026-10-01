@@ -102,7 +102,6 @@ export default function NameCard() {
                       </div>
                     </div>
                   )}
-                  <p className="hd-credit">аль-Кахтани, «Толкование прекрасных имён Аллаха» · <a href={g.url} target="_blank" rel="noreferrer">kitab.center</a></p>
                 </div>
                 <div className="hdk-pager">
                   <button disabled={i === 0} onClick={() => go(i - 1)} aria-label="Предыдущее имя"><Icon id="back" /></button>
