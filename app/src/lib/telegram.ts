@@ -13,6 +13,8 @@ interface TgWebApp {
   colorScheme: 'light' | 'dark'
   ready(): void
   expand(): void
+  isFullscreen?: boolean
+  requestFullscreen?(): void
   isVersionAtLeast(v: string): boolean
   disableVerticalSwipes?(): void
   setHeaderColor?(c: string): void
@@ -42,6 +44,9 @@ export function initTelegram(onTheme: (scheme: 'light' | 'dark') => void) {
   if (!inTelegram) return
   wa!.ready()
   wa!.expand()
+  // Полный экран на телефоне — как бы ни открыли приложение: из списка чатов, кнопкой в диалоге или по ссылке.
+  // (Кнопка в чате открывает Mini App «наполовину»; на компьютере полный экран не включаем — он занял бы весь монитор.)
+  if (at('8.0') && /^(ios|android)/.test(wa!.platform) && !wa!.isFullscreen) wa!.requestFullscreen?.()
   // иначе свайп вниз по колесу/странице может закрыть приложение
   if (at('7.7')) wa!.disableVerticalSwipes?.()
   onTheme(wa!.colorScheme)
