@@ -819,3 +819,9 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .nm-ring.big .fg { stroke: var(--gold); }
 .nm-ring.big span { font-size: 30px; }
 .nml-body > :not(.nml-card) { flex-shrink: 0; } /* варианты ответов не сжимаются */
+/* толкование имён: аяты — цветом, хадисы и цитаты — полужирным, остальное — обычным */
+.nmc-sec p { font-weight: 400; }
+.nm-ayah { font-weight: 700; color: var(--emerald-bright); }
+.nm-ayah b { font-weight: 800; }
+.nm-quote { font-weight: 600; }
+.nm-ref { font-size: .85em; }

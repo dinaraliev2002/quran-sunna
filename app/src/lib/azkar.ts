@@ -15,7 +15,7 @@ export interface AzkarCategory { id: number; name: string }
 export interface AzkarData { categories: AzkarCategory[]; chapters: AzkarChapter[]; items: Record<string, AzkarItem> }
 
 // версия файла азкаров — увеличиваем при пересборке azkar.json, чтобы телефоны не держали старую копию
-const AZKAR_VERSION = 3
+const AZKAR_VERSION = 4
 let cache: Promise<AzkarData> | null = null
 export function loadAzkar(): Promise<AzkarData> {
   cache ??= cachedJson<AzkarData>(dataKey(`azkar.json?v=${AZKAR_VERSION}`), `${DATA_BASE}azkar.json?v=${AZKAR_VERSION}`)

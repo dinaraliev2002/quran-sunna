@@ -9,16 +9,41 @@ import { Translit } from './Names'
 
 const REF = /\(сур[аы]?\s*(\d{1,3})\s*«[^»]*»,?\s*аяты?\s*(\d{1,3})(?:\s*[-–—]\s*\d{1,3})?\)/g
 
-/** Абзац толкования: **цитаты аятов** жирным, ссылки «(сура 4 «Женщины», аят 134)» открывают Коран */
+/** Цитаты верхнего уровня «…» (с учётом вложенных кавычек): [начало, конец] */
+function quotes(text: string): [number, number][] {
+  const out: [number, number][] = []
+  let depth = 0, start = -1
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '«') { if (depth++ === 0) start = i }
+    else if (text[i] === '»' && depth > 0 && --depth === 0) out.push([start, i + 1])
+  }
+  return out
+}
+
+/** Абзац толкования: аяты (цитата + «(сура 4 «Женщины», аят 134)») — выделены цветом, ссылка открывает Коран;
+ *  хадисы и слова учёных в кавычках — полужирным; остальное — обычным текстом */
 function Para({ text, open }: { text: string; open: (s: number, a: number) => void }) {
   const out: ReactNode[] = []
-  let pos = 0, k = 0
-  const plain = (t: string) => t.split(/\*\*(.+?)\*\*/g).forEach((part, i) => out.push(i % 2 ? <b key={k++}>{part}</b> : <Fragment key={k++}>{part}</Fragment>))
-  for (const m of text.matchAll(REF)) {
-    plain(text.slice(pos, m.index))
-    const s = Number(m[1]), a = Number(m[2])
-    out.push(<button key={k++} className="azt-link" onClick={() => open(s, a)}>{m[0]}</button>)
-    pos = m.index! + m[0].length
+  let k = 0
+  const plain = (t: string, cls?: string) => {
+    const parts = t.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? <b key={k++}>{part}</b> : <Fragment key={k++}>{part}</Fragment>))
+    out.push(cls ? <span key={k++} className={cls}>{parts}</span> : <Fragment key={k++}>{parts}</Fragment>)
+  }
+  const refs = [...text.matchAll(REF)].map((m) => ({ start: m.index!, end: m.index! + m[0].length, s: Number(m[1]), a: Number(m[2]), t: m[0] }))
+  const qs = quotes(text).map(([a, b]) => ({ a, b, ayah: refs.some((r) => /^[\s*,;:.]*$/.test(text.slice(b, r.start)) && r.start >= b) }))
+  // отрезки: цитаты и ссылки по порядку (перекрывающиеся пропускаем — ссылка внутри цитаты остаётся её частью)
+  const marks = [...qs.map((q) => ({ start: q.a, end: q.b, kind: q.ayah ? 'ayah' : 'quote' as string })), ...refs.map((r) => ({ start: r.start, end: r.end, kind: 'ref', r }))]
+    .sort((x, y) => x.start - y.start)
+  let pos = 0
+  for (const m of marks) {
+    if (m.start < pos) continue
+    plain(text.slice(pos, m.start))
+    const seg = text.slice(m.start, m.end)
+    if (m.kind === 'ref') {
+      const r = (m as unknown as { r: { s: number; a: number } }).r
+      out.push(<button key={k++} className="azt-link nm-ref" onClick={() => open(r.s, r.a)}>{seg}</button>)
+    } else plain(seg, m.kind === 'ayah' ? 'nm-ayah' : 'nm-quote')
+    pos = m.end
   }
   plain(text.slice(pos))
   return <p>{out}</p>

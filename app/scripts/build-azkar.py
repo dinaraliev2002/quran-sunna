@@ -70,8 +70,20 @@ def dua_only_istikhara(ar):
     return re.sub(r'\s+', ' ', dua).strip() + '.'
 
 
+def surahs_only(ar):
+    """Перед сном (три последние суры): в арабском — только сами суры, от первой «бисмиллях» до конца ан-Нас,
+    без описания действий Пророка до и после"""
+    start = ar.find('بسم الله')
+    end = ar.rfind('﴾')
+    if start < 0 or end < 0:
+        return ar
+    return ar[start:end + 1].strip()
+
+
 # точечные правки арабского текста: номер азкара → функция
-AR_FIX = {74: dua_only_istikhara}
+AR_FIX = {74: dua_only_istikhara, 119: surahs_only}
+# точечные правки перевода: номер азкара → (что заменить, на что)
+RU_FIX = {130: [(' (Ас-Саджда, 32)', ''), (' (Аль-Мульк, 67)', '')]}
 
 
 REPEAT_WORDS = [('مائة مرة', 100), ('مئة مرة', 100), ('عشر مرات', 10), ('سبع مرات', 7), ('أربع مرات', 4),
@@ -125,6 +137,8 @@ def main():
             item['audio'] = best[1]['AUDIO'].replace('http://', 'https://')
         if ratio < 0.8:
             weak += 1
+        for old, new in RU_FIX.get(iid, []):
+            item['ru'] = item['ru'].replace(old, new)
         if iid in AR_FIX:
             item['ar'] = AR_FIX[iid](item['ar'])
             item.pop('audio', None)  # запись читает весь хадис целиком — со «сжатым» текстом не совпадёт
