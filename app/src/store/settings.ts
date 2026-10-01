@@ -97,7 +97,8 @@ const BOOKMARKS_KEY = 'bookmarks_v1'
 const HFAV_KEY = 'hadith_fav_v1'
 const NAMES_KEY = 'names_learned_v1'
 
-const pick = <T extends object>(obj: T, keys: (keyof T)[]) => Object.fromEntries(keys.map((k) => [k, obj[k]]))
+// только заданные поля: «пустое» значение не должно затирать значение по умолчанию (иначе у нового пользователя серия = undefined)
+const pick = <T extends object>(obj: T, keys: (keyof T)[]) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]))
 
 // Сохранение: на телефон — сразу (ничего не теряется, даже если приложение тут же закрыли),
 // в облако Telegram — с небольшой задержкой и сразу при сворачивании приложения.
