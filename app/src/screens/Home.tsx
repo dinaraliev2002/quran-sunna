@@ -70,7 +70,7 @@ const TASK_ICON: Record<TaskId, string> = { read: 'book', morning: 'sun', evenin
 export default function Home() {
   const nav = useNavigate()
   const meta = useQuranMeta()
-  const { lastRead, recent, streak, today, markTask, tajweed, rollDay } = useStore()
+  const { lastRead, recent, streak, today, markTask, tajweed, rollDay, learned } = useStore()
   useEffect(() => { rollDay() }, [rollDay]) // открыли главную — убедиться, что «Сегодня» за сегодня
   const user = tgUser()
   const last = lastRead && meta ? meta.surahs[lastRead.s - 1] : null
@@ -155,7 +155,7 @@ export default function Home() {
         </button>
         <button className="h-tile names" onClick={() => nav('/names')}>
           <div className="ib"><Icon id="star" /></div>
-          <div className="h-tile-b"><b>99 имён</b><small className="soon">Скоро</small></div>
+          <div className="h-tile-b"><b>99 имён</b><small>{learned.length ? `Выучено ${learned.length} из 99` : 'Значения и заучивание'}</small></div>
         </button>
       </div>
 

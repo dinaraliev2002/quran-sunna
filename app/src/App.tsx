@@ -12,6 +12,9 @@ import HadithCollection from './screens/hadith/Collection'
 import HadithEnc from './screens/hadith/EncHadith'
 import HadithTopic from './screens/hadith/Topic'
 import Home from './screens/Home'
+import Names from './screens/names/Names'
+import NameCard from './screens/names/NameCard'
+import NamesLearn from './screens/names/Learn'
 import Reader from './screens/reader/Reader'
 import Downloads from './screens/Downloads'
 import Settings from './screens/Settings'
@@ -20,7 +23,7 @@ import SurahList from './screens/SurahList'
 import { hydrateStore, useStore } from './store/settings'
 import { useUi } from './store/ui'
 
-const ROOTS = ['/', '/quran', '/azkar', '/hadith', '/settings']
+const ROOTS = ['/', '/quran', '/azkar', '/hadith', '/names', '/settings']
 
 function useTheme() {
   const pref = useStore((s) => s.theme)
@@ -76,7 +79,9 @@ export default function App() {
             <Route path="/hadith/c/:cid/:n" element={<HadithBook />} />
             <Route path="/hadith/t/:id" element={<HadithTopic />} />
             <Route path="/hadith/e/:id" element={<HadithEnc />} />
-            <Route path="/names" element={<Stub title="99 имён Аллаха" icon="star" text="Раздел в работе." />} />
+            <Route path="/names" element={<Names />} />
+            <Route path="/names/learn" element={<NamesLearn />} />
+            <Route path="/names/:n" element={<NameCard />} />
             <Route path="/profile" element={<Stub title="Профиль" icon="flame" text="Профиль, анкета и план заучивания — в следующих версиях." />} />
             <Route path="/notifications" element={<Stub title="Уведомления" icon="bell" text="Здесь будут напоминания и сообщения." />} />
             <Route path="*" element={<Home />} />

@@ -47,6 +47,7 @@ interface Progress {
 interface Store extends Settings, Progress {
   bookmarks: string[] // "сура:аят"
   hfav: string[] // избранные хадисы (см. lib/hadith favBook/favEnc)
+  learned: number[] // выученные имена Аллаха (номера)
   hydrated: boolean
   set: (patch: Partial<Settings>) => void
   setLastRead: (lr: LastRead) => void
@@ -60,6 +61,8 @@ interface Store extends Settings, Progress {
   azkarReset: (ch: number, items: number[]) => void
   toggleHadithFav: (key: string) => void
   setHadithLast: (v: { c: string; n: number; i: number }) => void
+  /** отметить имя выученным / снять отметку */
+  setLearned: (n: number, on: boolean) => void
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -92,6 +95,7 @@ const SETTINGS_KEY = 'settings_v1'
 const PROGRESS_KEY = 'progress_v2'
 const BOOKMARKS_KEY = 'bookmarks_v1'
 const HFAV_KEY = 'hadith_fav_v1'
+const NAMES_KEY = 'names_learned_v1'
 
 const pick = <T extends object>(obj: T, keys: (keyof T)[]) => Object.fromEntries(keys.map((k) => [k, obj[k]]))
 
@@ -107,6 +111,7 @@ function snapshot(s: Store): [string, string][] {
     [PROGRESS_KEY, JSON.stringify({ ...pick(s, Object.keys(DEFAULT_PROGRESS) as (keyof Store)[]), _t: t })],
     [BOOKMARKS_KEY, s.bookmarks.join(',')],
     [HFAV_KEY, favString(s.hfav)],
+    [NAMES_KEY, s.learned.join(',')],
   ]
 }
 function flushCloud() {
@@ -143,6 +148,7 @@ export const useStore = create<Store>((set, get) => ({
   ...DEFAULT_PROGRESS,
   bookmarks: [],
   hfav: [],
+  learned: [],
   hydrated: false,
   set: (patch) => { set(patch); persist(get()) },
   setLastRead: (lastRead) => {
@@ -203,6 +209,12 @@ export const useStore = create<Store>((set, get) => ({
     set({ hadithLast: v })
     persist(get())
   },
+  setLearned: (n, on) => {
+    const l = get().learned
+    if (l.includes(n) === on) return
+    set({ learned: on ? [...l, n].sort((a, b) => a - b) : l.filter((x) => x !== n) })
+    persist(get())
+  },
   markTask: (id, done) => {
     const today = currentToday(get().today)
     const has = today.done.includes(id)
@@ -221,7 +233,7 @@ export async function hydrateStore() {
     const l = parse(local), c = parse(cloud)
     return JSON.stringify((l._t ?? 0) >= (c._t ?? 0) && local ? l : cloud ? c : l)
   }
-  const [s, p, b, old, hf] = await Promise.all([newest(SETTINGS_KEY), newest(PROGRESS_KEY), cloudGet(BOOKMARKS_KEY), cloudGet('progress_v1'), cloudGet(HFAV_KEY)])
+  const [s, p, b, old, hf, nl] = await Promise.all([newest(SETTINGS_KEY), newest(PROGRESS_KEY), cloudGet(BOOKMARKS_KEY), cloudGet('progress_v1'), cloudGet(HFAV_KEY), cloudGet(NAMES_KEY)])
   const legacy = parse(old) // первая версия хранила всё в одном ключе
   const progress: Progress = { ...DEFAULT_PROGRESS, ...pick(legacy, ['lastRead', 'streak', 'lastDay']), ...parse(p) }
   progress.today = currentToday(progress.today ?? emptyToday())
@@ -233,7 +245,8 @@ export async function hydrateStore() {
   delete settings._t
   delete (progress as unknown as { _t?: number })._t
   const hfav = hf ? hf.split(',').filter(Boolean) : []
-  useStore.setState({ ...DEFAULT_SETTINGS, ...settings, ...progress, bookmarks, hfav, hydrated: true })
+  const learned = nl ? nl.split(',').map(Number).filter((x) => x > 0 && x <= 99) : []
+  useStore.setState({ ...DEFAULT_SETTINGS, ...settings, ...progress, bookmarks, hfav, learned, hydrated: true })
 }
 
 // Telegram держит приложение в памяти — проверяем смену дня при каждом возвращении и раз в минуту

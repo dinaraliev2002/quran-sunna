@@ -731,3 +731,91 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .hdk-books .icon { width: 18px; height: 18px; flex: none; color: var(--emerald-bright); }
 .hdk .azc-track { padding-bottom: calc(var(--safe-bottom) + 12px); }
 .hd-ru .hd-intro + p { margin-top: 1em; } /* пустая строка между «кто передаёт» и текстом */
+
+/* ===== 99 имён Аллаха ===== */
+.nm-st { color: var(--gold-ink); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+.nm-hero { border-radius: var(--r-tile); padding: 16px; margin-bottom: 12px; color: #F4EFE3; background: linear-gradient(150deg, var(--emerald), #145e3f); }
+.nm-hero-top { display: flex; align-items: center; gap: 14px; }
+.nm-hero-top .t { flex: 1; min-width: 0; }
+.nm-hero-top b { display: block; font-size: 17px; font-weight: 800; }
+.nm-hero-top .t span { display: block; font-size: 12px; line-height: 1.45; opacity: .75; margin-top: 4px; }
+.nm-ring { position: relative; width: 62px; height: 62px; flex: none; display: grid; place-items: center; }
+.nm-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.nm-ring circle { fill: none; stroke-width: 6; stroke-linecap: round; }
+.nm-ring .bg { stroke: rgba(255, 255, 255, .16); }
+.nm-ring .fg { stroke: #E9C77A; transition: stroke-dashoffset .4s; }
+.nm-ring span { position: relative; font-size: 18px; font-weight: 800; }
+.nm-hero-btns { display: flex; gap: 8px; margin-top: 14px; }
+.nm-hero-btns button { flex: 1; height: 44px; border-radius: 14px; background: rgba(255, 255, 255, .14); color: #F4EFE3; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 7px; }
+.nm-hero-btns .icon { width: 17px; height: 17px; color: #E9C77A; }
+
+.nm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.nm-tile { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; padding: 12px 6px 10px; border-radius: 18px; background: var(--surface); min-height: 132px; content-visibility: auto; contain-intrinsic-size: auto 132px; }
+.nm-tile.done { background: linear-gradient(180deg, var(--highlight), var(--surface)); }
+.nm-no { position: absolute; top: 8px; left: 10px; font-size: 10.5px; font-weight: 800; color: var(--text-2); }
+.nm-ok { position: absolute; top: 7px; right: 8px; width: 18px; height: 18px; border-radius: 50%; background: var(--emerald-bright); color: #fff; display: grid; place-items: center; }
+.nm-ok .icon { width: 12px; height: 12px; stroke-width: 3; }
+.nm-ok.inline { position: static; flex: none; }
+.nm-ar { font-family: "Amiri", serif; font-size: 25px; line-height: 1.75; color: var(--gold-ink); margin-top: 8px; direction: rtl; }
+.nm-tile b { font-size: 12.5px; font-weight: 800; line-height: 1.25; }
+.nm-tile small { font-size: 11px; color: var(--text-2); font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nm-ar-s { font-family: "Amiri", serif; font-size: 20px; color: var(--gold-ink); direction: rtl; flex: none; }
+
+/* карточка имени */
+.nmc-head { text-align: center; padding: 8px 0 16px; border-bottom: 1px solid var(--line); }
+.nm-no-big { display: inline-block; font-size: 12px; font-weight: 800; color: var(--gold-ink); background: rgba(217, 164, 65, .12); padding: 4px 10px; border-radius: 10px; }
+.nmc-ar { font-family: "Amiri", serif; font-size: 52px; line-height: 1.6; color: var(--gold-ink); direction: rtl; margin-top: 6px; }
+.nmc-tr { font-size: 22px; font-weight: 800; letter-spacing: -.01em; }
+.nmc-ru { font-size: 16px; color: var(--text-2); font-weight: 600; margin-top: 4px; }
+.nmc-acts { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+.nmc-acts button { height: 42px; padding: 0 16px; border-radius: 21px; background: var(--surface-2); font-size: 13.5px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+.nmc-acts button .icon { width: 17px; height: 17px; color: var(--emerald-bright); }
+.nmc-acts button.on { background: var(--emerald); color: var(--on-emerald); }
+.nmc-acts button.on .icon { color: inherit; }
+.nmc-acts button.sq { width: 42px; padding: 0; justify-content: center; }
+.nmc-sec { margin-top: 18px; font-size: 16px; line-height: 1.7; }
+.nmc-sec h2 { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: var(--gold-ink); margin-bottom: 8px; }
+.nmc-sec h2 .icon { width: 18px; height: 18px; }
+.nmc-sec p + p { margin-top: .7em; }
+.nmc-sec b { font-weight: 700; }
+.nmc-with { font-size: 13px; color: var(--text-2); font-weight: 600; line-height: 1.5; }
+.nmc-ayahs { display: flex; flex-wrap: wrap; gap: 8px; }
+.nmc-ayahs button { display: flex; flex-direction: column; align-items: flex-start; padding: 8px 12px; border-radius: 14px; background: var(--surface-2); }
+.nmc-ayahs b { font-size: 13px; font-weight: 800; }
+.nmc-ayahs span { font-size: 11.5px; color: var(--text-2); font-weight: 700; }
+.hd-credit a { color: inherit; text-decoration: underline; }
+
+/* заучивание */
+.nml { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
+.nml-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 8px 16px calc(var(--safe-bottom) + 16px); overflow-y: auto; }
+.nml-count { text-align: center; font-size: 12.5px; font-weight: 800; color: var(--text-2); margin-bottom: 12px; }
+.nml-card { position: relative; flex: 1; min-height: 300px; max-height: 460px; perspective: 1200px; }
+.nml-card .face { position: absolute; inset: 0; border-radius: var(--r-tile); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 20px; backface-visibility: hidden; transition: transform .45s cubic-bezier(.2, .8, .2, 1); box-shadow: var(--shadow); }
+.nml-card .face small { font-size: 12px; color: var(--text-2); font-weight: 600; margin-top: 10px; }
+.nml-card .back { transform: rotateY(180deg); background: linear-gradient(160deg, var(--emerald), #145e3f); color: #F4EFE3; }
+.nml-card .back small { color: rgba(244, 239, 227, .7); font-family: "Amiri", serif; font-size: 22px; }
+.nml-card.flip .front { transform: rotateY(-180deg); }
+.nml-card.flip .back { transform: rotateY(0); }
+.nml-mean { font-size: 26px; font-weight: 800; text-align: center; line-height: 1.3; }
+.nml-btns { display: flex; gap: 10px; margin-top: 16px; }
+.nml-btns button { flex: 1; height: 54px; border-radius: 18px; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.nml-btns .icon { width: 18px; height: 18px; }
+.nml-btns .again { background: var(--surface); }
+.nml-btns .know { background: var(--emerald); color: var(--on-emerald); }
+.nml-q { text-align: center; background: var(--surface); border-radius: var(--r-tile); padding: 18px; }
+.nml-opts { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.nml-opts button { min-height: 52px; padding: 10px 16px; border-radius: 16px; background: var(--surface); font-size: 15px; font-weight: 700; text-align: left; border: 2px solid transparent; transition: background .2s, border-color .2s, opacity .2s; }
+.nml-opts button.ok { border-color: var(--emerald-bright); background: var(--highlight); }
+.nml-opts button.bad { border-color: #D2554F; background: rgba(210, 85, 79, .1); }
+.nml-opts button.off { opacity: .45; }
+.nml-next { margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.nml-next .icon { width: 18px; height: 18px; }
+.nml-done { align-items: center; justify-content: center; text-align: center; gap: 10px; }
+.nml-done b { font-size: 19px; font-weight: 800; }
+.nml-done > span { font-size: 13px; color: var(--text-2); font-weight: 600; }
+.nml-done .bigbtn { margin-top: 12px; min-width: 200px; }
+.nm-ring.big { width: 110px; height: 110px; }
+.nm-ring.big .bg { stroke: var(--surface-3); }
+.nm-ring.big .fg { stroke: var(--gold); }
+.nm-ring.big span { font-size: 30px; }
+.nml-body > :not(.nml-card) { flex-shrink: 0; } /* варианты ответов не сжимаются */
