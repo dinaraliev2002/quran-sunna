@@ -219,6 +219,29 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
   }, [])
 
   const range = t ? (t.from === t.to ? `аят ${t.from}` : `аяты ${t.from}–${t.to}`) : ''
+
+  // полоска прокрутки справа: где мы в тексте — в начале, в середине или у конца
+  const [bar, setBar] = useState<{ top: number; h: number; areaTop: number; areaH: number } | null>(null)
+  const measure = () => {
+    const el = bodyRef.current
+    if (!el || el.scrollHeight <= el.clientHeight + 4) { setBar(null); return }
+    const ratio = el.clientHeight / el.scrollHeight
+    const pos = el.scrollTop / (el.scrollHeight - el.clientHeight)
+    const areaH = el.clientHeight - 16
+    const h = Math.max(28, areaH * ratio)
+    const next = { top: Math.round(pos * (areaH - h)), h: Math.round(h), areaTop: el.offsetTop + 8, areaH }
+    // то же положение — не перерисовываем
+    setBar((b) => (b && b.top === next.top && b.h === next.h && b.areaTop === next.areaTop && b.areaH === next.areaH ? b : next))
+  }
+  useEffect(() => {
+    measure()
+    const el = bodyRef.current
+    if (!el) return
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    if (el.firstElementChild) ro.observe(el.firstElementChild)
+    return () => ro.disconnect()
+  }, [a, tf, cur]) // t пересоздаётся на каждой отрисовке — его в зависимости не берём
   return (
     <Sheet onClose={onClose} tall>
       <div className="sh">
@@ -229,7 +252,12 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
           <button className="xbtn" onClick={onClose} aria-label="Закрыть"><Icon id="close" /></button>
         </div>
       </div>
-      <div className="body" ref={bodyRef}>
+      {bar && (
+        <div className="scrollbar" style={{ top: bar.areaTop, height: bar.areaH }} aria-hidden>
+          <i style={{ height: bar.h, transform: `translateY(${bar.top}px)` }} />
+        </div>
+      )}
+      <div className="body" ref={bodyRef} onScroll={measure}>
         {!a && <div className="loading">Загрузка…</div>}
         {a && (
           <div key={cur} className={'ayah-sheet' + (slide ? ' slide-' + slide : '')}>
