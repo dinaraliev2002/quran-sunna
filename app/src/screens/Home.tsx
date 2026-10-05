@@ -210,7 +210,7 @@ export default function Home() {
           <p className="h-aod-tr">{aod.a.ku}</p>
           <div className="h-aod-ref">{meta.surahs[Number(aod.key.split(':')[0]) - 1].name} · {aod.key}</div>
           <div className="h-aod-act">
-            <button onClick={() => nav(`/read/${aod.key.split(':')[0]}?a=${aod.a.n}`)}><Icon id="book" />Открыть</button>
+            <button onClick={() => nav(`/read/${aod.key.split(':')[0]}?a=${aod.a.n}&from=link`)}><Icon id="book" />Открыть</button>
             <button onClick={() => shareText(`${aod.a.ku}\n— ${meta.surahs[Number(aod.key.split(':')[0]) - 1].name}, ${aod.key}`)}><Icon id="share" />Поделиться</button>
           </div>
         </section>

@@ -69,6 +69,8 @@ export const tgUser = (): TgUser | undefined => (inTelegram ? wa!.initDataUnsafe
 export const haptic = {
   tap: () => inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('light'),
   tick: () => inTelegram && at('6.1') && wa!.HapticFeedback.selectionChanged(),
+  /** перешли на другую страницу Корана — ощутимее, чем обычное листание */
+  page: () => inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('medium'),
   success: () => inTelegram && at('6.1') && wa!.HapticFeedback.notificationOccurred('success'),
 }
 

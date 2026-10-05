@@ -74,7 +74,7 @@ export default function NameCard() {
     if (k !== cur && k >= 0 && k < 99) { setCur(k); haptic.tick(); lastName = k + 1 }
   }
   const go = (k: number) => track.current?.scrollTo({ left: k * track.current.clientWidth, behavior: 'smooth' })
-  const open = (s: number, a: number) => nav(`/read/${s}?a=${a}`)
+  const open = (s: number, a: number) => nav(`/read/${s}?a=${a}&from=link`)
   const names = data?.names ?? []
 
   return (

@@ -121,7 +121,7 @@ export default function Chapter() {
                 </div>
                 {st.azShowAr && <ArText text={it.ar} />}
                 {st.azShowAr && st.azShowTr && it.ru && <div className="azc-divider"><span>۞</span></div>}
-                {st.azShowTr && it.ru && <RuText text={it.ru} surahs={surahs} onOpen={(s, a) => nav(`/read/${s}?a=${a}`)} />}
+                {st.azShowTr && it.ru && <RuText text={it.ru} surahs={surahs} onOpen={(s, a) => nav(`/read/${s}?a=${a}&from=link`)} />}
                 {st.azShowRef && it.ref && <div className="azc-ref">Источник: {it.ref}</div>}
               </div>
             </section>

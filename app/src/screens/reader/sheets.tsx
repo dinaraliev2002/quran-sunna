@@ -164,7 +164,11 @@ export function MemoSheet({ surah, startAyah, reciterName, onClose, onStart }: {
 }
 
 /** Окно аята: арабский текст, перевод, тафсир ас-Саади. Листается свайпом влево/вправо по аятам. */
-export function AyahSheet({ surah, ayah, onClose, onPlay }: { surah: Surah; ayah: number; onClose: () => void; onPlay: (s: number, a: number) => void }) {
+export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
+  surah: Surah; ayah: number; onClose: () => void; onPlay: (s: number, a: number) => void
+  /** аят сменился (листают тафсир) — чтобы страница под окном перелистнулась следом */
+  onAyah?: (s: number, a: number, page: number) => void
+}) {
   const st = useStore()
   const [ayahs, setAyahs] = useState<Ayah[] | null>(null)
   const [tf, setTf] = useState<Record<string, string> | null | undefined>(undefined)
@@ -178,6 +182,15 @@ export function AyahSheet({ surah, ayah, onClose, onPlay }: { surah: Surah; ayah
 
   const a = ayahs?.[cur - 1]
   const t = tf ? tafsirFor(tf, cur, surah.ayahs) : null
+  // перешли на другую страницу мусхафа — заметная вибрация и перелистывание страницы под окном
+  const lastPage = useRef<number | null>(null)
+  useEffect(() => {
+    if (!a) return
+    const first = lastPage.current === null
+    if (!first && lastPage.current !== a.p) haptic.page()
+    lastPage.current = a.p
+    if (!first) onAyah?.(surah.id, cur, a.p) // при открытии окна текст под ним не двигаем
+  }, [a])
   const key = `${surah.id}:${cur}`
   const marked = st.bookmarks.includes(key)
   const go = (n: number, dir: 'l' | 'r') => {
@@ -209,7 +222,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay }: { surah: Surah; ayah
   return (
     <Sheet onClose={onClose} tall>
       <div className="sh">
-        <div><h3>{surah.name}, аят {cur}</h3><span>{surah.meaning} · {cur} из {surah.ayahs}</span></div>
+        <div><h3>{surah.name}, аят {cur}</h3><span>{surah.meaning} · {cur} из {surah.ayahs}{a ? ` · стр. ${a.p}` : ''}</span></div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="xbtn" disabled={cur <= 1} style={{ opacity: cur > 1 ? 1 : .35 }} onClick={() => go(cur - 1, 'r')} aria-label="Предыдущий аят"><Icon id="back" /></button>
           <button className="xbtn" disabled={cur >= surah.ayahs} style={{ opacity: cur < surah.ayahs ? 1 : .35 }} onClick={() => go(cur + 1, 'l')} aria-label="Следующий аят"><Icon id="right" /></button>
@@ -298,12 +311,15 @@ export function ReaderSettingsSheet({ onClose }: { onClose: () => void }) {
             <button className="srow2" onClick={() => setOpen('tr')}><div>Перевод<span>{TRANSLATIONS[st.translation]}</span></div><Icon id="right" className="icon" /></button>
             <button className="srow2" onClick={() => setOpen('rec')}><div>Чтец<span>{(RECITERS[st.reciter] ?? RECITERS.alafasy).name}</span></div><Icon id="right" className="icon" /></button>
             <button className="srow2" onClick={() => st.set({ tajweed: !st.tajweed })}><div>Цветной таджвид<span>Как в печатном мусхафе с таджвидом</span></div><span className={'switch' + (st.tajweed ? ' on' : '')} /></button>
+            {/* в «Мусхафе» размер текста подстраивается под страницу сам — эти настройки там ни на что не влияют */}
+            {st.mode !== 'mushaf' && <>
             <div className="fld" style={{ marginTop: 6 }}><label>Размер арабского текста</label>
               <div className="stepper"><small>{st.arSize}</small><button onClick={() => st.set({ arSize: Math.max(20, st.arSize - 2) })}>−</button><button onClick={() => st.set({ arSize: Math.min(44, st.arSize + 2) })}>+</button></div>
             </div>
             <div className="fld"><label>Размер перевода</label>
               <div className="stepper"><small>{st.trSize}</small><button onClick={() => st.set({ trSize: Math.max(12, st.trSize - 1) })}>−</button><button onClick={() => st.set({ trSize: Math.min(24, st.trSize + 1) })}>+</button></div>
             </div>
+            </>}
           </>
         )}
       </div>

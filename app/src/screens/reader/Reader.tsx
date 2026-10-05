@@ -60,9 +60,13 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const surah = mode === 'sura' ? surahs[surahId - 1] : pageSurah
 
   // ----- последнее место чтения -----
+  // открыли по ссылке (из азкаров, 99 имён, «Аят дня») — это не «своё» чтение: «Продолжить чтение» не трогаем,
+  // пока человек сам не перейдёт к другой суре или странице через выбор суры/колесо
+  const fromLink = useRef(search.get('from') === 'link')
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const saveLast = useCallback((s: number, a: number, p: number) => {
     clearTimeout(saveTimer.current)
+    if (fromLink.current) return
     saveTimer.current = setTimeout(() => st.setLastRead({ s, a, p }), 800)
   }, [st])
 
@@ -85,6 +89,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   // ----- навигация -----
   const goPage = useCallback(async (p: number) => {
     setOverlay(null)
+    fromLink.current = false
     if (mode !== 'sura') { setPage(p); return }
     const s = surahByPage(surahs, p)
     const ayahs = await loadSurah(s.id)
@@ -96,6 +101,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
 
   const goSurah = useCallback((s: Surah, ayah = 1) => {
     setOverlay(null)
+    fromLink.current = false
     if (mode === 'sura') { setSurahId(s.id); setTarget((t) => ({ ayah, nonce: t.nonce + 1 })); setPage(s.pages[0]) }
     else {
       setSurahId(s.id)
@@ -198,6 +204,11 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     return () => document.removeEventListener('pointerdown', close, true)
   }, [overlay])
   const juz = (p: number) => juzByPage(juzPages, p)
+  // листают тафсир по аятам — текст под окном идёт следом: страница мусхафа/«Страницы» или прокрутка суры
+  const followAyah = useCallback((s: number, a: number, p: number) => {
+    if (mode === 'sura') { if (s === surahId) setTarget((t) => ({ ayah: a, nonce: t.nonce + 1 })) }
+    else setPage(p)
+  }, [mode, surahId])
   const memo = player.memo
   const playing = player.status === 'playing' || player.status === 'loading'
 
@@ -275,7 +286,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
       )}
       {overlay === 'settings' && <ReaderSettingsSheet onClose={() => setOverlay(null)} />}
       {overlay && typeof overlay === 'object' && (
-        <AyahSheet surah={surahs[overlay.tafsir[0] - 1]} ayah={overlay.tafsir[1]} onClose={() => setOverlay(null)} onPlay={(s, a) => { setOverlay(null); playFrom(s, a) }} />
+        <AyahSheet surah={surahs[overlay.tafsir[0] - 1]} ayah={overlay.tafsir[1]} onAyah={followAyah} onClose={() => setOverlay(null)} onPlay={(s, a) => { setOverlay(null); playFrom(s, a) }} />
       )}
     </div>
   )
