@@ -220,18 +220,30 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
 
   const range = t ? (t.from === t.to ? `аят ${t.from}` : `аяты ${t.from}–${t.to}`) : ''
 
-  // полоска прокрутки справа: где мы в тексте — в начале, в середине или у конца
-  const [bar, setBar] = useState<{ top: number; h: number; areaTop: number; areaH: number } | null>(null)
+  // полоска прокрутки справа: где мы в тексте — в начале, в середине или у конца.
+  // Размер полоски — через состояние (меняется редко), а положение бегунка — напрямую на каждом кадре экрана:
+  // так он идёт ровно за пальцем, без перерисовки окна и без запаздывания.
+  const [bar, setBar] = useState<{ h: number; areaTop: number; areaH: number } | null>(null)
+  const thumbRef = useRef<HTMLElement>(null)
+  const frame = useRef(0)
+  const place = () => {
+    const el = bodyRef.current, th = thumbRef.current
+    if (!el || !th) return
+    const max = el.scrollHeight - el.clientHeight
+    const pos = max > 0 ? Math.min(1, Math.max(0, el.scrollTop / max)) : 0
+    th.style.transform = `translate3d(0, ${pos * (el.clientHeight - 16 - th.offsetHeight)}px, 0)`
+  }
+  const onBodyScroll = () => {
+    cancelAnimationFrame(frame.current)
+    frame.current = requestAnimationFrame(place)
+  }
   const measure = () => {
     const el = bodyRef.current
     if (!el || el.scrollHeight <= el.clientHeight + 4) { setBar(null); return }
-    const ratio = el.clientHeight / el.scrollHeight
-    const pos = el.scrollTop / (el.scrollHeight - el.clientHeight)
     const areaH = el.clientHeight - 16
-    const h = Math.max(28, areaH * ratio)
-    const next = { top: Math.round(pos * (areaH - h)), h: Math.round(h), areaTop: el.offsetTop + 8, areaH }
-    // то же положение — не перерисовываем
-    setBar((b) => (b && b.top === next.top && b.h === next.h && b.areaTop === next.areaTop && b.areaH === next.areaH ? b : next))
+    const next = { h: Math.round(Math.max(28, areaH * (el.clientHeight / el.scrollHeight))), areaTop: el.offsetTop + 8, areaH }
+    setBar((b) => (b && b.h === next.h && b.areaTop === next.areaTop && b.areaH === next.areaH ? b : next))
+    requestAnimationFrame(place)
   }
   useEffect(() => {
     measure()
@@ -240,8 +252,9 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     if (el.firstElementChild) ro.observe(el.firstElementChild)
-    return () => ro.disconnect()
+    return () => { ro.disconnect(); cancelAnimationFrame(frame.current) }
   }, [a, tf, cur]) // t пересоздаётся на каждой отрисовке — его в зависимости не берём
+  useEffect(() => { place() }, [bar])
   return (
     <Sheet onClose={onClose} tall>
       <div className="sh">
@@ -254,10 +267,10 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
       </div>
       {bar && (
         <div className="scrollbar" style={{ top: bar.areaTop, height: bar.areaH }} aria-hidden>
-          <i style={{ height: bar.h, transform: `translateY(${bar.top}px)` }} />
+          <i ref={thumbRef} style={{ height: bar.h }} />
         </div>
       )}
-      <div className="body" ref={bodyRef} onScroll={measure}>
+      <div className="body" ref={bodyRef} onScroll={onBodyScroll}>
         {!a && <div className="loading">Загрузка…</div>}
         {a && (
           <div key={cur} className={'ayah-sheet' + (slide ? ' slide-' + slide : '')}>

@@ -827,4 +827,4 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .nm-ref { font-size: .85em; }
 /* полоска прокрутки в окне тафсира */
 .sheet .scrollbar { position: absolute; right: 5px; width: 4px; border-radius: 2px; background: var(--line); pointer-events: none; z-index: 2; }
-.sheet .scrollbar i { display: block; width: 100%; border-radius: 2px; background: linear-gradient(180deg, var(--gold), var(--emerald-bright)); opacity: .85; transition: transform .08s linear; }
+.sheet .scrollbar i { display: block; width: 100%; border-radius: 2px; background: linear-gradient(180deg, var(--gold), var(--emerald-bright)); opacity: .85; will-change: transform; }
