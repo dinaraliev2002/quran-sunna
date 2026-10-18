@@ -5,6 +5,7 @@ import { loadSurah, loadTafsir, tafsirFor, TOTAL_PAGES, type Ayah, type Surah } 
 import { haptic } from '../../lib/telegram'
 import { QpcText } from './views'
 import { TafsirText } from './TafsirText'
+import { AsbabBlock } from './Asbab'
 import { RECITERS, type MemoOptions, type PauseMode } from '../../store/player'
 import { useStore, type ReadMode, type Translation } from '../../store/settings'
 
@@ -281,6 +282,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
             </div>
             <div className="as-label">Перевод · {TRANSLATIONS[st.translation]}</div>
             <div className="as-tr">{st.translation === 'aa' ? a.aa : a.ku}</div>
+            <AsbabBlock key={key} surah={surah.id} ayah={cur} />
             <div className="as-label">Тафсир ас-Саади{range ? ` · ${range}` : ''}</div>
             {tf === undefined && <div className="loading" style={{ height: 80 }}>Загрузка…</div>}
             {tf !== undefined && !t && <div className="empty">Для этого аята тафсир не найден</div>}

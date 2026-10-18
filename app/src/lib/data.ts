@@ -57,6 +57,26 @@ export const loadTafsir = (id: number) => load<Record<string, string>>(`tafsir/$
 export const loadMushafPage = (p: number) => load<MushafPage>(`mushaf/${pad(p)}.json`)
 export const loadMeta = () => load<{ juzPages: number[] }>('meta.json')
 
+/** История аята (причина ниспослания) — запись из книги по асбаб ан-нузуль */
+export interface AsbabPart { k: 'src' | 'isnad' | 'text' | 'note' | 'foot'; t: string }
+export interface AsbabStory { id: string; book: string; from: number; to: number; page: string | null; title: string; verdict?: string; parts: AsbabPart[] }
+export interface AsbabBook { author: string; title: string; about: string; edition: string }
+/** Оглавление историй: книги и для каждой суры — диапазоны аятов [от, до], у которых есть истории */
+export interface AsbabIndex { books: Record<string, AsbabBook>; s: Record<string, [number, number][]> }
+
+// Пока перевод пополняется, файлы не кэшируем на телефоне. Нет файлов (публикация без них) — раздела просто нет.
+const getJson = <T,>(path: string): Promise<T | null> => fetch(DATA_BASE + path).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+let asbabIndex: Promise<AsbabIndex | null> | null = null
+export const loadAsbabIndex = () => (asbabIndex ??= getJson<AsbabIndex>('asbab/index.json'))
+const asbabSurah = new Map<number, Promise<AsbabStory[] | null>>()
+export function loadAsbabSurah(id: number) {
+  if (!asbabSurah.has(id)) asbabSurah.set(id, getJson<AsbabStory[]>(`asbab/${pad(id)}.json`))
+  return asbabSurah.get(id)!
+}
+/** Есть ли у аята история (по оглавлению, без загрузки самой суры) */
+export const hasAsbab = (ix: AsbabIndex | null, surah: number, ayah: number) =>
+  !!ix?.s[surah]?.some(([a, b]) => a <= ayah && ayah <= b)
+
 /** Сура, на странице которой находится данная страница (по первой строке) */
 export function surahByPage(surahs: Surah[], page: number): Surah {
   let s = surahs[0]

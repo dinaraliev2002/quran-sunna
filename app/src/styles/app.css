@@ -371,6 +371,25 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .as-actions button.on { background: var(--highlight); color: var(--emerald-bright); }
 .as-label { font-size: 11px; font-weight: 800; color: var(--gold-ink); text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 6px; }
 .as-tr { font-size: 16.5px; line-height: 1.7; font-weight: 600; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); }
+/* история аята (причина ниспослания) */
+.asb-list { display: flex; flex-direction: column; gap: 8px; }
+.asb { border-radius: 14px; background: var(--surface-2); overflow: hidden; }
+.asb-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 14px; text-align: left; color: var(--text); }
+.asb-head:disabled { opacity: 1; cursor: default; }
+.asb-head > .icon { width: 18px; height: 18px; color: var(--gold-ink); flex: none; }
+.asb-head .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.asb-head .t b { font-size: 15px; font-weight: 800; line-height: 1.35; }
+.asb-head .t span { font-size: 12px; font-weight: 700; color: var(--emerald-bright); }
+.asb-body { padding: 0 14px 14px; font-size: 15.5px; line-height: 1.7; }
+.asb-body p { margin: 0 0 .7em; }
+.asb-src, .asb-body .asb-src { font-size: 12px; font-weight: 700; color: var(--text-2); margin-top: 10px; }
+.asb-body p.asb-src { margin: 0 0 .3em; }
+.asb-isnad { font-size: 13px; color: var(--text-2); font-style: italic; }
+.asb-text { font-weight: 600; }
+.asb-note { font-size: 14px; color: var(--text-2); border-left: 2px solid var(--gold); padding-left: 10px; }
+.asb-foot { font-size: 12.5px; color: var(--text-2); }
+.asb-ai { padding: 8px 6px 0; font-weight: 500; line-height: 1.45; }
+.asb-chain { font-size: 12.5px; font-weight: 800; color: var(--gold-ink); padding: 6px 0; }
 .ayah-sheet.slide-l { animation: slideL .25s ease-out; }
 .ayah-sheet.slide-r { animation: slideR .25s ease-out; }
 /* долгое нажатие на аят в мусхафе */
