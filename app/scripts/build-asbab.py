@@ -83,10 +83,16 @@ def main():
         order.append(x['id'])
     for book in others:
         for x in load(book):
-            linked = [cards[i] for i in x['link'] if i in cards]
-            if linked:
-                linked[0]['opinions'].append(opinion(x))  # к первой из связанных карточек
-            else:
+            # link: ["w001"] или [{"id": "w001", "verdict": …, "sabab": …}] — своя оценка для этой карточки
+            links = [l if isinstance(l, dict) else {'id': l} for l in x['link']]
+            linked = [(cards[l['id']], l) for l in links if l['id'] in cards]
+            for n, (card, l) in enumerate(linked):
+                card['opinions'].append({**opinion(x), **{k: l[k] for k in ('verdict', 'sabab') if k in l}})
+                # запись этой книги может охватывать и другие аяты — первую карточку показываем и у них
+                for s, f, t in (x['refs'] if n == 0 else []):
+                    if not any(cs == s and cf <= t and f <= ct for cs, cf, ct in card['refs']):
+                        card['refs'].append([s, f, t])
+            if not linked:
                 cards[x['id']] = {'id': x['id'], 'refs': x['refs'], 'main': opinion(x), 'opinions': []}
                 order.append(x['id'])
     by_surah = {}
