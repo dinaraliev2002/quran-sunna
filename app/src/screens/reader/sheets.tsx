@@ -234,9 +234,15 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
     const pos = max > 0 ? Math.min(1, Math.max(0, el.scrollTop / max)) : 0
     th.style.transform = `translate3d(0, ${pos * (el.clientHeight - 16 - th.offsetHeight)}px, 0)`
   }
+  // полоска видна только пока листают, через секунду после остановки гаснет
+  const barRef = useRef<HTMLDivElement>(null)
+  const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const onBodyScroll = () => {
     cancelAnimationFrame(frame.current)
     frame.current = requestAnimationFrame(place)
+    barRef.current?.classList.add('on')
+    clearTimeout(hideTimer.current)
+    hideTimer.current = setTimeout(() => barRef.current?.classList.remove('on'), 900)
   }
   const measure = () => {
     const el = bodyRef.current
@@ -253,7 +259,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     if (el.firstElementChild) ro.observe(el.firstElementChild)
-    return () => { ro.disconnect(); cancelAnimationFrame(frame.current) }
+    return () => { ro.disconnect(); cancelAnimationFrame(frame.current); clearTimeout(hideTimer.current) }
   }, [a, tf, cur]) // t пересоздаётся на каждой отрисовке — его в зависимости не берём
   useEffect(() => { place() }, [bar])
   return (
@@ -267,7 +273,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
         </div>
       </div>
       {bar && (
-        <div className="scrollbar" style={{ top: bar.areaTop, height: bar.areaH }} aria-hidden>
+        <div className="scrollbar" ref={barRef} style={{ top: bar.areaTop, height: bar.areaH }} aria-hidden>
           <i ref={thumbRef} style={{ height: bar.h }} />
         </div>
       )}

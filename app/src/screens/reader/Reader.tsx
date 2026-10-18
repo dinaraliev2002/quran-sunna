@@ -53,7 +53,18 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const mode = st.mode
   const markPage = st.markPage
   // каждая открытая страница засчитывается в «Сегодня» на главной и в серию дней
-  useEffect(() => { const t = setTimeout(() => markPage(page), 1500); return () => clearTimeout(t) }, [page, markPage])
+  // страница засчитывается (и задание «Прочитать страницу» выполняется), когда на ней пробыли около минуты,
+  // а не при быстром заходе. Время в свёрнутом приложении не считаем.
+  useEffect(() => {
+    let left = 60_000, since = Date.now(), t: ReturnType<typeof setTimeout> | undefined
+    const run = () => { since = Date.now(); t = setTimeout(() => markPage(page), left) }
+    const onVis = () => {
+      if (document.hidden) { clearTimeout(t); left -= Date.now() - since } else run()
+    }
+    if (!document.hidden) run()
+    document.addEventListener('visibilitychange', onVis)
+    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', onVis) }
+  }, [page, markPage])
   // на одной странице бывает несколько сур (напр. 604: 112–114) — если открытая сура есть на странице, показываем её
   const opened = surahs[surahId - 1]
   const pageSurah = opened.pages[0] <= page && page <= opened.pages[1] ? opened : surahByPage(surahs, page)
@@ -213,7 +224,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const playing = player.status === 'playing' || player.status === 'loading'
 
   return (
-    <div className={'reader' + (bare ? ' bare' : '')} style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
+    <div className={'reader' + (bare ? ' bare' : '') + (mode === 'mushaf' ? ' m-mushaf' : '')} style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
       <div className="view" onPointerDown={onViewDown} onPointerUp={onViewUp} onScrollCapture={onViewScroll}
         onWheel={() => { gesture.current.lastTouch = Date.now() }}>
         {mode === 'sura' && (

@@ -8,6 +8,10 @@ export const RECITERS: Record<string, { name: string; folder: string }> = {
   sudais: { name: 'Абдуррахман ас-Судайс', folder: 'Abdurrahmaan_As-Sudais_192kbps' },
   shuraym: { name: 'Сауд аш-Шурайм', folder: 'Saood_ash-Shuraym_128kbps' },
   shatri: { name: 'Абу Бакр аш-Шатри', folder: 'Abu_Bakr_Ash-Shaatree_128kbps' },
+  dosari: { name: 'Ясир ад-Даусари', folder: 'Yasser_Ad-Dussary_128kbps' },
+  muaiqly: { name: 'Махир аль-Муайкли', folder: 'MaherAlMuaiqly128kbps' },
+  juhani: { name: 'Абдуллах аль-Джухани', folder: 'Abdullaah_3awwaad_Al-Juhaynee_128kbps' },
+  qatami: { name: 'Насир аль-Катами', folder: 'Nasser_Alqatami_128kbps' },
 }
 const MIRRORS = ['https://everyayah.com/data/', 'https://mirrors.quranicaudio.com/everyayah/']
 

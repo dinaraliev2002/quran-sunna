@@ -42,7 +42,7 @@ export default function Settings() {
 
       <div className="group-t">Чтение</div>
       <div className="group">
-        <button className="sitem" onClick={() => setOpen('tr')}><span className="si" style={{ background: '#1F8A5B' }}><Icon id="book" /></span><span className="t">Перевод</span><span className="v">{TRANSLATIONS[st.translation]}</span><Icon id="right" className="icon chev" /></button>
+        <button className="sitem" onClick={() => setOpen('tr')}><span className="si" style={{ background: '#13704B' }}><Icon id="book" /></span><span className="t">Перевод</span><span className="v">{TRANSLATIONS[st.translation]}</span><Icon id="right" className="icon chev" /></button>
         <div className="sitem"><span className="si" style={{ background: '#2F7FD8' }}><Icon id="scroll" /></span><span className="t">Тафсир</span><span className="v">ас-Саади</span></div>
         <button className="sitem" onClick={() => setOpen('font')}><span className="si" style={{ background: '#9B59D0' }}><Icon id="font" /></span><span className="t">Размер шрифта</span><span className="v">{st.arSize} / {st.trSize}</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => st.set({ tajweed: !st.tajweed })}><span className="si" style={{ background: '#E0663A' }}><Icon id="eye" /></span><span className="t">Цветной таджвид</span><span className={'switch' + (st.tajweed ? ' on' : '')} /></button>
@@ -55,7 +55,7 @@ export default function Settings() {
 
       <div className="group-t">Без интернета</div>
       <div className="group">
-        <button className="sitem" onClick={() => nav('/downloads')}><span className="si" style={{ background: '#1F8A5B' }}><Icon id="download" /></span><span className="t">Загрузки</span><span className="v">Коран, страницы, аудио</span><Icon id="right" className="icon chev" /></button>
+        <button className="sitem" onClick={() => nav('/downloads')}><span className="si" style={{ background: '#13704B' }}><Icon id="download" /></span><span className="t">Загрузки</span><span className="v">Коран, страницы, аудио</span><Icon id="right" className="icon chev" /></button>
       </div>
 
       <div className="group-t">Приложение</div>

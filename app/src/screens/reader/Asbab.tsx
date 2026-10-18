@@ -3,6 +3,15 @@ import { Icon } from '../../components/Icon'
 import { hasAsbab, loadAsbabIndex, loadAsbabSurah, type AsbabIndex, type AsbabOpinion, type AsbabPart, type AsbabStory } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
 
+// оглавление историй — одно на всё приложение; пока не загрузилось (или файлов нет) — null
+let ixReady: AsbabIndex | null = null
+/** Оглавление историй для значков у аятов */
+export function useAsbabIndex() {
+  const [ix, setIx] = useState(ixReady)
+  useEffect(() => { if (!ixReady) loadAsbabIndex().then((x) => { ixReady = x; setIx(x) }) }, [])
+  return ix
+}
+
 /** «История аята» в окне аята: причины ниспослания из книг асбаб ан-нузуль. Нет историй — блока нет.
  *  Ставить с key={аят}, чтобы при листании аятов раскрытые истории сворачивались. */
 export function AsbabBlock({ surah, ayah }: { surah: number; ayah: number }) {

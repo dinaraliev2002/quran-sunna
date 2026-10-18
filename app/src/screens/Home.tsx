@@ -89,7 +89,7 @@ export default function Home() {
   const continueReading = () => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}`) : nav('/read/1'))
   const pagesToday = today.pages.length
   const tasks: { id: TaskId; title: string; sub: string; action?: () => void }[] = [
-    { id: 'read', title: 'Прочитать страницу Корана', sub: pagesToday ? `Сегодня: ${pagesToday} ${plural(pagesToday, 'страница', 'страницы', 'страниц')}` : 'Отметится само, когда почитаете', action: continueReading },
+    { id: 'read', title: 'Прочитать страницу Корана', sub: pagesToday ? `Сегодня: ${pagesToday} ${plural(pagesToday, 'страница', 'страницы', 'страниц')}` : 'Отметится само, когда побудете на странице минуту', action: continueReading },
     { id: 'morning', title: 'Утренние азкары', sub: azSub(MORNING, 'После утреннего намаза'), action: () => nav(`/azkar/ch/${MORNING}`) },
     { id: 'evening', title: 'Вечерние азкары', sub: azSub(EVENING, 'После послеполуденного намаза'), action: () => nav(`/azkar/ch/${EVENING}`) },
     { id: 'memo', title: 'Повторить выученное', sub: 'Меню чтения → «Заучивание»', action: continueReading },

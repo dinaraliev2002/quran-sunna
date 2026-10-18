@@ -1,10 +1,11 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE } from 'react'
 import { Icon } from '../../components/Icon'
 import { SurahBanner } from '../../components/SurahBanner'
-import { hizbOf, loadMushafPage, loadSurah, QUARTER_LABEL, type Ayah, type MushafPage, type Surah } from '../../lib/data'
+import { hasAsbab, hizbOf, loadMushafPage, loadSurah, QUARTER_LABEL, type Ayah, type MushafPage, type Surah } from '../../lib/data'
 import { loadPageFont, pageFont, pagePalette, useFontReady } from '../../lib/fonts'
 import { haptic } from '../../lib/telegram'
 import { useUi } from '../../store/ui'
+import { useAsbabIndex } from './Asbab'
 
 export interface AyahActions {
   playing: string | null
@@ -67,15 +68,30 @@ function HizbMark({ a }: { a: Ayah }) {
   )
 }
 
+/** Телефон повёрнут боком (низкий и широкий экран) */
+function useLandscape() {
+  const q = () => window.innerWidth > window.innerHeight && window.innerHeight < 600
+  const [v, setV] = useState(q)
+  useEffect(() => {
+    const on = () => setV(q())
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
+  }, [])
+  return v
+}
+
 // ---------- Аят с переводом ----------
 export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, hidden, marked }: {
   sid: number; a: Ayah; opts: ViewOpts; act: AyahActions; playing: boolean; hidden: boolean; marked: boolean
 }) {
   const key = `${sid}:${a.n}`
+  const story = hasAsbab(useAsbabIndex(), sid, a.n)
   return (
     <div className={'a-block' + (playing ? ' playing' : '')} data-key={key} data-page={a.p}>
       <div className="a-head">
         <span className="a-key">{key}{playing ? ' · звучит' : ''}</span>
+        {/* у аята есть история ниспослания — она в окне аята */}
+        {story && <button className="a-story" onClick={() => act.onInfo(sid, a.n)}><Icon id="book" />История аята</button>}
         <div className="a-acts">
           <button className={'a-act' + (playing ? ' playing' : '')} onClick={() => (playing ? act.onToggle() : act.onPlay(sid, a.n))}
             aria-label={playing && act.sounding ? 'Пауза' : 'Слушать'}><Icon id={playing && act.sounding ? 'pause' : 'play'} /></button>
@@ -296,6 +312,9 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
     return () => { alive = false }
   }, [page, tajweed, theme])
 
+  // альбомная ориентация телефона: 15 строк по высоте не влезут — подгоняем по ширине и листаем вниз
+  const scroll = useLandscape()
+
   // подгоняем шрифт: самая длинная строка = ширина страницы, 15 строк = высота
   useLayoutEffect(() => {
     const m = box.current
@@ -313,13 +332,13 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
       // строки растягиваются по ширине (space-between), так что запас почти не нужен
       const byWidth = maxW ? (20 * lines.clientWidth) / maxW * (page <= 2 ? 0.86 : 0.995) : 20
       const byHeight = lines.clientHeight / 15 / 1.45
-      m.style.fontSize = Math.min(byWidth, page <= 2 ? byWidth : byHeight).toFixed(2) + 'px'
+      m.style.fontSize = Math.min(byWidth, page <= 2 || scroll ? byWidth : byHeight).toFixed(2) + 'px'
     }
     fit()
     const ro = new ResizeObserver(fit)
     ro.observe(m)
     return () => ro.disconnect()
-  }, [ready, mp, page])
+  }, [ready, mp, page, scroll])
 
   // долгое нажатие на аят → окно с переводом и тафсиром
   const cancelHold = () => { if (hold.current) clearTimeout(hold.current.timer); hold.current = null; setPressed(null) }
@@ -337,7 +356,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
   if (!mp || !ready) return <div className="mus"><div className="loading">Загрузка страницы…</div></div>
   const family = pageFont(page, tajweed, theme)
   return (
-    <div className="mus">
+    <div className={'mus' + (scroll ? ' scroll' : '')}>
       <div className={'mushaf' + (page <= 2 ? ' short' : '')} ref={box}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={cancelHold} onPointerCancel={cancelHold} onContextMenu={(e) => e.preventDefault()}>
         <div className="lines">

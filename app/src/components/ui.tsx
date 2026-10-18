@@ -62,7 +62,8 @@ export function Sheet({ onClose, children, tall }: { onClose: () => void; childr
     const onStart = (e: TouchEvent) => {
       const t = e.touches[0]
       startY = lastY = t.clientY; startX = t.clientX; lastT = e.timeStamp; speed = 0
-      scroller = (e.target as HTMLElement).closest<HTMLElement>('.body')
+      // листается внутренний список, а если его нет — само окно (в альбомной ориентации меню не помещается)
+      scroller = (e.target as HTMLElement).closest<HTMLElement>('.body') ?? (sheet.scrollHeight > sheet.clientHeight + 1 ? sheet : null)
       mode = 'none'
     }
     const onMove = (e: TouchEvent) => {

@@ -17,8 +17,9 @@
   --surface: #1A1F1D;
   --surface-2: #242A27;
   --surface-3: #2E3531;
-  --emerald: #1F8A5B;
-  --emerald-bright: #34C27F;
+  /* свои цвета приложения: глубокий зелёный (как шапка главной) и золото; яркой «мятной» зелени нет */
+  --emerald: #13704B;
+  --emerald-bright: #E0B45A;
   --on-emerald: #F2F1EC;
   --gold: #D9A441;
   --gold-ink: #D9A441;
@@ -26,7 +27,7 @@
   --text: #F2F1EC;
   --text-2: #9AA39E;
   --line: rgba(255, 255, 255, .07);
-  --highlight: rgba(52, 194, 127, .10);
+  --highlight: rgba(217, 164, 65, .10);
   --shadow: 0 10px 30px rgba(0, 0, 0, .35);
   --glass: rgba(26, 31, 29, .94);
   --paper: #131716;
@@ -40,8 +41,8 @@
   --surface: #FFFFFF;
   --surface-2: #EEEBE2;
   --surface-3: #E3DFD3;
-  --emerald: #146C47;
-  --emerald-bright: #146C47;
+  --emerald: #13704B;
+  --emerald-bright: #8A5E0F;
   --on-emerald: #FFFFFF;
   --gold: #D6A546;
   --gold-ink: #8A5E0F;
@@ -49,7 +50,7 @@
   --text: #141816;
   --text-2: #5E6661;
   --line: rgba(0, 0, 0, .07);
-  --highlight: rgba(20, 108, 71, .08);
+  --highlight: rgba(138, 94, 15, .08);
   --shadow: 0 10px 30px rgba(20, 24, 22, .12);
   --glass: rgba(255, 255, 255, .95);
   --paper: #FBF7EC;
@@ -70,4 +71,7 @@
   --safe-top: var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px));
   --safe-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   --content-top: calc(var(--safe-top) + var(--tg-content-safe-area-inset-top, 0px));
+  /* бока: вырез iPhone в альбомной ориентации */
+  --safe-left: var(--tg-safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --safe-right: var(--tg-safe-area-inset-right, env(safe-area-inset-right, 0px));
 }
