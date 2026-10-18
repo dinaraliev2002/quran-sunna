@@ -1,16 +1,22 @@
 """
 Сборка «Историй аятов» (асбаб ан-нузуль — причины ниспослания) → public/data/asbab/
-  index.json — книги и какие аяты каких сур имеют истории; NNN.json — истории суры NNN
+  index.json — книги и какие аяты каких сур имеют истории; NNN.json — карточки историй суры NNN
 
 Источники лежат в app/asbab-src/ (в git не попадают, пока нет разрешения правообладателей):
   raw/b_<id>/           — страницы книг из библиотеки «Шамиля» (shamela.ws/book/<id>)
-  <книга>/entries.json  — книга, разобранная по аятам (арабский текст, сура, аяты, страница)
-  <книга>/ru/*.json     — русский перевод записей (файлы по группам сур): [{id, title, verdict, parts: [{k, t}]}]
+  <книга>/entries.json  — книга, разобранная по записям (арабский текст, сура, аяты, страница)
+  <книга>/ru/*.json     — русский перевод записей: [{id, title, verdict, parts: [{k, t}], link?, sabab?}]
                           k: src — где передано, isnad — цепочка передатчиков, text — само предание,
-                             note — разбор автора, foot — сноска
+                             note — разбор автора, result — итог автора, foot — сноска
+                          link — id записей главной книги (аль-Вадии) о той же истории;
+                          sabab — вывод автора: yes (это причина), no (нет), other (причина — другое), weak
+
+Карточка = одна история. Если та же история есть в нескольких книгах — она показывается один раз,
+а мнения книг собраны в «opinions». Главная книга (первая в BOOKS) даёт текст карточки.
 
 Запуск:  python scripts/build-asbab.py
 """
+import hashlib
 import json
 import os
 import re
@@ -22,42 +28,86 @@ OUT = os.path.join(ROOT, 'public', 'data', 'asbab')
 BOOKS = {
     'wadii': {
         'author': 'Мукбиль ибн Хади аль-Вадии',
+        'short': 'аль-Вадии',
         'title': 'ас-Сахих аль-муснад мин асбаб ан-нузуль',
         'about': 'Достоверное с цепочками передатчиков о причинах ниспослания аятов. '
                  'Автор приводит только то, что считает достоверным или хорошим, и разбирает цепочки.',
         'edition': 'Каир, «Мактабат Ибн Таймия», 4-е изд., 1987',
     },
+    'muharrar': {
+        'author': 'Халид ибн Сулейман аль-Музайни',
+        'short': 'аль-Музайни',
+        'title': 'аль-Мухаррар фи асбаб нузуль аль-Куран',
+        'about': 'Исследование причин ниспослания по девяти главным сборникам хадисов: автор проверяет и '
+                 'достоверность предания, и то, действительно ли это причина ниспослания.',
+        'edition': 'Даммам, «Дар Ибн аль-Джаузи», 1-е изд., 2006',
+    },
 }
 
 
+def page_of(book, e):
+    if book == 'wadii':
+        m = re.match(r'\[ص(\d+)\]', e['ar'])
+        return m.group(1) if m else None
+    return e.get('page')
+
+
+def load(book):
+    entries = {e['id']: e for e in json.load(open(os.path.join(SRC, book, 'entries.json'), encoding='utf-8'))}
+    rudir = os.path.join(SRC, book, 'ru')
+    items = []
+    if not os.path.isdir(rudir):
+        return items
+    for fn in sorted(os.listdir(rudir)):
+        for r in json.load(open(os.path.join(rudir, fn), encoding='utf-8')):
+            e = entries[r['id']]
+            items.append({
+                'id': r['id'], 'book': book, 'page': page_of(book, e),
+                'refs': e.get('refs') or [[e['s'], e['from'], e['to']]],
+                'title': r['title'], 'verdict': r.get('verdict'), 'sabab': r.get('sabab'),
+                'link': r.get('link') or [], 'parts': r['parts'],
+            })
+    return items
+
+
+def opinion(x):
+    return {k: x[k] for k in ('id', 'book', 'page', 'title', 'verdict', 'sabab', 'parts') if x.get(k) is not None}
+
+
 def main():
-    out = {'books': BOOKS, 's': {}}
-    total = 0
-    for book in BOOKS:
-        entries = {e['id']: e for e in json.load(open(os.path.join(SRC, book, 'entries.json'), encoding='utf-8'))}
-        rudir = os.path.join(SRC, book, 'ru')
-        for fn in sorted(os.listdir(rudir)):
-            for r in json.load(open(os.path.join(rudir, fn), encoding='utf-8')):
-                e = entries[r['id']]
-                m = re.match(r'\[ص(\d+)\]', e['ar'])
-                out['s'].setdefault(str(e['s']), []).append({
-                    'id': r['id'], 'book': book, 'from': e['from'], 'to': e['to'],
-                    'page': m.group(1) if m else None,
-                    'title': r['title'], 'verdict': r.get('verdict'), 'parts': r['parts'],
-                })
-                total += 1
-    for lst in out['s'].values():
-        lst.sort(key=lambda x: (x['from'], x['id']))
+    main_book, *others = BOOKS
+    cards = {}  # id главной записи → карточка
+    order = []
+    for x in load(main_book):
+        cards[x['id']] = {'id': x['id'], 'refs': x['refs'], 'main': opinion(x), 'opinions': []}
+        order.append(x['id'])
+    for book in others:
+        for x in load(book):
+            linked = [cards[i] for i in x['link'] if i in cards]
+            if linked:
+                linked[0]['opinions'].append(opinion(x))  # к первой из связанных карточек
+            else:
+                cards[x['id']] = {'id': x['id'], 'refs': x['refs'], 'main': opinion(x), 'opinions': []}
+                order.append(x['id'])
+    by_surah = {}
+    for cid in order:
+        c = cards[cid]
+        for s, f, t in c['refs']:
+            by_surah.setdefault(str(s), []).append({**c, 'from': f, 'to': t})
+    for lst in by_surah.values():
+        lst.sort(key=lambda c: (c['from'], c['id']))
     if os.path.isdir(OUT):
         for fn in os.listdir(OUT): os.remove(os.path.join(OUT, fn))
     os.makedirs(OUT, exist_ok=True)
-    index = {'books': BOOKS, 's': {}}
-    for s, lst in out['s'].items():
-        index['s'][s] = sorted({(x['from'], x['to']) for x in lst})
+    index = {'v': hashlib.md5(json.dumps(by_surah, ensure_ascii=False).encode()).hexdigest()[:8], 'books': BOOKS, 's': {}}
+    for s, lst in by_surah.items():
+        index['s'][s] = sorted({(c['from'], c['to']) for c in lst})
+        for c in lst: del c['refs']
         json.dump(lst, open(os.path.join(OUT, f'{int(s):03d}.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     json.dump(index, open(os.path.join(OUT, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     size = sum(os.path.getsize(os.path.join(OUT, f)) for f in os.listdir(OUT)) // 1024
-    print(f'{total} stories, {len(out["s"])} surahs -> public/data/asbab/ ({size} KB)')
+    merged = sum(len(c['opinions']) for c in cards.values())
+    print(f'{len(order)} cards ({merged} merged opinions), {len(by_surah)} surahs -> public/data/asbab/ ({size} KB)')
 
 
 if __name__ == '__main__':
