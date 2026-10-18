@@ -73,7 +73,8 @@ def load(book):
             e = entries.get(r['id']) or entries[re.sub('[b-z]$', '', r['id'])]
             items.append({
                 'id': r['id'], 'book': book, 'page': page_of(book, e),
-                'refs': e.get('refs') or [[e['s'], e['from'], e['to']]],
+                # аяты можно уточнить в переводе (refs), если в книге стоит лишь заголовок суры
+                'refs': r.get('refs') or e.get('refs') or [[e['s'], e['from'], e['to']]],
                 'title': r['title'], 'verdict': r.get('verdict'), 'sabab': r.get('sabab'),
                 'link': r.get('link') or [], 'parts': r['parts'],
             })
