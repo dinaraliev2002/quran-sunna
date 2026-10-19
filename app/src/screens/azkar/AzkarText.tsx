@@ -98,19 +98,31 @@ export function RuText({ text, surahs, onOpen }: { text: string; surahs?: Surah[
   )
 }
 
-export function ArText({ text }: { text: string }) {
+// басмала в начале суры (как в мусхафе) — отдельной строкой, сура начинается с новой строки
+const BISM = /(بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ(?:\s*۝[٠-٩]+)?)/
+// номер аята: «۝» + арабские цифры
+const AYAH_NO = /(۝[٠-٩]+)/
+
+/** Арабский текст. hafsDigits: шрифт сам рисует цифры в кружке — знак «۝» перед ними не нужен (иначе два кружка) */
+export function ArText({ text, hafsDigits }: { text: string; hafsDigits?: boolean }) {
+  // знаки остановки (ۖ ۗ ۚ …) стоят в тексте через пробел — без буквы под собой браузер рисует
+  // пунктирный кружок; прикрепляем их к предыдущему слову, как в мусхафе
+  let clean = text.replace(/\s+([ۖ-ۜ])/g, '$1')
+  // шрифт Хафс (кодировка KFGQPC): круглый ноль над буквой — это U+0652, а обычный сукун — U+06E1;
+  // знака U+06DF в шрифте нет, и браузер рисовал его отдельно с пунктирным кружком
+  if (hafsDigits) clean = clean.replace(/ْ/g, 'ۡ').replace(/۟/g, 'ْ')
+  const paras = clean.split(/\n{2,}/).flatMap((p) => p.split(BISM)).map((p) => p.trim()).filter(Boolean)
+  const inline = (t: string, k: number) =>
+    t.split(/(\([^()]*\)|\*|۝[٠-٩]+)/).map((part, j) =>
+      part === '*' ? <span key={k + '-' + j} className="azt-sep">۝</span>
+        : AYAH_NO.test(part) ? <span key={k + '-' + j} className="azt-ayn">{hafsDigits ? part.slice(1) : part}</span>
+          // мелко — только служебные пометки о числе повторов («ثلاث مرات»), а не цитаты
+          : /^\(/.test(part) && /مر(ات|ة|تين)|ثلاث|سبع|عشر|مائة/.test(part) ? <span key={k + '-' + j} className="azt-arnote">{part}</span>
+            : <Fragment key={k + '-' + j}>{part}</Fragment>,
+    )
   return (
     <div className="azt-ar" dir="rtl">
-      {text.split(/\n{2,}/).map((p, i) => (
-        <p key={i}>
-          {p.split(/(\([^()]*\)|\*)/).map((part, j) =>
-            part === '*' ? <span key={j} className="azt-sep">۝</span>
-              // мелко — только служебные пометки о числе повторов («ثلاث مرات»), а не цитаты
-              : /^\(/.test(part) && /مر(ات|ة|تين)|ثلاث|سبع|عشر|مائة/.test(part) ? <span key={j} className="azt-arnote">{part}</span>
-                : <Fragment key={j}>{part}</Fragment>,
-          )}
-        </p>
-      ))}
+      {paras.map((p, i) => <p key={i} className={BISM.test(p) && p.length < 60 ? 'azt-bism' : undefined}>{inline(p, i)}</p>)}
     </div>
   )
 }

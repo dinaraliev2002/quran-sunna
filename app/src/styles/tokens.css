@@ -20,6 +20,7 @@
   /* свои цвета приложения: глубокий зелёный (как шапка главной) и золото; яркой «мятной» зелени нет */
   --emerald: #13704B;
   --emerald-bright: #E0B45A;
+  --green: #34C27F; /* зелёные акценты: ссылки в азкарах, кольцо «Сегодня» */
   --on-emerald: #F2F1EC;
   --gold: #D9A441;
   --gold-ink: #D9A441;
@@ -43,6 +44,7 @@
   --surface-3: #E3DFD3;
   --emerald: #13704B;
   --emerald-bright: #8A5E0F;
+  --green: #146C47;
   --on-emerald: #FFFFFF;
   --gold: #D6A546;
   --gold-ink: #8A5E0F;
