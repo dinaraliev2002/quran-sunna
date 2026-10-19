@@ -520,7 +520,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .h-pill .icon { width: 17px; height: 17px; color: #E9C77A; }
 .h-pill.round { width: 40px; padding: 0; justify-content: center; }
 .h-greet { position: relative; margin: 22px 2px 12px; }
-.h-salam { font-family: "Aref Ruqaa", "Amiri", serif; font-weight: 700; font-size: 32px; color: #E9C77A; line-height: 1.35; }
+.h-salam { font-family: "UthmanicHafs", "Amiri", serif; font-size: 32px; color: #E9C77A; line-height: 1.35; }
 .h-greet h1 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 4px; line-height: 1.2; }
 .h-greet p { font-size: 13px; opacity: .75; font-weight: 600; }
 .h-cap { display: inline-block; } .h-cap::first-letter { text-transform: uppercase; }

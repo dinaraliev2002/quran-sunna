@@ -113,7 +113,7 @@ export default function Home() {
           </div>
         </div>
         <div className="h-greet">
-          <div className="h-salam">السَّلَامُ عَلَيْكُمْ</div>
+          <div className="h-salam">السَّلَامُ عَلَيۡكُمۡ</div>
           <p><span className="h-cap">{gregToday()}</span> · {hijriToday()}</p>
         </div>
         <button className="h-continue" onClick={continueReading}>
