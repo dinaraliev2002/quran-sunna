@@ -29,10 +29,6 @@ function copyDir(from, to) {
   }
 }
 
-// «Истории аятов» не публикуем, пока не получены разрешения правообладателей книг
-// (включить: переменная окружения ASBAB_PUBLISH=1)
-if (!process.env.ASBAB_PUBLISH) rmSync(join(dist, 'data', 'asbab'), { recursive: true, force: true })
-
 const dir = mkdtempSync(join(tmpdir(), 'deploy-'))
 try {
   run(`git clone -q --depth 1 --branch gh-pages --single-branch "${remote}" .`, dir)
