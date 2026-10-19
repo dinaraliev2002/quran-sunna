@@ -19,34 +19,51 @@ export function Pager({ page, onChange, render }: { page: number; onChange: (p: 
   const pageRef = useRef(page)
   pageRef.current = page
 
+  // точная (дробная) ширина ячейки: clientWidth округляет до целого, и на дальних страницах
+  // ошибка набегает до половины страницы — после поворота экрана магнит уводил на соседнюю
+  const slotW = () => ref.current!.getBoundingClientRect().width || ref.current!.clientWidth
   const indexNow = () => {
     const el = ref.current!
     // direction: rtl → scrollLeft отрицательный
-    return Math.min(TOTAL_PAGES, Math.max(1, Math.round(Math.abs(el.scrollLeft) / el.clientWidth) + 1))
+    return Math.min(TOTAL_PAGES, Math.max(1, Math.round(Math.abs(el.scrollLeft) / slotW()) + 1))
   }
+  const jump = (p: number) => { ref.current!.scrollLeft = -(p - 1) * slotW() }
 
   // внешняя смена страницы (колесо, «Перейти», чтец) → мгновенно встать на неё
   useLayoutEffect(() => {
     const el = ref.current!
-    if (indexNow() === page && Math.abs(Math.abs(el.scrollLeft) - (page - 1) * el.clientWidth) < 2) { setNear(page); return }
+    if (indexNow() === page && Math.abs(Math.abs(el.scrollLeft) - (page - 1) * slotW()) < 2) { setNear(page); return }
     programmatic.current = true
-    el.scrollLeft = -(page - 1) * el.clientWidth
+    jump(page)
     setNear(page)
     requestAnimationFrame(() => { programmatic.current = false })
   }, [page])
 
-  // при повороте экрана/изменении размера — остаться на той же странице
+  // при повороте экрана/изменении размера — остаться на той же странице.
+  // Поворот идёт несколькими шагами (Telegram/iOS меняют размер в несколько кадров),
+  // поэтому держим прокрутку «своей», пока размер не успокоится, и ставим страницу ещё раз в конце
   useEffect(() => {
     const el = ref.current!
-    const ro = new ResizeObserver(() => { programmatic.current = true; el.scrollLeft = -(pageRef.current - 1) * el.clientWidth; requestAnimationFrame(() => { programmatic.current = false }) })
+    let settle: ReturnType<typeof setTimeout> | undefined
+    const ro = new ResizeObserver(() => {
+      programmatic.current = true
+      clearTimeout(settleTimer.current)
+      jump(pageRef.current)
+      clearTimeout(settle)
+      settle = setTimeout(() => {
+        jump(pageRef.current)
+        setNear(pageRef.current)
+        requestAnimationFrame(() => { programmatic.current = false })
+      }, 350)
+    })
     ro.observe(el)
-    return () => ro.disconnect()
+    return () => { ro.disconnect(); clearTimeout(settle) }
   }, [])
 
   function onScroll() {
+    if (programmatic.current) return
     const p = indexNow()
     if (p !== near) setNear(p)
-    if (programmatic.current) return
     clearTimeout(settleTimer.current)
     // страница «встала» → сообщаем наружу
     settleTimer.current = setTimeout(() => {
@@ -59,8 +76,8 @@ export function Pager({ page, onChange, render }: { page: number; onChange: (p: 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       const el = ref.current!
-      if (e.key === 'ArrowLeft') el.scrollBy({ left: -el.clientWidth, behavior: 'smooth' })
-      if (e.key === 'ArrowRight') el.scrollBy({ left: el.clientWidth, behavior: 'smooth' })
+      if (e.key === 'ArrowLeft') el.scrollBy({ left: -slotW(), behavior: 'smooth' })
+      if (e.key === 'ArrowRight') el.scrollBy({ left: slotW(), behavior: 'smooth' })
     }
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
