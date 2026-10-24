@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
+import { Tour } from '../../components/Tour'
 import { TabBar, plural } from '../../components/ui'
 import { CATEGORY_ICON, chapterTitle, DAILY_MAIN, DAILY_ROUTINE, EVENING, loadAzkar, MORNING, nowIsMorning, snippet, timesLabel, type AzkarData } from '../../lib/azkar'
 import { useStore } from '../../store/settings'
@@ -165,6 +166,11 @@ export default function Azkar() {
         </div>
       )}
       <TabBar />
+      {q === null && <Tour id="azkar" ready={!!data} steps={[
+        { el: '.az-hero.primary', title: 'Азкары сейчас', text: 'Утренние или вечерние — смотря по времени. Кольцо показывает, сколько уже прочитано.' },
+        { el: '.az-tabs .sortseg', title: 'Разделы', text: 'Ежедневные азкары, все мольбы книги по порядку и группы по случаям.' },
+        { el: '.sticky-title .icon-btn', title: 'Поиск', text: 'Поиск по всем азкарам.' },
+      ]} />}
     </div>
   )
 }

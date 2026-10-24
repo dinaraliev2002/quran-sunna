@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon } from '../../components/Icon'
+import { Sheet, SheetHead, useQuranMeta } from '../../components/ui'
 import { hasAsbab, loadAsbabIndex, loadAsbabSurah, type AsbabIndex, type AsbabOpinion, type AsbabPart, type AsbabStory } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
 
@@ -8,7 +10,8 @@ let ixReady: AsbabIndex | null = null
 /** Оглавление историй для значков у аятов */
 export function useAsbabIndex() {
   const [ix, setIx] = useState(ixReady)
-  useEffect(() => { if (!ixReady) loadAsbabIndex().then((x) => { ixReady = x; setIx(x) }) }, [])
+  // оглавление могло загрузиться между отрисовкой и этим эффектом — тогда просто берём его
+  useEffect(() => { if (ixReady) setIx(ixReady); else loadAsbabIndex().then((x) => { if (x) ixReady = x; setIx(x) }) }, [])
   return ix
 }
 
@@ -22,7 +25,8 @@ export function AsbabBlock({ surah, ayah }: { surah: number; ayah: number }) {
   const has = hasAsbab(ix, surah, ayah)
   useEffect(() => { if (has) loadAsbabSurah(surah).then(setStories) }, [has, surah])
 
-  const list = stories?.filter((x) => x.from <= ayah && ayah <= x.to) ?? []
+  // истории обо всей суре — не здесь, а у заголовка суры («История суры»)
+  const list = stories?.filter((x) => !x.whole && x.from <= ayah && ayah <= x.to) ?? []
   if (!ix || !list.length) return null
   return (
     <>
@@ -35,6 +39,56 @@ export function AsbabBlock({ surah, ayah }: { surah: number; ayah: number }) {
       </div>
       <div className="tafsir-hint asb-ai">Истории переведены с арабского с помощью ИИ, а не человеком — в переводе возможны неточности</div>
     </>
+  )
+}
+
+/** Кнопка «История суры» у заголовка суры: где, когда и по какому поводу ниспослана сура целиком.
+ *  compact — значок без подписи для строки заголовка в печатном мусхафе. Нет историй — кнопки нет. */
+export function SurahStoryButton({ sid, name, compact }: { sid: number; name?: string; compact?: boolean }) {
+  const ix = useAsbabIndex()
+  const [open, setOpen] = useState(false)
+  const n = ix?.w?.[sid]
+  if (!n) return null
+  return (
+    <>
+      <button className={'s-story' + (compact ? ' compact' : '')} aria-label="История суры"
+        onClick={(e) => { e.stopPropagation(); haptic.tap(); setOpen(true) }}>
+        <Icon id="scroll" />{!compact && <>История суры{n > 1 ? ` · ${n}` : ''}</>}
+      </button>
+      {/* окно — поверх всего экрана; нажатия в нём не доходят до читалки (не прячут панели) */}
+      {open && createPortal(
+        <div onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
+          <SurahStorySheet sid={sid} name={name} onClose={() => setOpen(false)} />
+        </div>,
+        document.body,
+      )}
+    </>
+  )
+}
+
+function SurahStorySheet({ sid, name, onClose }: { sid: number; name?: string; onClose: () => void }) {
+  const ix = useAsbabIndex()
+  const meta = useQuranMeta() // название суры, если его не передали (строка заголовка в мусхафе)
+  const [stories, setStories] = useState<AsbabStory[] | null>(null)
+  const [open, setOpen] = useState<string | null>(null)
+  useEffect(() => { loadAsbabSurah(sid).then(setStories) }, [sid])
+  const list = stories?.filter((x) => x.whole) ?? []
+  return (
+    <Sheet onClose={onClose} tall>
+      <SheetHead title="История суры" sub={`${name ?? meta?.surahs[sid - 1]?.name ?? ''} · где и когда ниспослана`} onClose={onClose} />
+      <div className="body">
+        {(!stories || !ix) && <div className="loading">Загрузка…</div>}
+        {ix && list.length > 0 && (
+          <div className="asb-list">
+            {list.map((x) => (
+              <Story key={x.id} x={x} ix={ix} open={open === x.id || list.length === 1}
+                onToggle={() => { haptic.tap(); setOpen(open === x.id ? null : x.id) }} single={list.length === 1} />
+            ))}
+          </div>
+        )}
+        <div className="tafsir-hint asb-ai">Истории переведены с арабского с помощью ИИ, а не человеком — в переводе возможны неточности</div>
+      </div>
+    </Sheet>
   )
 }
 
@@ -71,15 +125,45 @@ function OtherBook({ parts, chains }: { parts: AsbabPart[]; chains: boolean }) {
   )
 }
 
-function Story({ x, ix, open, single, onToggle }: {
+/** Пояснение там, где упомянут ас-Суюти: его книгу мы не переводим — его называют как источник авторы переведённых книг */
+function SuyutiNote() {
+  const [on, setOn] = useState(false)
+  return (
+    <div className="asb-suy">
+      <button className="asb-chain" onClick={() => { haptic.tap(); setOn(!on) }}>
+        {on ? 'Скрыть пояснение' : 'Почему здесь упоминается ас-Суюти?'}
+      </button>
+      {on && (
+        <>
+          <p>Книги ас-Суюти мы не переводим. Его имя встречается здесь только как ссылка на источник.</p>
+          <p>
+            Ас-Суюти собрал в своём сборнике «ад-Дурр аль-мансур» множество преданий из книг, многие из которых до нас не дошли.
+            Часто он приводит предание без цепочки передатчиков и лишь называет, у кого оно было.
+          </p>
+          <p>
+            Учёные, чьи книги переведены в приложении, проверяют каждое предание по первоисточникам. Если предание удалось найти
+            только у ас-Суюти, они честно указывают это: «привёл ас-Суюти в „ад-Дурр аль-мансур“».
+          </p>
+          <p>
+            Такая пометка — предупреждение, а не рекомендация: цепочку передатчиков проверить нельзя, поэтому опираться
+            на такое предание нельзя.
+          </p>
+        </>
+      )}
+    </div>
+  )
+}
+
+export function Story({ x, ix, open, single, onToggle }: {
   x: AsbabStory; ix: AsbabIndex; open: boolean; single: boolean; onToggle: () => void
 }) {
   const [chains, setChains] = useState(false)
   const [book, setBook] = useState<string | null>(null)
   const all = [x.main, ...x.opinions]
   const story = x.main.parts.filter((p) => STORY.includes(p.k))
-  const range = x.from === x.to ? `аят ${x.from}` : `аяты ${x.from}–${x.to}`
+  const range = x.whole ? 'вся сура' : x.from === x.to ? `аят ${x.from}` : `аяты ${x.from}–${x.to}`
   const hasChains = all.some((o) => o.parts.some((p) => p.k === 'isnad'))
+  const suyuti = all.some((o) => [o.title, o.verdict ?? '', ...o.parts.map((p) => p.t)].some((t) => t.includes('Суюти')))
   return (
     <div className={'asb' + (open ? ' open' : '')}>
       <button className="asb-head" onClick={single ? undefined : onToggle} disabled={single}>
@@ -125,6 +209,7 @@ function Story({ x, ix, open, single, onToggle }: {
               )
             })}
           </div>
+          {suyuti && <SuyutiNote />}
           <div className="asb-src">
             {all.map((o) => `${ix.books[o.book]?.short}, с. ${o.page ?? '—'}`).join(' · ')} · {range}
           </div>

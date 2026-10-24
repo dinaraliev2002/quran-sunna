@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
+import { Tour } from '../../components/Tour'
 import { plural, TabBar } from '../../components/ui'
 import { ARABIC_FONTS } from '../../lib/azkar'
+import { HifzAddBtn } from '../hifz/parts'
 import { favBook, loadBook, loadHadithIndex, shareBody, type HBookData, type HIndex } from '../../lib/hadith'
 import { haptic, shareText } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
@@ -110,6 +112,7 @@ export default function Book() {
                     <button className={fav ? 'on' : ''} onClick={() => { haptic.tap(); st.toggleHadithFav(key) }} aria-label={fav ? 'Убрать из избранного' : 'В избранное'}>
                       <Icon id="bookmark" />
                     </button>
+                    {it.ru.length > 0 && (isHadith || /^\d/.test(no)) && <HifzAddBtn hadithRef={key} suggest={isHadith ? (t ? `из главы «${t}»` : '') : t} />}
                     <button onClick={() => shareText(shareBody(isHadith ? '' : t, it.ru.join('\n\n'), ref))} aria-label="Поделиться"><Icon id="share" /></button>
                   </div>
                 </div>
@@ -150,6 +153,11 @@ export default function Book() {
       </div>
 
       {settings && <HadithSettings onClose={() => setSettings(false)} />}
+      <Tour id="hadith-book" ready={items.length > 0} steps={[
+        { el: '.hd-acts', title: 'Действия с хадисом', text: 'Закладка — в избранное. Значок мозга — добавить хадис в свой набор для заучивания. Стрелка — поделиться.' },
+        { el: '.hdk-pager', title: 'Листание', text: 'Кнопки внизу или свайп вбок — к соседнему хадису.' },
+        { el: '[aria-label="Настройки текста"]', title: 'Настройки текста', text: 'Показать арабский текст, выбрать шрифт и размер.' },
+      ]} />
     </div>
   )
 }

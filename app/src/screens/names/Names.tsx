@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
+import { Tour } from '../../components/Tour'
 import { TabBar } from '../../components/ui'
 import { loadNames, type AllahName, type NamesData } from '../../lib/names'
 import { useStore } from '../../store/settings'
@@ -104,6 +105,12 @@ export default function Names() {
       )))}
       {data && list.length === 0 && <div className="empty">{filter === 'learned' ? 'Пока ни одного выученного имени' : 'Ничего не найдено'}</div>}
       <TabBar />
+      {q === null && <Tour id="names" ready={!!data} steps={[
+        { el: '.nm-hero', title: 'Ваш прогресс', text: 'Сколько из 99 имён Аллаха вы уже выучили.' },
+        { el: '.nm-hero-btns', title: 'Карточки и тест', text: 'Учите имена по карточкам и проверяйте себя тестом.' },
+        { el: '.az-tabs .sortseg', title: 'Фильтр', text: 'Все имена, только выученные или ещё не выученные.' },
+        { el: '[aria-label="Списком"], [aria-label="Плитками"]', title: 'Вид', text: 'Плитками или списком. Нажмите на имя — откроется его объяснение.' },
+      ]} />}
     </div>
   )
 }

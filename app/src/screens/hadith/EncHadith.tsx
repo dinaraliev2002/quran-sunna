@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { ARABIC_FONTS } from '../../lib/azkar'
+import { HifzAddBtn } from '../hifz/parts'
 import { favEnc, loadEnc, loadTopics, shareBody, topicTitle, type EncHadith, type TopicsData } from '../../lib/hadith'
 import { haptic, shareText } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
@@ -48,6 +49,7 @@ export default function EncHadithView() {
               {h.grade && <span className="hd-grade">{h.grade}</span>}
               <div className="hd-acts">
                 <button className={fav ? 'on' : ''} onClick={() => { haptic.tap(); st.toggleHadithFav(key) }} aria-label={fav ? 'Убрать из избранного' : 'В избранное'}><Icon id="bookmark" /></button>
+                <HifzAddBtn hadithRef={key} suggest={topic ? `из темы «${topicTitle(topic)}»` : ''} />
                 <button onClick={() => shareText(shareBody('', h.ru, h.src))} aria-label="Поделиться"><Icon id="share" /></button>
               </div>
             </div>

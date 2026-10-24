@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { haptic } from '../lib/telegram'
 import { Icon } from '../components/Icon'
 import { Sheet, SheetHead, TabBar } from '../components/ui'
-import { tgUser } from '../lib/telegram'
+import { openBot, openSupport, tgUser } from '../lib/telegram'
 import { RECITERS } from '../store/player'
 import { useStore, type ThemePref, type Translation } from '../store/settings'
 
@@ -62,6 +63,17 @@ export default function Settings() {
       <div className="group">
         <button className="sitem" onClick={() => setOpen('theme')}><span className="si" style={{ background: '#34495E' }}><Icon id="moon" /></span><span className="t">Тема</span><span className="v">{THEMES[st.theme]}</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => setOpen('sources')}><span className="si" style={{ background: '#5E6661' }}><Icon id="info" /></span><span className="t">Об источниках</span><Icon id="right" className="icon chev" /></button>
+        {/* экскурсы по разделам покажутся снова при следующем заходе в каждый раздел */}
+        <button className="sitem" onClick={() => { haptic.success(); st.set({ tours: [] }) }}>
+          <span className="si" style={{ background: '#C98A2B' }}><Icon id="star" /></span>
+          <span className="t">Показать подсказки снова</span>
+          <span className="v">{st.tours.length ? '' : 'Покажутся в разделах'}</span>
+        </button>
+      </div>
+      <div className="group-t">Связь с автором</div>
+      <div className="group">
+        <button className="sitem" onClick={() => { haptic.tap(); openBot('feedback') }}><span className="si" style={{ background: '#2F7FD8' }}><Icon id="share" /></span><span className="t">Написать автору</span><span className="v">Идеи и ошибки</span><Icon id="right" className="icon chev" /></button>
+        <button className="sitem" onClick={() => { haptic.tap(); openSupport() }}><span className="si" style={{ background: '#C0504D' }}><Icon id="heart" /></span><span className="t">Поддержать проект</span><Icon id="right" className="icon chev" /></button>
       </div>
       <div className="ver">Коран и Сунна · версия 0.1</div>
 

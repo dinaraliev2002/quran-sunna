@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
+import { Tour } from '../../components/Tour'
 import { Sheet, SheetHead } from '../../components/ui'
 import { ARABIC_FONTS, chapterTitle, EVENING, loadAzkar, MORNING, timesLabel, type AzkarData } from '../../lib/azkar'
 import { loadSurahs, type Surah } from '../../lib/data'
@@ -169,6 +170,12 @@ export default function Chapter() {
         </Sheet>
       )}
       {audio.status === 'error' && <div className="azc-toast">Не удалось загрузить аудио. Проверьте интернет.</div>}
+      <Tour id="azkar-chapter" ready={items.length > 0} steps={[
+        { el: '.azc-counter', title: 'Счётчик', text: 'Нажимайте после каждого прочтения — счётчик покажет, сколько раз осталось.' },
+        { el: '.azc-play', title: 'Слушать', text: 'Как правильно произносится этот зикр.' },
+        { el: '.azc-top [aria-label="Настройки"]', title: 'Настройки', text: 'Шрифт и размер текста; что показывать — арабский, перевод, источник.' },
+        { title: 'Листание', text: 'Свайп вбок — следующий зикр.' },
+      ]} />
     </div>
   )
 }

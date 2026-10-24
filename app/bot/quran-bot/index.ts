@@ -39,6 +39,26 @@ async function register(u: Any, source?: string) {
   await db.from('qs_users').upsert(row)
 }
 
+
+// ---------- регистрация тех, кто открыл мини-приложение (без переписки с ботом) ----------
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, OPTIONS' }
+const hmac = async (key: Uint8Array | string, msg: string) => {
+  const k = await crypto.subtle.importKey('raw', typeof key === 'string' ? new TextEncoder().encode(key) : key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  return new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg)))
+}
+const hex = (b: Uint8Array) => [...b].map((x) => x.toString(16).padStart(2, '0')).join('')
+/** Проверяет подпись Telegram у данных запуска мини-приложения; возвращает пользователя или null */
+async function checkInitData(raw: string): Promise<Any | null> {
+  const p = new URLSearchParams(raw)
+  const hash = p.get('hash'); p.delete('hash')
+  if (!hash || !TOKEN) return null
+  const str = [...p.entries()].map(([k, v]) => `${k}=${v}`).sort().join('\n')
+  const secret = await hmac('WebAppData', TOKEN)
+  if (hex(await hmac(secret, str)) !== hash) return null
+  if (Date.now() / 1000 - Number(p.get('auth_date') ?? 0) > 86400) return null
+  try { return JSON.parse(p.get('user') ?? 'null') } catch { return null }
+}
+
 const who = (u: Any) => `${esc([u.first_name, u.last_name].filter(Boolean).join(' ') || 'Без имени')}${u.username ? ` (@${u.username})` : ''} · id ${u.id}`
 
 // ---------- обычные пользователи ----------
@@ -231,7 +251,21 @@ Deno.serve(async (req) => {
     const me = await api('getMe')
     return new Response(JSON.stringify({ webhook: r, bot: me.result?.username }, null, 1))
   }
-  if (req.headers.get('x-telegram-bot-api-secret-token') !== SETUP_KEY) return new Response('forbidden', { status: 403 })
+  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS })
+  if (req.headers.get('x-telegram-bot-api-secret-token') !== SETUP_KEY) {
+    // запрос из самого приложения: «этот человек пользуется приложением»
+    try {
+      const { initData } = await req.json()
+      const u = typeof initData === 'string' ? await checkInitData(initData) : null
+      if (u?.id) {
+        const { data } = await db.from('qs_users').select('id').eq('id', u.id).maybeSingle()
+        if (data) await db.from('qs_users').update({ last_seen: new Date().toISOString(), first_name: u.first_name ?? null, username: u.username ?? null }).eq('id', u.id)
+        else await db.from('qs_users').insert({ id: u.id, first_name: u.first_name ?? null, username: u.username ?? null, source: 'app' })
+        return new Response('ok', { headers: CORS })
+      }
+    } catch { /* не наш запрос */ }
+    return new Response('forbidden', { status: 403, headers: CORS })
+  }
   const update = await req.json()
   // отвечаем Telegram сразу, а работу (в том числе долгую рассылку) доделываем в фоне
   // deno-lint-ignore no-explicit-any

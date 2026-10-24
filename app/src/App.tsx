@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { IconSprite } from './components/Icon'
 import { cleanupOldData } from './lib/net'
-import { backButton, initTelegram, paintChrome, telegramScheme } from './lib/telegram'
+import { backButton, initTelegram, paintChrome, registerVisit, telegramScheme } from './lib/telegram'
 import Azkar from './screens/azkar/Azkar'
 import AzkarCategory from './screens/azkar/Category'
 import AzkarChapter from './screens/azkar/Chapter'
@@ -11,15 +11,19 @@ import HadithBook from './screens/hadith/Book'
 import HadithCollection from './screens/hadith/Collection'
 import HadithEnc from './screens/hadith/EncHadith'
 import HadithTopic from './screens/hadith/Topic'
+import Hifz from './screens/hifz/Hifz'
+import HifzSession from './screens/hifz/Session'
 import Home from './screens/Home'
 import Names from './screens/names/Names'
 import NameCard from './screens/names/NameCard'
 import NamesLearn from './screens/names/Learn'
+import Profile from './screens/Profile'
 import Reader from './screens/reader/Reader'
 import Downloads from './screens/Downloads'
 import Settings from './screens/Settings'
 import Stub from './screens/Stub'
 import SurahList from './screens/SurahList'
+import Stories from './screens/Stories'
 import { hydrateStore, useStore } from './store/settings'
 import { useUi } from './store/ui'
 
@@ -30,7 +34,7 @@ function useTheme() {
   const [tgScheme, setTgScheme] = useState<'light' | 'dark' | null>(telegramScheme())
   const [sysDark, setSysDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches)
 
-  useEffect(() => { initTelegram(setTgScheme) }, [])
+  useEffect(() => { initTelegram(setTgScheme); registerVisit() }, [])
   useEffect(() => {
     const mq = matchMedia('(prefers-color-scheme: dark)')
     const on = () => setSysDark(mq.matches)
@@ -68,6 +72,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/quran" element={<SurahList />} />
             <Route path="/read/:surah" element={<Reader />} />
+            <Route path="/stories/:surah" element={<Stories />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/downloads" element={<Downloads />} />
             <Route path="/azkar" element={<Azkar />} />
@@ -79,10 +84,13 @@ export default function App() {
             <Route path="/hadith/c/:cid/:n" element={<HadithBook />} />
             <Route path="/hadith/t/:id" element={<HadithTopic />} />
             <Route path="/hadith/e/:id" element={<HadithEnc />} />
+            <Route path="/hifz" element={<Hifz />} />
+            <Route path="/hifz/learn" element={<HifzSession mode="learn" />} />
+            <Route path="/hifz/review" element={<HifzSession mode="review" />} />
             <Route path="/names" element={<Names />} />
             <Route path="/names/learn" element={<NamesLearn />} />
             <Route path="/names/:n" element={<NameCard />} />
-            <Route path="/profile" element={<Stub title="Профиль" icon="flame" text="Профиль, анкета и план заучивания — в следующих версиях." />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/notifications" element={<Stub title="Уведомления" icon="bell" text="Здесь будут напоминания и сообщения." />} />
             <Route path="*" element={<Home />} />
           </Routes>

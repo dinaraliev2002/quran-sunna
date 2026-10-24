@@ -67,21 +67,45 @@ export interface AsbabOpinion {
   parts: AsbabPart[]
 }
 /** Карточка истории: текст из главной книги + мнения остальных книг о той же истории */
-export interface AsbabStory { id: string; from: number; to: number; main: AsbabOpinion; opinions: AsbabOpinion[] }
+export interface AsbabStory {
+  id: string; from: number; to: number; main: AsbabOpinion; opinions: AsbabOpinion[]
+  /** история обо всей суре (где и когда ниспослана) — «История суры» у заголовка, а не у аятов */
+  whole?: boolean
+}
 export interface AsbabBook { author: string; short: string; title: string; about: string; edition: string }
 /** Оглавление историй: книги и для каждой суры — диапазоны аятов [от, до], у которых есть истории */
-export interface AsbabIndex { v: string; books: Record<string, AsbabBook>; s: Record<string, [number, number][]> }
+export interface AsbabIndex {
+  v: string; books: Record<string, AsbabBook>; s: Record<string, [number, number][]>
+  /** сколько историй у суры целиком (нет у старых файлов) */
+  w?: Record<string, number>
+  /** сколько историй у аятов суры */
+  n?: Record<string, number>
+}
 
 // Пока перевод пополняется, файлы не кэшируем на телефоне. Нет файлов (публикация без них) — раздела просто нет.
 // Оглавление берём всегда свежим, а файлы сур — с его версией, чтобы после обновления не показать старое.
 const getJson = <T,>(path: string, init?: RequestInit): Promise<T | null> =>
   fetch(DATA_BASE + path, init).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+// «История суры» (рассказ о ниспослании суры целиком) пока не показываем — включить: true
+export const SURAH_STORY = false
 let asbabIndex: Promise<AsbabIndex | null> | null = null
-export const loadAsbabIndex = () => (asbabIndex ??= getJson<AsbabIndex>('asbab/index.json', { cache: 'no-store' }))
+export const loadAsbabIndex = () => {
+  if (!asbabIndex) {
+    asbabIndex = getJson<AsbabIndex>('asbab/index.json', { cache: 'no-store' }).then((ix) => (ix && !SURAH_STORY ? { ...ix, w: {} } : ix))
+    // нет файла или пропал интернет — в следующий раз попробуем снова
+    asbabIndex.then((r) => { if (!r) asbabIndex = null })
+  }
+  return asbabIndex
+}
 const asbabSurah = new Map<number, Promise<AsbabStory[] | null>>()
 export function loadAsbabSurah(id: number) {
   if (!asbabSurah.has(id)) {
-    asbabSurah.set(id, loadAsbabIndex().then((ix) => (ix ? getJson<AsbabStory[]>(`asbab/${pad(id)}.json?v=${ix.v}`) : null)))
+    const p = loadAsbabIndex()
+      .then((ix) => (ix ? getJson<AsbabStory[]>(`asbab/${pad(id)}.json?v=${ix.v}`) : null))
+      .then((list) => (list && !SURAH_STORY ? list.filter((x) => !x.whole) : list))
+    // не загрузилось (пропал интернет) — не запоминаем неудачу, в следующий раз попробуем снова
+    p.then((r) => { if (!r) asbabSurah.delete(id) })
+    asbabSurah.set(id, p)
   }
   return asbabSurah.get(id)!
 }

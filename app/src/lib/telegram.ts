@@ -94,6 +94,25 @@ export function openBot(start: 'feedback' | 'support') {
   else window.open(url, '_blank')
 }
 
+const TRIBUTE_URL = 'https://t.me/tribute/app?startapp=dSRl'
+/** Открыть страницу поддержки проекта (Tribute) */
+export function openSupport() {
+  if (inTelegram && at('6.1') && wa!.openTelegramLink) wa!.openTelegramLink(TRIBUTE_URL)
+  else window.open(TRIBUTE_URL, '_blank')
+}
+
+/** Сообщить боту, что человек открыл приложение (раз в сутки) — для статистики /stats */
+export function registerVisit() {
+  if (!inTelegram) return
+  try {
+    const day = new Date().toISOString().slice(0, 10)
+    if (localStorage.getItem('visit_sent') === day) return
+    fetch('https://ynqbnqkihojqlawhhiqg.supabase.co/functions/v1/quran-bot', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: wa!.initData }),
+    }).then((r) => { if (r.ok) localStorage.setItem('visit_sent', day) }).catch(() => {})
+  } catch { /* не критично */ }
+}
+
 export function backButton(visible: boolean, onClick: () => void) {
   if (!inTelegram || !at('6.1')) return () => {}
   if (visible) {

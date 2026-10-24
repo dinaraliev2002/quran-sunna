@@ -14,12 +14,14 @@
 Карточка = одна история. Если та же история есть в нескольких книгах — она показывается один раз,
 а мнения книг собраны в «opinions». Главная книга (первая в BOOKS) даёт текст карточки.
 
-Запуск:  python scripts/build-asbab.py
+Запуск:  python scripts/build-asbab.py           — только готовые книги (для публичной версии)
+         python scripts/build-asbab.py --draft   — вместе с книгами в работе (draft) — для тестовой версии
 """
 import hashlib
 import json
 import os
 import re
+import sys
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 SRC = os.path.join(ROOT, 'asbab-src')
@@ -51,6 +53,14 @@ BOOKS = {
                  'Исама аль-Хумайдана. Цепочки самого аль-Вахиди до известных передатчиков сокращены.',
         'edition': 'Даммам, «Дар аль-Ислах», 2-е изд., 1992, исследование ‘Исама ибн ‘Абд аль-Мухсина аль-Хумайдана',
     },
+    'istiab': {
+        'author': 'Салим ибн ‘Ид аль-Хиляли и Мухаммад ибн Муса Аль Наср',
+        'short': 'аль-Хиляли и Аль Наср',
+        'title': 'аль-Исти‘аб фи байан аль-асбаб',
+        'about': 'Свод преданий о причинах ниспослания из книг тафсира и хадиса — достоверных и слабых. '
+                 'Авторы, ученики аль-Альбани, проверяют цепочку каждого предания и ставят ему оценку.',
+        'edition': 'Даммам, «Дар Ибн аль-Джаузи», 1-е изд., 1425 г. х., в трёх томах',
+    },
 }
 
 
@@ -77,6 +87,8 @@ def load(book):
                 'refs': r.get('refs') or e.get('refs') or [[e['s'], e['from'], e['to']]],
                 'title': r['title'], 'verdict': r.get('verdict'), 'sabab': r.get('sabab'),
                 'link': r.get('link') or [], 'parts': r['parts'],
+                # запись о суре целиком (где и когда ниспослана) — показывается как «История суры»
+                'whole': bool(r.get('whole')),
             })
     return items
 
@@ -86,11 +98,13 @@ def opinion(x):
 
 
 def main():
-    main_book, *others = BOOKS
+    draft = '--draft' in sys.argv
+    books = {k: {f: v for f, v in b.items() if f != 'draft'} for k, b in BOOKS.items() if draft or not b.get('draft')}
+    main_book, *others = books
     cards = {}  # id главной записи → карточка
     order = []
     for x in load(main_book):
-        cards[x['id']] = {'id': x['id'], 'refs': x['refs'], 'main': opinion(x), 'opinions': []}
+        cards[x['id']] = {'id': x['id'], 'refs': x['refs'], 'main': opinion(x), 'opinions': [], 'whole': x['whole']}
         order.append(x['id'])
     for book in others:
         for x in load(book):
@@ -104,21 +118,34 @@ def main():
                     if not any(cs == s and cf <= t and f <= ct for cs, cf, ct in card['refs']):
                         card['refs'].append([s, f, t])
             if not linked:
-                cards[x['id']] = {'id': x['id'], 'refs': x['refs'], 'main': opinion(x), 'opinions': []}
+                cards[x['id']] = {'id': x['id'], 'refs': x['refs'], 'main': opinion(x), 'opinions': [], 'whole': x['whole']}
                 order.append(x['id'])
+    # история обо всей суре (охватывает её от первого до последнего аята) — это «История суры»:
+    # она у заголовка суры, а не у каждого аята
+    ayahs = {s['id']: s['ayahs'] for s in json.load(open(os.path.join(ROOT, 'public', 'data', 'surahs.json'), encoding='utf-8'))}
     by_surah = {}
     for cid in order:
         c = cards[cid]
         for s, f, t in c['refs']:
-            by_surah.setdefault(str(s), []).append({**c, 'from': f, 'to': t})
+            card = {**c, 'from': f, 'to': t}
+            if c['whole'] or (f == 1 and t == ayahs[s]): card['whole'] = True
+            else: del card['whole']
+            by_surah.setdefault(str(s), []).append(card)
     for lst in by_surah.values():
         lst.sort(key=lambda c: (c['from'], c['id']))
     if os.path.isdir(OUT):
         for fn in os.listdir(OUT): os.remove(os.path.join(OUT, fn))
     os.makedirs(OUT, exist_ok=True)
-    index = {'v': hashlib.md5(json.dumps(by_surah, ensure_ascii=False).encode()).hexdigest()[:8], 'books': BOOKS, 's': {}}
+    index = {'v': hashlib.md5(json.dumps(by_surah, ensure_ascii=False).encode()).hexdigest()[:8], 'books': books, 's': {}, 'w': {}, 'n': {}}
     for s, lst in by_surah.items():
-        index['s'][s] = sorted({(c['from'], c['to']) for c in lst})
+        # s — диапазоны аятов с историями (значок у аята), w — сколько историй у суры целиком
+        ranges = sorted({(c['from'], c['to']) for c in lst if not c.get('whole')})
+        if ranges: index['s'][s] = ranges
+        # n — сколько историй у аятов суры (для раздела «Истории» в списке сур)
+        stories = sum(1 for c in lst if not c.get('whole'))
+        if stories: index['n'][s] = stories
+        whole = sum(1 for c in lst if c.get('whole'))
+        if whole: index['w'][s] = whole
         for c in lst: del c['refs']
         json.dump(lst, open(os.path.join(OUT, f'{int(s):03d}.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     json.dump(index, open(os.path.join(OUT, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))

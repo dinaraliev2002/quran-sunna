@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
+import { Tour } from '../../components/Tour'
 import { plural, TabBar } from '../../components/ui'
 import { snippet } from '../../lib/azkar'
 import { loadBook, loadHadithIndex, loadTopics, TOPIC_ICON, topicTitle, type HIndex, type TopicsData } from '../../lib/hadith'
@@ -88,6 +89,11 @@ export default function Hadith() {
                   <span className="hd-go"><Icon id="right" /></span>
                 </button>
               )}
+              <button className="hz-entry" onClick={() => nav('/hifz')}>
+                <span className="ib"><Icon id="brain" /></span>
+                <div className="t"><b>Заучивание хадисов</b><span>40 хадисов ан-Навави · план на день и повторение</span></div>
+                <Icon id="right" className="icon chev-s" />
+              </button>
               <div className="hd-cols">
               {idx.collections.map((c, k) => (
                 <button key={c.id} className={'hd-col' + (k === 0 ? ' first' : '')} onClick={() => nav(`/hadith/c/${c.id}`)}>
@@ -141,6 +147,12 @@ export default function Hadith() {
         </>
       )}
       <TabBar />
+      {q === null && <Tour id="hadith" ready={!!idx} steps={[
+        { el: '.hd-continue', title: 'Продолжить', text: 'Возвращает к хадису, на котором вы остановились.' },
+        { el: '.hz-entry', title: 'Заучивание хадисов', text: 'План на день: новые хадисы и повторение выученного. Выученное само возвращается на повтор.' },
+        { el: '.az-tabs .sortseg', title: 'Сборники, темы, избранное', text: 'Сборники — книги хадисов по главам. Темы — хадисы с объяснением и выводами. Избранное — то, что вы сохранили.' },
+        { el: '.sticky-title .icon-btn', title: 'Поиск', text: 'Поиск по тексту хадисов и названиям глав.' },
+      ]} />}
     </div>
   )
 }

@@ -4,8 +4,15 @@ import { surahGlyph } from '../lib/data'
 // (каллиграфический шрифт названий сур) и восьмиконечные звёзды по краям.
 // compact — узкий вариант для строки страницы мусхафа.
 
-function Star({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+function Star({ cx, cy, r, story }: { cx: number; cy: number; r: number; story?: boolean }) {
   const sq = r * 1.25
+  // story — в звезде кнопка «История суры»: звезда подсвечена, а вместо точки в центре — значок кнопки
+  if (story) return (
+    <g className="story">
+      <rect x={cx - sq / 2} y={cy - sq / 2} width={sq} height={sq} />
+      <rect x={cx - sq / 2} y={cy - sq / 2} width={sq} height={sq} transform={`rotate(45 ${cx} ${cy})`} />
+    </g>
+  )
   return (
     <g>
       <rect x={cx - sq / 2} y={cy - sq / 2} width={sq} height={sq} />
@@ -15,7 +22,8 @@ function Star({ cx, cy, r }: { cx: number; cy: number; r: number }) {
   )
 }
 
-export function SurahBanner({ sid, compact }: { sid: number; compact?: boolean }) {
+// story — у суры есть «История суры»: левая звезда становится местом для кнопки (кнопку кладут поверх, класс .s-story.star)
+export function SurahBanner({ sid, compact, story }: { sid: number; compact?: boolean; story?: boolean }) {
   const H = compact ? 40 : 58
   const W = 360
   const m = H / 2
@@ -34,7 +42,7 @@ export function SurahBanner({ sid, compact }: { sid: number; compact?: boolean }
         <rect x="5" y="5" width={W - 10} height={H - 10} rx="3" className="sb-inner" />
         <path d={cartouche} className="sb-cart" />
         <g className="sb-star">
-          <Star cx={46} cy={m} r={H * 0.3} />
+          <Star cx={46} cy={m} r={H * 0.3} story={story} />
           <Star cx={W - 46} cy={m} r={H * 0.3} />
         </g>
       </svg>

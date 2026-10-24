@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPE, type UIEvent as RUE } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
+import { Tour } from '../../components/Tour'
 import { useQuranMeta } from '../../components/ui'
 import { juzByPage, loadMushafPage, loadSurah, surahByPage, surahGlyph, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
@@ -33,7 +34,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const [surahId, setSurahId] = useState(initSurah)
   const [target, setTarget] = useState({ ayah: initAyah, nonce: 0 }) // куда прокрутить в режиме «Сура»
   const [page, setPage] = useState(Number(search.get('p')) || surahs[initSurah - 1].pages[0])
-  const [overlay, setOverlay] = useState<Overlay>(null)
+  const [overlay, setOverlay] = useState<Overlay>(search.get('memo') ? 'memo' : null) // ?memo=1 — сразу окно заучивания (кнопка на главной)
   const [enter, setEnter] = useState<'' | 'from-left' | 'from-right'>('') // анимация появления соседней суры
   // режим «чистого чтения»: панели спрятаны, пока не тапнешь по экрану
   const [bare, setBare] = useState(false)
@@ -198,6 +199,8 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   }
   const onViewScroll = (e: RUE) => {
     const el = e.target as Element
+    // окна поверх читалки (например, «История суры») — не её прокрутка
+    if (!e.currentTarget.contains(el)) return
     const prev = lastScroll.current.get(el)
     const cur = { top: el.scrollTop, left: el.scrollLeft }
     lastScroll.current.set(el, cur)
@@ -299,6 +302,18 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
       {overlay && typeof overlay === 'object' && (
         <AyahSheet surah={surahs[overlay.tafsir[0] - 1]} ayah={overlay.tafsir[1]} onAyah={followAyah} onClose={() => setOverlay(null)} onPlay={(s, a) => { setOverlay(null); playFrom(s, a) }} />
       )}
+      {/* экскурс по читалке — один раз; шаги, кнопок которых нет в этом режиме, пропускаются */}
+      {!overlay && <Tour id="reader" scroll={false} steps={[
+        { el: '.vscroll .a-story, .pscroll .a-story', title: 'История аята', text: 'Есть у аятов, о которых передана причина ниспослания: что случилось и по какому поводу ниспослан аят.' },
+        { el: '.a-act[aria-label="Перевод и тафсир"]', title: 'Окно аята', text: 'Перевод, история аята и тафсир ас-Саади. В окне можно листать аяты свайпом.' },
+        ...(mode === 'mushaf' ? [{ title: 'Окно аята', text: 'Нажмите на аят и подержите — откроется перевод, история аята и тафсир ас-Саади.' }] : []),
+        { el: '.s-story', title: 'История суры', text: 'Где и когда ниспослана сура. В мусхафе — значок в звезде на рамке названия суры.' },
+        { el: '.modebtn', title: 'Режим чтения', text: 'Мусхаф — печатные страницы. Страница — аяты страницы с переводом. Сура — вся сура подряд.' },
+        { el: '.dial', title: 'Линейка страниц', text: 'Ведите пальцем, чтобы листать страницы. Нажмите на номер — откроется выбор суры, джуза или страницы.' },
+        { el: '.rbar .rcircle[aria-label="Меню"]', title: 'Меню', text: 'Таджвид, закладки, поиск, заучивание на слух и настройки чтения.' },
+        { el: '.fab', title: 'Слушать', text: 'Чтение аятов вслух. Чтеца можно выбрать в настройках.' },
+        { title: 'Жесты', text: 'Свайп вбок — соседняя страница или сура. Нажатие на текст прячет панели, чтобы читать без отвлечений.' },
+      ]} />}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead, SurahRow } from '../../components/ui'
-import { loadSurah, loadTafsir, tafsirFor, TOTAL_PAGES, type Ayah, type Surah } from '../../lib/data'
+import { loadSurah, loadTafsir, surahByPage, tafsirFor, TOTAL_PAGES, type Ayah, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
 import { QpcText } from './views'
 import { TafsirText } from './TafsirText'
@@ -85,6 +85,8 @@ export function PickerSheet({ surahs, juzPages, currentSurah, focusSearch, onClo
     if (!n) return surahs
     return surahs.filter((s) => String(s.id) === n || s.name.toLowerCase().replace(/[-\s]/g, '').includes(n) || s.meaning.toLowerCase().includes(n))
   }, [q, surahs])
+  const qNum = /^\d{1,3}$/.test(q.trim()) ? Number(q.trim()) : 0
+  const qPage = qNum >= 1 && qNum <= TOTAL_PAGES ? qNum : 0
 
   return (
     <Sheet onClose={onClose} tall>
@@ -96,10 +98,17 @@ export function PickerSheet({ surahs, juzPages, currentSurah, focusSearch, onClo
       </div>
       {tab === 's' && (
         <>
-          <div className="search"><Icon id="search" /><input autoFocus={focusSearch} placeholder="Название или номер суры" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <div className="search"><Icon id="search" /><input autoFocus={focusSearch} placeholder="Сура или номер страницы" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           <div className="body">
+            {/* число 1–604 — это и страница мусхафа */}
+            {qPage > 0 && (
+              <button className="jrow" onClick={() => onPage(qPage)}>
+                <div className="num-badge"><span>{qPage}</span></div>
+                <b>Страница {qPage}</b><span>{surahByPage(surahs, qPage).name}</span>
+              </button>
+            )}
             {list.map((s) => <SurahRow key={s.id} s={s} current={s.id === currentSurah} onClick={() => onSurah(s)} />)}
-            {list.length === 0 && <div className="empty">Ничего не найдено</div>}
+            {list.length === 0 && !qPage && <div className="empty">Ничего не найдено</div>}
           </div>
         </>
       )}

@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
-import { plural, useQuranMeta } from '../components/ui'
+import { Tour } from '../components/Tour'
+import { plural, Sheet, SheetHead, useQuranMeta } from '../components/ui'
 import { EVENING, loadAzkar, MORNING, nowIsMorning, type AzkarData } from '../lib/azkar'
 import { loadSurah, surahGlyph, type Ayah } from '../lib/data'
 import { hadithOfDay, type EncHadith } from '../lib/hadith'
 import { haptic, shareText, tgUser } from '../lib/telegram'
 import { useStore, type TaskId } from '../store/settings'
 import { useChapterProgress } from './azkar/Azkar'
+import { useHifzToday } from './hifz/parts'
 import { QpcText } from './reader/views'
 
 function hijriToday() {
@@ -86,15 +88,23 @@ export default function Home() {
   const azNow = nowIsMorning() ? MORNING : EVENING
   const azNowP = azProgress(azNow)
 
+  // заучивание: повтор и новые хадисы по плану; всё сделано → задача отмечается сама
+  const hz = useHifzToday()
+  const hzLeft = hz.due.length + hz.newLeft
+  useEffect(() => { if (hz.started && hzLeft === 0) markTask('memo', true) }, [hz.started, hzLeft, markTask])
+  const hzSub = !hz.started ? 'Заучивание хадисов: начните с первого' : hzLeft === 0 ? 'Повторы и новые хадисы на сегодня сделаны'
+    : [hz.due.length ? `${hz.due.length} на повтор` : '', hz.newLeft ? `${hz.newLeft} ${plural(hz.newLeft, 'новый', 'новых', 'новых')}` : ''].filter(Boolean).join(' · ')
+
   const continueReading = () => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}`) : nav('/read/1'))
   const pagesToday = today.pages.length
   const tasks: { id: TaskId; title: string; sub: string; action?: () => void }[] = [
     { id: 'read', title: 'Прочитать страницу Корана', sub: pagesToday ? `Сегодня: ${pagesToday} ${plural(pagesToday, 'страница', 'страницы', 'страниц')}` : 'Отметится само, когда побудете на странице минуту', action: continueReading },
     { id: 'morning', title: 'Утренние азкары', sub: azSub(MORNING, 'После утреннего намаза'), action: () => nav(`/azkar/ch/${MORNING}`) },
     { id: 'evening', title: 'Вечерние азкары', sub: azSub(EVENING, 'После послеполуденного намаза'), action: () => nav(`/azkar/ch/${EVENING}`) },
-    { id: 'memo', title: 'Повторить выученное', sub: 'Меню чтения → «Заучивание»', action: continueReading },
+    { id: 'memo', title: 'Повторить выученное', sub: hzSub, action: () => nav(hz.due.length ? '/hifz/review' : '/hifz') },
   ]
   const doneCount = tasks.filter((t) => today.done.includes(t.id)).length
+  const [memo, setMemo] = useState(false)
 
   return (
     <div className="screen home">
@@ -103,12 +113,17 @@ export default function Home() {
         <Pattern id="hp" />
         <div className="h-glow" />
         <div className="h-top">
-          <button className="h-me" onClick={() => nav('/settings')} aria-label="Профиль и настройки">
+          <button className="h-me" onClick={() => nav('/profile')} aria-label="Профиль">
             <span className="h-avatar">{user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? 'А')}</span>
             {user?.first_name && <b>{user.first_name}</b>}
           </button>
           <div className="h-top-r">
             <div className="h-pill" title="Дней подряд с чтением Корана"><Icon id="flame" />{streak} {plural(streak, 'день', 'дня', 'дней')}</div>
+            {/* заучивание: число — сколько ждёт повторения сегодня; точка — есть новое по плану */}
+            <button className="h-pill round h-memo" onClick={() => { haptic.tap(); setMemo(true) }} aria-label="Заучивание">
+              <Icon id="brain" />
+              {hz.due.length > 0 ? <i className="h-badge">{hz.due.length}</i> : hz.newLeft > 0 && hz.started ? <i className="h-badge dot" /> : null}
+            </button>
             <button className="h-pill round" onClick={() => nav('/notifications')} aria-label="Уведомления"><Icon id="bell" /></button>
           </div>
         </div>
@@ -230,6 +245,33 @@ export default function Home() {
         </section>
       )}
       <div className="h-foot">Коран и Сунна</div>
+
+      {memo && (
+        <Sheet onClose={() => setMemo(false)}>
+          <SheetHead title="Заучивание" sub="Что сегодня повторить и выучить" onClose={() => setMemo(false)} />
+          <div className="memo-list">
+            <button className="list-item" onClick={() => nav(hz.due.length ? '/hifz/review' : '/hifz')}>
+              <div className="ib"><Icon id="scroll" /></div>
+              <div className="t"><b>Хадисы</b><span>{hzSub}</span></div>
+              {hz.due.length > 0 ? <span className="az-count">{hz.due.length}</span> : <Icon id="right" className="icon chev-s" />}
+            </button>
+            <button className="list-item" onClick={() => nav(lastRead ? `/read/${lastRead.s}?a=${lastRead.a}&memo=1` : '/read/1?memo=1')}>
+              <div className="ib"><Icon id="book" /></div>
+              <div className="t"><b>Коран</b><span>Заучивание на слух: чтец повторяет аят и отрывок{last ? ` · ${last.name}` : ''}</span></div>
+              <Icon id="right" className="icon chev-s" />
+            </button>
+            <button className="list-item" onClick={() => nav('/names')}>
+              <div className="ib"><Icon id="star" /></div>
+              <div className="t"><b>99 имён Аллаха</b><span>Выучено {learned.length} из 99 · карточки и тест</span></div>
+              <Icon id="right" className="icon chev-s" />
+            </button>
+          </div>
+        </Sheet>
+      )}
+      <Tour id="home" steps={[
+        { el: '.h-memo', title: 'Заучивание', text: 'Хадисы, Коран и имена Аллаха. Число на значке — сколько выученного ждёт повторения сегодня.' },
+        { el: '.h-me', title: 'Ваш профиль', text: 'Статистика чтения, серия дней и план заучивания.' },
+      ]} />
     </div>
   )
 }
