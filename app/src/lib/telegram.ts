@@ -87,6 +87,13 @@ export function shareText(text: string) {
   }
 }
 
+/** Открыть бота приложения с командой (feedback — написать автору, support — поддержать проект) */
+export function openBot(start: 'feedback' | 'support') {
+  const url = `https://t.me/quran_sunna_app_bot?start=${start}`
+  if (inTelegram && at('6.1') && wa!.openTelegramLink) wa!.openTelegramLink(url)
+  else window.open(url, '_blank')
+}
+
 export function backButton(visible: boolean, onClick: () => void) {
   if (!inTelegram || !at('6.1')) return () => {}
   if (visible) {
