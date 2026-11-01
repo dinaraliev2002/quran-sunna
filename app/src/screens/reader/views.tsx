@@ -46,6 +46,22 @@ export function useWbw(sid: number) {
   return rows
 }
 
+/** Слово глифом страницы: у растянутых (кашида) слов «хвост» выходит за поле глифа — расширяем поля, чтобы он поместился в рамку */
+function GlyphWord({ glyph, family, ready, style }: { glyph: string; family: string; ready: boolean; style: React.CSSProperties }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current, box = el?.parentElement
+    if (!el || !box || !ready) return
+    const ctx = document.createElement('canvas').getContext('2d')
+    if (!ctx) return
+    ctx.font = `${getComputedStyle(el).fontSize} '${family}'`
+    const m = ctx.measureText(glyph)
+    const over = Math.max(0, m.actualBoundingBoxLeft + m.actualBoundingBoxRight - m.width)
+    box.style.paddingInline = `${12 + Math.ceil(over / 2)}px`
+  }, [ready, family, glyph])
+  return <span ref={ref} className="wa qpc" style={style}>{glyph}</span>
+}
+
 /** Аят по словам: арабское слово (глифом страницы мусхафа, с цветами таджвида) и русская подпись под ним */
 function WbwText({ sid, a, tajweed, hidden }: { sid: number; a: Ayah; tajweed: boolean; hidden: boolean }) {
   const theme = useUi((s) => s.theme)
@@ -63,7 +79,7 @@ function WbwText({ sid, a, tajweed, hidden }: { sid: number; a: Ayah; tajweed: b
       {a.w.map((w, i) => (
         <div className="w" key={i}>
           {glyph
-            ? <span className="wa qpc" style={st}>{gl[i]}</span>
+            ? <GlyphWord glyph={gl[i]} family={family} ready={ready} style={st!} />
             : colored ? <span className="wa" dangerouslySetInnerHTML={{ __html: parts[i] }} /> : <span className="wa">{w}</span>}
           <span className="wt">{tr ? tr[i] || '·' : ' '}</span>
         </div>
