@@ -55,6 +55,8 @@ export const loadSurahs = () => load<Surah[]>('surahs.json')
 export const loadSurah = (id: number) => load<{ id: number; ayahs: Ayah[] }>(`quran/${pad(id)}.json`).then((d) => d.ayahs)
 export const loadTafsir = (id: number) => load<Record<string, string>>(`tafsir/${pad(id)}.json`)
 export const loadMushafPage = (p: number) => load<MushafPage>(`mushaf/${pad(p)}.json`)
+/** Пословный перевод: по аятам — подписи к словам (пустая — слово переведено вместе с соседним) */
+export const loadWbw = (id: number) => load<string[][]>(`wbw/${pad(id)}.json`)
 export const loadMeta = () => load<{ juzPages: number[] }>('meta.json')
 
 /** История аята (причина ниспослания) — запись из книги по асбаб ан-нузуль */
