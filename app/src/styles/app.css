@@ -1281,6 +1281,10 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .nr-hd { background: var(--surface-2); border: 1px solid var(--line); border-radius: 20px; padding: 14px 16px; margin-bottom: 6px; }
 .nr-hd b { display: block; font-size: 17px; font-weight: 800; } .nr-hd small { display: block; color: var(--text-2); font-size: 12.5px; margin: 2px 0 8px; }
 .nr-hd p { font-size: 14px; line-height: 1.5; margin: 8px 0 0; }
+.nr-why { margin-top: 10px; padding-top: 4px; border-top: 1px dashed var(--line); }
+.nr-why button { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 800; color: var(--gold-ink); padding: 6px 0; text-align: left; }
+.nr-why button .icon { width: 15px; height: 15px; flex: none; }
+.nr-why p { font-size: 13px; color: var(--text-2); }
 .nr-ru { font-size: 15px; font-weight: 700; }
 .nr-ru + .nr-ar { font-size: 16px; color: var(--text-2); }
 .nr-rutitle { text-align: center; font-size: 18px; font-weight: 800; margin-top: 2px; }

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../components/Icon'
-import { Sheet, SheetHead } from '../../components/ui'
+import { Sheet, SheetHead, plural } from '../../components/ui'
 import { haptic } from '../../lib/telegram'
 import { splitTerms, TERMS } from './terms'
 
@@ -212,6 +212,29 @@ function TagBtn({ id, text, ok }: { id: string; text: string; ok?: boolean }) {
   return <button className={'nr-tag' + (ok ? ' ok' : '')} onClick={() => { haptic.tap(); open(id) }}>{text}<Icon id="info" /></button>
 }
 
+/** Короткие факты о цепочке — считаются по данным передатчиков */
+function chainFacts(chain: number[], data: Record<string, Narrator>): string[] {
+  const list = chain.map((id) => data[id]).filter(Boolean)
+  if (list.length < 2) return []
+  const nm = (nr: Narrator) => nr.rn || nr.k || nr.n
+  const first = list[0], last = list[list.length - 1]
+  const out = [`В цепочке ${list.length} ${plural(list.length, 'передатчик', 'передатчика', 'передатчиков')}: хадис записал ${nm(first)}, а ближе всех к Пророку ﷺ стоит ${nm(last)}${last.t === 1 ? ' — сподвижник' : ''}${last.d ? ` (умер в ${last.d} г. х.)` : ''}.`]
+  const ok = list.filter((nr) => /ثقة|ثبت|حافظ|صحابي|إمام|متقن|حجة|عدل/.test(nr.r ?? '')).length
+  out.push(ok === list.length ? `Все ${list.length} ${plural(list.length, 'передатчик', 'передатчика', 'передатчиков')} учёные называют надёжными.` : `Надёжными учёные называют ${ok} из ${list.length}; у остальных оценка мягче («правдивый» и т. п.) — её видно в карточке передатчика.`)
+  return out
+}
+
+/** Сворачиваемое пояснение (как «Почему здесь упоминается ас-Суюти?» в историях аятов) */
+function WhyNote({ q, children }: { q: string; children: string }) {
+  const [on, setOn] = useState(false)
+  return (
+    <div className="nr-why">
+      <button onClick={() => { haptic.tap(); setOn(!on) }}><Icon id="info" />{on ? 'Скрыть пояснение' : q}</button>
+      {on && <p>{children}</p>}
+    </div>
+  )
+}
+
 function ChainSheet({ chain, src, cid, bn, i, label, onClose }: { chain: number[]; src?: [string, string]; cid: string; bn: number; i: number; label: string; onClose: () => void }) {
   const from = src ? src[0] : cid
   const sahih = from === 'bukhari' || from === 'muslim'
@@ -220,6 +243,7 @@ function ChainSheet({ chain, src, cid, bn, i, label, onClose }: { chain: number[
   const [sel, setSel] = useState<number | null>(null)
   const [failed, setFailed] = useState(false)
   useEffect(() => { loadNarrators(chain).then(setData).catch(() => setFailed(true)); loadRich(cid, bn, i).then(setRich) }, [cid, bn, i])
+  const facts = data ? chainFacts(chain, data) : []
   if (sel !== null && data?.[sel]) return <CardSheet nr={data[sel]} rich={rich?.narrators[sel]} onBack={() => setSel(null)} onClose={onClose} />
   return (
     <Sheet onClose={onClose} tall>
@@ -242,13 +266,20 @@ function ChainSheet({ chain, src, cid, bn, i, label, onClose }: { chain: number[
             <b>{label}</b>
             <small>Источник цепочки: {BOOK[src[0]] ?? src[0]}, № {src[1]}</small>
             {sahih && <div className="nr-tags"><TagBtn id="grades" text="Достоверный (сахих)" ok /></div>}
-            <p>{cid === 'nawawi' || cid === 'riyad' ? `${cid === 'nawawi' ? 'Ан-Навави' : 'В «Рияд ас-Салихин» ан-Навави'} приводит хадис без цепочки, называя только сподвижника и того, кто его записал. Полная цепочка взята из первоисточника: сподвижник — последний в списке, ближе всех к Пророку ﷺ.` : 'Цепочка этого же хадиса взята из первоисточника.'}{!sahih && ' Оценка хадиса — в примечании под его текстом.'}</p>
+            {facts.map((f, k) => <p key={k}>{f}</p>)}
+            {!sahih && <p>Оценка хадиса — в примечании под его текстом.</p>}
+            {(cid === 'nawawi' || cid === 'riyad') && (
+              <WhyNote q={`Почему у ${cid === 'nawawi' ? 'ан-Навави' : 'хадиса из «Рияда»'} есть цепочка?`}>
+                {`${cid === 'nawawi' ? 'Ан-Навави' : 'В «Рияд ас-Салихин» ан-Навави'} приводит хадис без цепочки, называя только сподвижника и того, кто его записал. Полная цепочка взята из первоисточника: сподвижник — последний в списке, ближе всех к Пророку ﷺ.`}
+              </WhyNote>
+            )}
           </div>
         ) : (
           <div className="nr-hd">
             <b>{label}</b>
             <div className="nr-tags"><TagBtn id="grades" text="Достоверный (сахих)" ok /></div>
             <p>Хадисы этого сборника составитель отбирал по условию достоверности.</p>
+            {facts.map((f, k) => <p key={k}>{f}</p>)}
           </div>
         )}
         {data && chain.map((id, k) => {
