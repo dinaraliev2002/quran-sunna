@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead, SurahRow } from '../../components/ui'
-import { loadSurah, loadTafsir, loadWbw, surahByPage, tafsirFor, TOTAL_PAGES, type Ayah, type Surah } from '../../lib/data'
+import { loadSurah, loadTafsir, surahByPage, tafsirFor, TOTAL_PAGES, type Ayah, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
 import { QpcText } from './views'
 import { TafsirText } from './TafsirText'
@@ -190,29 +190,6 @@ export function MemoSheet({ surah, startAyah, reciterName, onClose, onStart }: {
 }
 
 /** Окно аята: арабский текст, перевод, тафсир ас-Саади. Листается свайпом влево/вправо по аятам. */
-/** Пословный перевод аята: арабское слово и русская подпись под ним */
-function WbwBlock({ surah, ayah, words }: { surah: number; ayah: number; words: string[] }) {
-  const [rows, setRows] = useState<string[][] | null | undefined>(undefined)
-  useEffect(() => { loadWbw(surah).then(setRows).catch(() => setRows(null)) }, [surah])
-  const tr = rows?.[ayah - 1]
-  if (rows === null || (rows && !tr)) return null
-  return (
-    <>
-      <div className="as-label">Пословный перевод</div>
-      {!tr ? <div className="loading" style={{ height: 60 }}>Загрузка…</div> : (
-        <div className="wbw">
-          {words.map((w, i) => (
-            <div className="w" key={i}>
-              <span className="wa">{w}</span>
-              <span className="wt">{tr[i] || '·'}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  )
-}
-
 export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
   surah: Surah; ayah: number; onClose: () => void; onPlay: (s: number, a: number) => void
   /** аят сменился (листают тафсир) — чтобы страница под окном перелистнулась следом */
@@ -223,7 +200,6 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
   const [tf, setTf] = useState<Record<string, string> | null | undefined>(undefined)
   const [cur, setCur] = useState(ayah)
   const [slide, setSlide] = useState<'' | 'l' | 'r'>('')
-  const [cfg, setCfg] = useState(false) // панель настроек окна
   const bodyRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     loadSurah(surah.id).then(setAyahs)
@@ -330,16 +306,6 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
         {!a && <div className="loading">Загрузка…</div>}
         {a && (
           <div key={cur} className={'ayah-sheet' + (slide ? ' slide-' + slide : '')}>
-            <div className="as-cfg">
-              <button className={cfg ? 'on' : ''} onClick={() => { haptic.tap(); setCfg(!cfg) }} aria-label="Настройки окна"><Icon id="gear" /></button>
-            </div>
-            {cfg && (
-              <button className="mrow as-cfgrow" onClick={() => { haptic.tap(); st.set({ wbwSheet: !st.wbwSheet }) }}>
-                <span className="mi"><Icon id="words" /></span>
-                <div className="t"><b>Пословный перевод в этом окне</b><span>Чтение с подписями под словами — в меню чтения</span></div>
-                <span className={'switch' + (st.wbwSheet ? ' on' : '')} />
-              </button>
-            )}
             <QpcText page={a.p} glyphs={a.g} tajweed={st.tajweed} className="as-ar" />
             <div className="as-actions">
               <button onClick={() => onPlay(surah.id, cur)}><Icon id="play" />Слушать</button>
@@ -347,7 +313,6 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
             </div>
             <div className="as-label">Перевод · {TRANSLATIONS[st.translation]}</div>
             <div className="as-tr">{st.translation === 'aa' ? a.aa : a.ku}</div>
-            {st.wbwSheet && <WbwBlock key={'wb' + key} surah={surah.id} ayah={cur} words={a.w} />}
             <AsbabBlock key={key} surah={surah.id} ayah={cur} />
             <SajdaBlock key={'sj' + key} surah={surah.id} ayah={cur} />
             <KulievBlock key={'kv' + key} surah={surah.id} ayah={cur} />

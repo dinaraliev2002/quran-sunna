@@ -46,24 +46,25 @@ export function useWbw(sid: number) {
   return rows
 }
 
-/** Аят по словам: арабское слово (глифом страницы мусхафа) и русская подпись под ним */
+/** Аят по словам: арабское слово (текст Усмани, с цветами таджвида) и русская подпись под ним.
+ *  Глифы страницы мусхафа здесь не годятся: на строках, растянутых по ширине, слова вытянуты кашидой. */
 function WbwText({ sid, a, tajweed, hidden }: { sid: number; a: Ayah; tajweed: boolean; hidden: boolean }) {
-  const theme = useUi((s) => s.theme)
-  const family = pageFont(a.p, tajweed, theme)
-  const ready = useFontReady(family)
   const tr = useWbw(sid)?.[a.n - 1]
-  const gl = a.g.split(' ')
-  const glyph = gl.length === a.w.length + 1 // не у всех аятов глифы совпадают со словами — тогда текст Усмани
-  const st = glyph ? { fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(a.p) } : undefined
+  // разметка таджвида по словам (пробелы внутри тегов не делят слова); если слов не столько же — без цвета
+  const parts = a.tj.replace(/<[^>]+>/g, (m) => m.replace(/ /g, '')).split(' ').map((x) => x.replace(//g, ' '))
+  const colored = tajweed && parts.length === a.w.length
   return (
-    <div className={'wbw a-wbw' + (glyph && !ready ? ' loading-font' : '') + (hidden ? ' hidden' : '')}>
+    <div className={'wbw a-wbw' + (hidden ? ' hidden' : '')}>
       {a.w.map((w, i) => (
         <div className="w" key={i}>
-          <span className={'wa' + (glyph ? ' qpc' : '')} style={st}>{glyph ? gl[i] : w}</span>
+          {colored
+            ? <span className="wa" dangerouslySetInnerHTML={{ __html: parts[i] }} />
+            : <span className="wa">{w}</span>}
           <span className="wt">{tr ? tr[i] || '·' : ' '}</span>
         </div>
       ))}
-      {glyph && <span className="wa qpc a-end" style={st}>{gl[gl.length - 1]}</span>}
+      {/* номер аята — тем же глифом страницы, что и в обычном чтении */}
+      <QpcText page={a.p} glyphs={a.g.split(' ').pop()!} tajweed={tajweed} className="wbw-end" />
     </div>
   )
 }

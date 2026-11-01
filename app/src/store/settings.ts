@@ -25,8 +25,6 @@ interface Settings {
   tajweed: boolean
   /** пословный перевод в чтении (режимы «Страница» и «Сура») */
   wbw: boolean
-  /** пословный перевод в окне аята */
-  wbwSheet: boolean
   arSize: number
   trSize: number
   theme: ThemePref
@@ -116,7 +114,6 @@ const DEFAULT_SETTINGS: Settings = {
   storyMarks: [],
   tajweed: true,
   wbw: false,
-  wbwSheet: false,
   arSize: 28,
   trSize: 16,
   theme: 'auto',
