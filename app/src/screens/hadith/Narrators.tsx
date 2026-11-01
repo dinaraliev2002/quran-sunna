@@ -174,14 +174,9 @@ export function ChainButton({ cid, bn, i, label }: { cid: string; bn: number; i:
   if (!link) return null
   return (
     <>
-      {link.sahabi && (
-        <button className="nr-chip" onClick={() => { haptic.tap(); setOpen('sahabi') }} aria-label="Сподвижник">
-          <Icon id="users" /><span>Сподвижник</span>
-        </button>
-      )}
-      {link.chain && (
-        <button className="nr-chip" onClick={() => { haptic.tap(); setOpen('chain') }} aria-label="Цепочка передатчиков">
-          <Icon id="users" /><span>Цепочка</span>
+      {(link.chain || link.sahabi) && (
+        <button className="nr-chip" onClick={() => { haptic.tap(); setOpen(link.chain ? 'chain' : 'sahabi') }} aria-label={link.chain ? 'Цепочка передатчиков' : 'Сподвижник'}>
+          <Icon id="users" /><span>{link.chain ? 'Цепочка' : 'Сподвижник'}</span>
         </button>
       )}
       {createPortal(
@@ -208,7 +203,7 @@ function SahabiSheet({ id, sure, cid, onClose }: { id: number; sure: boolean; ci
   const [nr, setNr] = useState<Narrator | null>(null)
   useEffect(() => { loadNarrators([id]).then((d) => setNr(d[id] ?? null)) }, [id])
   if (!nr) return <Sheet onClose={onClose}><SheetHead title="Сподвижник" onClose={onClose} /><div className="body"><div className="loading">Загрузка…</div></div></Sheet>
-  const why = `${cid === 'nawawi' ? 'Ан-Навави' : 'В «Рияд ас-Салихин» ан-Навави'} приводит хадис без цепочки, называя только сподвижника, от которого он дошёл, и того, кто его записал. Поэтому здесь — сподвижник; полная цепочка (если нашлась в первоисточнике) — по кнопке «Цепочка».`
+  const why = `${cid === 'nawawi' ? 'Ан-Навави' : 'В «Рияд ас-Салихин» ан-Навави'} приводит хадис без цепочки, называя только сподвижника, от которого он дошёл, и того, кто его записал. Полная цепочка этого хадиса в первоисточнике не найдена, поэтому здесь — только сподвижник.`
   return <CardSheet nr={nr} note={why + (sure ? '' : ' Сподвижник определён по имени в тексте хадиса; в редких случаях возможна ошибка.')} onClose={onClose} />
 }
 
@@ -247,7 +242,7 @@ function ChainSheet({ chain, src, cid, bn, i, label, onClose }: { chain: number[
             <b>{label}</b>
             <small>Источник цепочки: {BOOK[src[0]] ?? src[0]}, № {src[1]}</small>
             {sahih && <div className="nr-tags"><TagBtn id="grades" text="Достоверный (сахих)" ok /></div>}
-            <p>Цепочка этого же хадиса взята из первоисточника.{!sahih && ' Оценка хадиса — в примечании под его текстом.'}</p>
+            <p>{cid === 'nawawi' || cid === 'riyad' ? `${cid === 'nawawi' ? 'Ан-Навави' : 'В «Рияд ас-Салихин» ан-Навави'} приводит хадис без цепочки, называя только сподвижника и того, кто его записал. Полная цепочка взята из первоисточника: сподвижник — последний в списке, ближе всех к Пророку ﷺ.` : 'Цепочка этого же хадиса взята из первоисточника.'}{!sahih && ' Оценка хадиса — в примечании под его текстом.'}</p>
           </div>
         ) : (
           <div className="nr-hd">
