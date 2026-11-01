@@ -1,11 +1,12 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE, type RefObject } from 'react'
 import { Icon } from '../../components/Icon'
 import { SurahBanner } from '../../components/SurahBanner'
-import { hasAsbab, hizbOf, loadMushafPage, loadSurah, QUARTER_LABEL, type Ayah, type MushafPage, type Surah } from '../../lib/data'
+import { hasAsbab, hasKuliev, isSajda, hizbOf, loadMushafPage, loadSurah, QUARTER_LABEL, type Ayah, type MushafPage, type Surah } from '../../lib/data'
 import { loadPageFont, pageFont, pagePalette, useFontReady } from '../../lib/fonts'
 import { haptic } from '../../lib/telegram'
 import { useUi } from '../../store/ui'
 import { SurahStoryButton, useAsbabIndex } from './Asbab'
+import { useKulievIndex } from './Kuliev'
 
 export interface AyahActions {
   playing: string | null
@@ -90,12 +91,17 @@ export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, h
 }) {
   const key = `${sid}:${a.n}`
   const story = hasAsbab(useAsbabIndex(), sid, a.n)
+  const kix = useKulievIndex()
+  const comment = hasKuliev(kix, sid, a.n)
+  const sajda = isSajda(kix, sid, a.n)
   return (
     <div className={'a-block' + (playing ? ' playing' : '')} data-key={key} data-page={a.p}>
       <div className="a-head">
         <span className="a-key">{key}{playing ? ' · звучит' : ''}</span>
         {/* у аята есть история ниспослания — она в окне аята */}
         {story && <button className="a-story" onClick={() => act.onInfo(sid, a.n)}><Icon id="book" />История аята</button>}
+        {comment && !story && <button className="a-story" onClick={() => act.onInfo(sid, a.n)}><Icon id="scroll" />Комментарий</button>}
+        {sajda && <button className="a-story sj" onClick={() => act.onInfo(sid, a.n)} aria-label="Земной поклон">۩</button>}
         <div className="a-acts">
           <button className={'a-act' + (playing ? ' playing' : '')} onClick={() => (playing ? act.onToggle() : act.onPlay(sid, a.n))}
             aria-label={playing && act.sounding ? 'Пауза' : 'Слушать'}><Icon id={playing && act.sounding ? 'pause' : 'play'} /></button>
@@ -317,6 +323,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
   const hold = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null)
   const theme = useUi((s) => s.theme)
   const ix = useAsbabIndex() // у каких сур есть «История суры» — кнопка в звезде заголовка
+  const kix = useKulievIndex()
 
   useEffect(() => {
     let alive = true
@@ -375,7 +382,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
         <div className="lines">
           {layoutLines(mp).map((l, i) => {
             if (l.kind === 'head') return (
-              <div key={i} className="ln head"><SurahBanner sid={l.sid} compact story={!!ix?.w?.[l.sid]} /><SurahStoryButton sid={l.sid} compact /></div>
+              <div key={i} className="ln head"><SurahBanner sid={l.sid} compact story={!!(ix?.w?.[l.sid] || kix?.s[l.sid]?.intro)} /><SurahStoryButton sid={l.sid} compact /></div>
             )
             if (l.kind === 'bism') return <Bismillah key={i} tajweed={tajweed} className="ln bism" />
             if (l.kind === 'empty') return <div key={i} className="ln" />

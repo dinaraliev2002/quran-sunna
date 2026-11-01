@@ -4,13 +4,15 @@ import { haptic } from '../lib/telegram'
 import { Icon } from '../components/Icon'
 import { Sheet, SheetHead, TabBar } from '../components/ui'
 import { openBot, openSupport, tgUser } from '../lib/telegram'
-import { RECITERS } from '../store/player'
+import { RECITERS, bitrateOf } from '../store/player'
+import { ReciterList } from '../components/ReciterList'
+import { NewsHistory } from '../components/WhatsNew'
 import { useStore, type ThemePref, type Translation } from '../store/settings'
 
 const TRANSLATIONS: Record<Translation, string> = { ku: 'Эльмир Кулиев', aa: 'Абу Адель' }
 const THEMES: Record<ThemePref, string> = { auto: 'Как в Telegram', light: 'Светлая', dark: 'Тёмная' }
 
-type Picker = null | 'tr' | 'rec' | 'theme' | 'font' | 'sources'
+type Picker = null | 'tr' | 'rec' | 'theme' | 'font' | 'sources' | 'news'
 
 export default function Settings() {
   const st = useStore()
@@ -51,7 +53,7 @@ export default function Settings() {
 
       <div className="group-t">Аудио</div>
       <div className="group">
-        <button className="sitem" onClick={() => setOpen('rec')}><span className="si" style={{ background: '#C08A2E' }}><Icon id="sound" /></span><span className="t">Чтец</span><span className="v">{(RECITERS[st.reciter] ?? RECITERS.alafasy).name}</span><Icon id="right" className="icon chev" /></button>
+        <button className="sitem" onClick={() => setOpen('rec')}><span className="si" style={{ background: '#C08A2E' }}><Icon id="sound" /></span><span className="t">Чтец</span><span className="v">{(RECITERS[st.reciter] ?? RECITERS.alafasy).name} · {bitrateOf(st.reciter, st.bitrates)}</span><Icon id="right" className="icon chev" /></button>
       </div>
 
       <div className="group-t">Без интернета</div>
@@ -63,6 +65,7 @@ export default function Settings() {
       <div className="group">
         <button className="sitem" onClick={() => setOpen('theme')}><span className="si" style={{ background: '#34495E' }}><Icon id="moon" /></span><span className="t">Тема</span><span className="v">{THEMES[st.theme]}</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => setOpen('sources')}><span className="si" style={{ background: '#5E6661' }}><Icon id="info" /></span><span className="t">Об источниках</span><Icon id="right" className="icon chev" /></button>
+        <button className="sitem" onClick={() => setOpen('news')}><span className="si" style={{ background: '#C98A2B' }}><Icon id="bell" /></span><span className="t">Что нового</span><span className="v">История обновлений</span><Icon id="right" className="icon chev" /></button>
         {/* экскурсы по разделам покажутся снова при следующем заходе в каждый раздел */}
         <button className="sitem" onClick={() => { haptic.success(); st.set({ tours: [] }) }}>
           <span className="si" style={{ background: '#C98A2B' }}><Icon id="star" /></span>
@@ -78,7 +81,12 @@ export default function Settings() {
       <div className="ver">Коран и Сунна · версия 0.1</div>
 
       {open === 'tr' && <Choice title="Перевод смыслов" items={TRANSLATIONS} value={st.translation} onPick={(v) => st.set({ translation: v })} />}
-      {open === 'rec' && <Choice title="Чтец" items={Object.fromEntries(Object.entries(RECITERS).map(([k, r]) => [k, r.name]))} value={st.reciter} onPick={(v) => st.set({ reciter: v })} />}
+      {open === 'rec' && (
+        <Sheet onClose={close}>
+          <SheetHead title="Чтец" sub="Цифры справа — качество звука в кбит/с: 64 занимает вдвое меньше места" onClose={close} />
+          <div className="body"><ReciterList onDone={close} /></div>
+        </Sheet>
+      )}
       {open === 'theme' && <Choice title="Тема" items={THEMES} value={st.theme} onPick={(v) => st.set({ theme: v })} />}
       {open === 'font' && (
         <Sheet onClose={close}>
@@ -97,6 +105,7 @@ export default function Settings() {
           </div>
         </Sheet>
       )}
+      {open === 'news' && <NewsHistory onClose={close} />}
       {open === 'sources' && (
         <Sheet onClose={close}>
           <SheetHead title="Об источниках" onClose={close} />
@@ -106,6 +115,7 @@ export default function Settings() {
             <p>• Тафсир ас-Саади (русский перевод) — Quran.com.</p>
             <p>• Аудио: everyayah.com, зеркало quranicaudio.com.</p>
             <p>• Азкары «Крепость мусульманина» (Саид аль-Кахтани): тексты и перевод — открытая библиотека my-prayers/muslim-data (Apache-2.0); число повторов и аудио — hisnmuslim.com.</p>
+            <p>• Комментарии к аятам, словарь арабских терминов и сведения о земных поклонах — из книги «Перевод смыслов Священного Корана» Э. Кулиева (издание Комплекса короля Фахда); краткое пояснение «История аята» — из книг по асбаб ан-нузуль, переведено с арабского с помощью ИИ.</p>
             <p>• Хадисы: сборники «40 хадисов ан-Навави», «Рияд ас-Салихин» и «Сахих аль-Бухари» (арабский текст и перевод) — isnad.link; темы с объяснениями — «Энциклопедия переведённых пророческих хадисов» HadeethEnc.com.</p>
             <p>• 99 имён Аллаха: список и толкования — Са‘ид аль-Кахтани, «Толкование прекрасных имён Аллаха в свете Корана и Сунны» (пер. Э. Р. Кулиева), текст — «Библиотека Мусульманина», <a href="https://kitab.center/sharh-asma-qahtani" target="_blank" rel="noreferrer">kitab.center/sharh-asma-qahtani</a>.</p>
           </div>

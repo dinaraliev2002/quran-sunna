@@ -18,6 +18,10 @@ interface Settings {
   mode: ReadMode
   translation: Translation
   reciter: string
+  /** качество аудио по чтецам, кбит/с: { alafasy: 64 } (нет записи — как у чтеца по умолчанию) */
+  bitrates: Record<string, number>
+  /** закладки в «Историях»: отрывки «сура:первый аят» */
+  storyMarks: string[]
   tajweed: boolean
   wbw: boolean
   arSize: number
@@ -105,6 +109,8 @@ const DEFAULT_SETTINGS: Settings = {
   mode: 'sura',
   translation: 'ku',
   reciter: 'alafasy',
+  bitrates: {},
+  storyMarks: [],
   tajweed: true,
   wbw: false,
   arSize: 28,

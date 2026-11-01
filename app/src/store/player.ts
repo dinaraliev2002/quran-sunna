@@ -2,24 +2,36 @@ import { create } from 'zustand'
 import { cachedBlob } from '../lib/net'
 
 // Чтецы: аудио по аятам (everyayah.com) + зеркало (quranicaudio). Если источник не отвечает — берём следующий.
-export const RECITERS: Record<string, { name: string; folder: string }> = {
-  alafasy: { name: 'Мишари аль-Афаси', folder: 'Alafasy_128kbps' },
-  husary_m: { name: 'аль-Хусари (муаллим)', folder: 'Husary_Muallim_128kbps' },
-  sudais: { name: 'Абдуррахман ас-Судайс', folder: 'Abdurrahmaan_As-Sudais_192kbps' },
-  shuraym: { name: 'Сауд аш-Шурайм', folder: 'Saood_ash-Shuraym_128kbps' },
-  shatri: { name: 'Абу Бакр аш-Шатри', folder: 'Abu_Bakr_Ash-Shaatree_128kbps' },
-  dosari: { name: 'Ясир ад-Даусари', folder: 'Yasser_Ad-Dussary_128kbps' },
-  muaiqly: { name: 'Махир аль-Муайкли', folder: 'MaherAlMuaiqly128kbps' },
-  juhani: { name: 'Абдуллах аль-Джухани', folder: 'Abdullaah_3awwaad_Al-Juhaynee_128kbps' },
-  qatami: { name: 'Насир аль-Катами', folder: 'Nasser_Alqatami_128kbps' },
+// У большинства чтецов на everyayah есть несколько вариантов качества (кбит/с) — 64 вдвое легче 128, на слух для речи почти то же.
+export interface Reciter { name: string; /** папка на everyayah по качеству, кбит/с */ folders: Record<number, string>; def: number }
+export const RECITERS: Record<string, Reciter> = {
+  alafasy: { name: 'Мишари аль-Афаси', folders: { 64: 'Alafasy_64kbps', 128: 'Alafasy_128kbps' }, def: 128 },
+  husary_m: { name: 'аль-Хусари (муаллим)', folders: { 128: 'Husary_Muallim_128kbps' }, def: 128 },
+  sudais: { name: 'Абдуррахман ас-Судайс', folders: { 64: 'Abdurrahmaan_As-Sudais_64kbps', 192: 'Abdurrahmaan_As-Sudais_192kbps' }, def: 192 },
+  shuraym: { name: 'Сауд аш-Шурайм', folders: { 64: 'Saood_ash-Shuraym_64kbps', 128: 'Saood_ash-Shuraym_128kbps' }, def: 128 },
+  shatri: { name: 'Абу Бакр аш-Шатри', folders: { 64: 'Abu_Bakr_Ash-Shaatree_64kbps', 128: 'Abu_Bakr_Ash-Shaatree_128kbps' }, def: 128 },
+  dosari: { name: 'Ясир ад-Даусари', folders: { 128: 'Yasser_Ad-Dussary_128kbps' }, def: 128 },
+  muaiqly: { name: 'Махир аль-Муайкли', folders: { 128: 'MaherAlMuaiqly128kbps' }, def: 128 },
+  juhani: { name: 'Абдуллах аль-Джухани', folders: { 128: 'Abdullaah_3awwaad_Al-Juhaynee_128kbps' }, def: 128 },
+  qatami: { name: 'Насир аль-Катами', folders: { 128: 'Nasser_Alqatami_128kbps' }, def: 128 },
+  ayman: { name: 'Аймен Сувейд', folders: { 64: 'Ayman_Sowaid_64kbps' }, def: 64 },
 }
+/** Какое качество играет у чтеца: выбранное, а если такого у него нет — по умолчанию */
+export const bitrateOf = (reciter: string, chosen?: Record<string, number>) => {
+  const r = RECITERS[reciter] ?? RECITERS.alafasy
+  const c = chosen?.[reciter]
+  return c && r.folders[c] ? c : r.def
+}
+let bitrates: Record<string, number> = {}
+export const setBitrates = (b: Record<string, number>) => { bitrates = b }
+const folderOf = (reciter: string) => { const r = RECITERS[reciter] ?? RECITERS.alafasy; return r.folders[bitrateOf(reciter, bitrates)] }
 const MIRRORS = ['https://everyayah.com/data/', 'https://mirrors.quranicaudio.com/everyayah/']
 
 export const audioFile = (key: string) => {
   const [s, a] = key.split(':').map(Number)
   return String(s).padStart(3, '0') + String(a).padStart(3, '0') + '.mp3'
 }
-export const audioUrls = (reciter: string, key: string) => MIRRORS.map((m) => m + (RECITERS[reciter] ?? RECITERS.alafasy).folder + '/' + audioFile(key))
+export const audioUrls = (reciter: string, key: string) => MIRRORS.map((m) => m + folderOf(reciter) + '/' + audioFile(key))
 export const audioKey = (reciter: string, key: string) => `audio:${reciter}:${audioFile(key).slice(0, 6)}`
 const urls = audioUrls
 

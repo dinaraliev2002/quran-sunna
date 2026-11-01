@@ -5,10 +5,11 @@ import { Tour } from '../../components/Tour'
 import { useQuranMeta } from '../../components/ui'
 import { juzByPage, loadMushafPage, loadSurah, surahByPage, surahGlyph, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
-import { RECITERS, setMediaTitle, setReciter, usePlayer, type MemoOptions } from '../../store/player'
+import { RECITERS, setBitrates, setMediaTitle, setReciter, usePlayer, type MemoOptions } from '../../store/player'
 import { useStore, type ReadMode } from '../../store/settings'
 import { Dial } from './Dial'
 import { Pager } from './Pager'
+import { useKulievIndex } from './Kuliev'
 import { AyahSheet, BookmarksSheet, MemoSheet, MenuPanel, MODES, ModePop, PickerSheet, ReaderSettingsSheet } from './sheets'
 import { MushafView, PageAyahs, SuraView, type AyahActions } from './views'
 
@@ -24,6 +25,7 @@ export default function Reader() {
 
 function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[] }) {
   const nav = useNavigate()
+  const kulievIx = useKulievIndex()
   const params = useParams()
   const [search] = useSearchParams()
   const st = useStore()
@@ -41,14 +43,22 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const gesture = useRef({ x: 0, y: 0, t: 0, lastTouch: 0 })
   const lastScroll = useRef(new WeakMap<Element, { top: number; left: number }>())
   const topAyah = useRef(initAyah)
+  const appScrollUntil = useRef(0) // до этого момента прокрутку делает само приложение (подсветка аята), а не человек
+
+  // аят, на котором остановились, и его страница: при смене страницы запоминаем его, а не первый аят страницы
+  // (p = 0 — страница ещё не известна)
+  const pinned = useRef<{ s: number; a: number; p: number } | null>(initAyah > 1 ? { s: initSurah, a: initAyah, p: Number(search.get('p')) || 0 } : null)
 
   // точная страница стартового аята
   useEffect(() => {
     if (search.get('p')) return
-    loadSurah(initSurah).then((ayahs) => { const a = ayahs.find((x) => x.n === initAyah); if (a) setPage(a.p) })
+    loadSurah(initSurah).then((ayahs) => {
+      const a = ayahs.find((x) => x.n === initAyah)
+      if (a) { if (pinned.current) pinned.current.p = a.p; setPage(a.p) }
+    })
   }, [])
 
-  useEffect(() => { setReciter(st.reciter) }, [st.reciter])
+  useEffect(() => { setBitrates(st.bitrates); setReciter(st.reciter) }, [st.reciter, st.bitrates])
   useEffect(() => { setMediaTitle((k) => { const [s, a] = k.split(':'); return `${surahs[+s - 1].name}, аят ${a}` }) }, [surahs])
 
   const mode = st.mode
@@ -76,14 +86,33 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   // пока человек сам не перейдёт к другой суре или странице через выбор суры/колесо
   const fromLink = useRef(search.get('from') === 'link')
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const pendingLast = useRef<{ s: number; a: number; p: number } | null>(null)
+  // записать сразу — при выходе из чтения и при сворачивании, чтобы не потерять последние 0,8 с
+  const flushLast = useCallback(() => {
+    clearTimeout(saveTimer.current)
+    const x = pendingLast.current
+    pendingLast.current = null
+    if (x && !fromLink.current) useStore.getState().setLastRead(x)
+  }, [])
   const saveLast = useCallback((s: number, a: number, p: number) => {
     clearTimeout(saveTimer.current)
     if (fromLink.current) return
-    saveTimer.current = setTimeout(() => st.setLastRead({ s, a, p }), 800)
-  }, [st])
+    pendingLast.current = { s, a, p }
+    saveTimer.current = setTimeout(flushLast, 800)
+  }, [flushLast])
+  useEffect(() => {
+    const onHide = () => { if (document.hidden) flushLast() }
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', flushLast)
+    return () => { document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', flushLast); flushLast() }
+  }, [flushLast])
 
   useEffect(() => {
     if (mode === 'sura') return
+    const pin = pinned.current
+    if (pin && pin.p === page) { topAyah.current = pin.a; saveLast(pin.s, pin.a, page); return }
+    if (pin && !pin.p) return // страница нужного аята ещё открывается
+    pinned.current = null
     loadMushafPage(page).then((mp) => {
       const first = Object.keys(mp.lines).map(Number).sort((a, b) => a - b)[0]
       const [s, a] = mp.lines[first][0][1].split(':').map(Number)
@@ -91,6 +120,42 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
       saveLast(s, a, page)
     })
   }, [page, mode, saveLast])
+
+  // открыли окно аята (перевод и тафсир) — запоминаем именно этот аят: «Продолжить чтение» откроет его
+  const tafsirAt = overlay && typeof overlay === 'object' ? overlay.tafsir : null
+  const tafsirKey = tafsirAt ? `${tafsirAt[0]}:${tafsirAt[1]}` : ''
+  useEffect(() => {
+    if (!tafsirKey) return
+    const [s, a] = tafsirKey.split(':').map(Number)
+    let alive = true
+    loadSurah(s).then((ayahs) => { const x = ayahs.find((y) => y.n === a); if (alive && x) { pinned.current = { s, a, p: x.p }; saveLast(s, a, x.p) } })
+    return () => { alive = false }
+  }, [tafsirKey, saveLast])
+
+  // «Продолжить чтение»: аят, на котором остановились, на пару секунд подсвечивается (в любом режиме)
+  const flashed = useRef(false)
+  useEffect(() => {
+    const hl = !!search.get('hl')
+    if (flashed.current || (!hl && !(mode === 'page' && initAyah > 1))) return
+    const key = `${initSurah}:${initAyah}`
+    let tries = 0, seen = 0
+    const t = setInterval(() => {
+      // ждём, пока аят реально появится на экране (в «Странице» открывается сначала первая страница суры, потом нужная)
+      const els = [...document.querySelectorAll<HTMLElement>(`.view [data-key="${key}"], .view [data-k="${key}"]`)]
+      const shown = els.filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > 0 && r.left < window.innerWidth })
+      if (!shown.length) { if (++tries > 40) clearInterval(t); seen = 0; return }
+      if (++seen < 2) return // дали странице устояться
+      clearInterval(t)
+      flashed.current = true
+      if (mode !== 'mushaf') { appScrollUntil.current = Date.now() + 1200; shown[0].scrollIntoView({ block: 'center' }) }
+      if (!hl) return
+      shown.forEach((e) => e.classList.add('flash'))
+      // страница могла перерисоваться — пока подсветка идёт, возвращаем её на новые элементы
+      const keep = setInterval(() => document.querySelectorAll(`.view [data-key="${key}"], .view [data-k="${key}"]`).forEach((e) => e.classList.add('flash')), 300)
+      setTimeout(() => { clearInterval(keep); document.querySelectorAll('.flash').forEach((e) => e.classList.remove('flash')) }, 2600)
+    }, 250)
+    return () => clearInterval(t)
+  }, [])
 
   const onTop = useCallback((ayah: number, p: number) => {
     topAyah.current = ayah
@@ -197,10 +262,30 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     if ((e.target as HTMLElement).closest('button, a, input, .a-act')) return
     setBare((b) => !b)
   }
+  const pageTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const onViewScroll = (e: RUE) => {
     const el = e.target as Element
     // окна поверх читалки (например, «История суры») — не её прокрутка
     if (!e.currentTarget.contains(el)) return
+    // «Страница»: запоминаем не первый аят страницы, а тот, что сейчас вверху экрана
+    // (только когда прокручивает сам человек, а не само приложение при подсветке аята)
+    // (на телефоне инерция длится дольше касания, поэтому судим не по касанию, а по тому, что прокрутку начало не приложение;
+    // запоминаем, когда прокрутка закончилась)
+    if (mode === 'page' && el.classList.contains('pscroll') && Date.now() > appScrollUntil.current) {
+      pinned.current = null
+      clearTimeout(pageTimer.current)
+      pageTimer.current = setTimeout(() => {
+        const top = el.getBoundingClientRect().top + 90
+        for (const b of el.querySelectorAll<HTMLElement>('[data-key]')) {
+          if (b.getBoundingClientRect().bottom > top) {
+            const [bs, ba] = b.dataset.key!.split(':').map(Number)
+            topAyah.current = ba
+            saveLast(bs, ba, Number(b.dataset.page) || page)
+            break
+          }
+        }
+      }, 350)
+    }
     const prev = lastScroll.current.get(el)
     const cur = { top: el.scrollTop, left: el.scrollLeft }
     lastScroll.current.set(el, cur)
@@ -284,6 +369,8 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
           onMemo={() => setOverlay('memo')}
           onTajweed={() => { haptic.tap(); st.set({ tajweed: !st.tajweed }) }}
           onSettings={() => setOverlay('settings')}
+          onGlossary={kulievIx ? () => nav('/glossary', { state: { from: { id: surah.id, name: surah.name, sub: `стр. ${page}` } } }) : undefined}
+          onSajda={kulievIx ? () => nav('/sajda', { state: { from: { id: surah.id, name: surah.name, sub: `стр. ${page}` } } }) : undefined}
         />
       )}
       {(overlay === 'picker' || overlay === 'search') && (
@@ -310,7 +397,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
         { el: '.s-story', title: 'История суры', text: 'Где и когда ниспослана сура. В мусхафе — значок в звезде на рамке названия суры.' },
         { el: '.modebtn', title: 'Режим чтения', text: 'Мусхаф — печатные страницы. Страница — аяты страницы с переводом. Сура — вся сура подряд.' },
         { el: '.dial', title: 'Линейка страниц', text: 'Ведите пальцем, чтобы листать страницы. Нажмите на номер — откроется выбор суры, джуза или страницы.' },
-        { el: '.rbar .rcircle[aria-label="Меню"]', title: 'Меню', text: 'Таджвид, закладки, поиск, заучивание на слух и настройки чтения.' },
+        { el: '.rbar .rcircle[aria-label="Меню"]', title: 'Меню', text: 'Таджвид, закладки, поиск, заучивание на слух, словарь, земные поклоны и настройки чтения.' },
         { el: '.fab', title: 'Слушать', text: 'Чтение аятов вслух. Чтеца можно выбрать в настройках.' },
         { title: 'Жесты', text: 'Свайп вбок — соседняя страница или сура. Нажатие на текст прячет панели, чтобы читать без отвлечений.' },
       ]} />}

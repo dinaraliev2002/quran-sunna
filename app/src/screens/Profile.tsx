@@ -102,7 +102,7 @@ export default function Profile() {
 
       {/* ===== хатм ===== */}
       <section className="pf-card">
-        <div className="pf-ch"><b>Хатм — чтение Корана целиком</b><button onClick={() => nav(st.lastRead ? `/read/${st.lastRead.s}?a=${st.lastRead.a}` : '/read/1')}>Читать</button></div>
+        <div className="pf-ch"><b>Хатм — чтение Корана целиком</b><button onClick={() => nav(st.lastRead ? `/read/${st.lastRead.s}?a=${st.lastRead.a}&hl=1` : '/read/1')}>Читать</button></div>
         <div className="pf-bar gold"><i style={{ width: `${(page / 604) * 100}%` }} /></div>
         <div className="pf-small">{page ? `Страница ${page} из 604 · ${Math.round((page / 604) * 100)}%` : 'Ещё не начато'}</div>
       </section>

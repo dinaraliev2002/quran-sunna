@@ -24,6 +24,7 @@ import Settings from './screens/Settings'
 import Stub from './screens/Stub'
 import SurahList from './screens/SurahList'
 import Stories from './screens/Stories'
+import { Glossary, SajdaList } from './screens/Reference'
 import { hydrateStore, useStore } from './store/settings'
 import { useUi } from './store/ui'
 
@@ -73,6 +74,8 @@ export default function App() {
             <Route path="/quran" element={<SurahList />} />
             <Route path="/read/:surah" element={<Reader />} />
             <Route path="/stories/:surah" element={<Stories />} />
+            <Route path="/glossary" element={<Glossary />} />
+            <Route path="/sajda" element={<SajdaList />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/downloads" element={<Downloads />} />
             <Route path="/azkar" element={<Azkar />} />

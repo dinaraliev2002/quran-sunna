@@ -113,6 +113,44 @@ export function loadAsbabSurah(id: number) {
 export const hasAsbab = (ix: AsbabIndex | null, surah: number, ayah: number) =>
   !!ix?.s[surah]?.some(([a, b]) => a <= ayah && ayah <= b)
 
+/** Комментарии к переводу Кулиева (издание Комплекса короля Фахда): вступления к сурам, пояснения к аятам, словарь, места поклонов.
+ *  Авторский текст — файлов нет в публичной сборке, тогда раздела просто нет. */
+export interface KulievIndex {
+  v: string
+  /** по сурам: аяты, у которых есть пояснения, и есть ли вступление */
+  s: Record<string, { n: number[]; intro: boolean }>
+  /** места земных поклонов [сура, аят] */
+  sajda: [number, number][]
+}
+export interface KulievSurah { s: number; intro: string[]; notes: Record<string, string[][]> }
+export interface GlossaryItem { ar: string; tr: string; mean: string }
+export interface SajdaData {
+  places: { n: number; juz: number; surah: number; name: string; ayah: number; disputed: boolean }[]
+  note: string; dua_ar: string; dua_ru: string; dua_src: string
+}
+let kulievIndex: Promise<KulievIndex | null> | null = null
+export const loadKulievIndex = () => {
+  if (!kulievIndex) {
+    kulievIndex = getJson<KulievIndex>('kuliev/index.json', { cache: 'no-store' })
+    kulievIndex.then((r) => { if (!r) kulievIndex = null })
+  }
+  return kulievIndex
+}
+const kulievSurah = new Map<number, Promise<KulievSurah | null>>()
+export function loadKulievSurah(id: number) {
+  if (!kulievSurah.has(id)) {
+    const p = loadKulievIndex().then((ix) => (ix ? getJson<KulievSurah>(`kuliev/${pad(id)}.json?v=${ix.v}`) : null))
+    p.then((r) => { if (!r) kulievSurah.delete(id) })
+    kulievSurah.set(id, p)
+  }
+  return kulievSurah.get(id)!
+}
+export const loadGlossary = () => loadKulievIndex().then((ix) => (ix ? getJson<GlossaryItem[]>(`kuliev/glossary.json?v=${ix.v}`) : null))
+export const loadSajda = () => loadKulievIndex().then((ix) => (ix ? getJson<SajdaData>(`kuliev/sajda.json?v=${ix.v}`) : null))
+/** Есть ли у аята пояснения Кулиева (по оглавлению) */
+export const hasKuliev = (ix: KulievIndex | null, surah: number, ayah: number) => !!ix?.s[surah]?.n.includes(ayah)
+export const isSajda = (ix: KulievIndex | null, surah: number, ayah: number) => !!ix?.sajda.some(([s, a]) => s === surah && a === ayah)
+
 /** Сура, на странице которой находится данная страница (по первой строке) */
 export function surahByPage(surahs: Surah[], page: number): Surah {
   let s = surahs[0]

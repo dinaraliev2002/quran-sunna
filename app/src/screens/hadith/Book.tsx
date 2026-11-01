@@ -10,6 +10,7 @@ import { haptic, shareText } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import { ArParas, RuParas, splitTitle } from './HadithText'
 import { HadithSettings } from './HadithSettings'
+import { ChainButton, ChainNote } from './Narrators'
 
 // на какой карточке был человек в каждой книге (при возврате назад — та же карточка)
 const cardMemory = new Map<string, number>()
@@ -109,6 +110,7 @@ export default function Book() {
                   {isHadith ? <span className="hd-no">{it.h ? `Хадис № ${it.h}` : 'Другая версия'}</span>
                     : no ? <span className="hd-no">{no}</span> : <span className="hd-count">{i + 1} из {items.length}</span>}
                   <div className="hd-acts">
+                    {(isHadith || cid === 'riyad' || cid === 'nawawi') && <ChainButton cid={cid} bn={bn} i={i} label={ref} />}
                     <button className={fav ? 'on' : ''} onClick={() => { haptic.tap(); st.toggleHadithFav(key) }} aria-label={fav ? 'Убрать из избранного' : 'В избранное'}>
                       <Icon id="bookmark" />
                     </button>
@@ -120,6 +122,7 @@ export default function Book() {
                 {showAr && <ArParas paras={it.ar} />}
                 {showAr && it.ru.length > 0 && <div className="azc-divider"><span>۞</span></div>}
                 {it.ru.length > 0 ? <RuParas paras={it.ru} hadith={isHadith || undefined} /> : <p className="hd-src">Перевода на русский пока нет</p>}
+                {isHadith && <ChainNote cid={cid} bn={bn} i={i} />}
                 </div>
                 {/* листание карточек — закреплено внизу карточки */}
                 {items.length > 1 && (

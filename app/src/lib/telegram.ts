@@ -74,7 +74,7 @@ export const haptic = {
   success: () => inTelegram && at('6.1') && wa!.HapticFeedback.notificationOccurred('success'),
 }
 
-const APP_LINK = 'https://t.me/quran_sunna_app_bot?startapp'
+export const APP_LINK ='https://t.me/quran_sunna_app_bot?startapp'
 
 /** Поделиться текстом: в Telegram — выбор чата, в браузере — системное меню или буфер обмена */
 export function shareText(text: string) {

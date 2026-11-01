@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead, useQuranMeta } from '../../components/ui'
-import { hasAsbab, loadAsbabIndex, loadAsbabSurah, type AsbabIndex, type AsbabOpinion, type AsbabPart, type AsbabStory } from '../../lib/data'
+import { hasAsbab, loadAsbabIndex, loadAsbabSurah, loadKulievSurah, type KulievSurah, type AsbabIndex, type AsbabOpinion, type AsbabPart, type AsbabStory } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
+import { useKulievIndex } from './Kuliev'
+import { KvNote } from './KvFormat'
 
 // оглавление историй — одно на всё приложение; пока не загрузилось (или файлов нет) — null
 let ixReady: AsbabIndex | null = null
@@ -46,14 +48,16 @@ export function AsbabBlock({ surah, ayah }: { surah: number; ayah: number }) {
  *  compact — значок без подписи для строки заголовка в печатном мусхафе. Нет историй — кнопки нет. */
 export function SurahStoryButton({ sid, name, compact }: { sid: number; name?: string; compact?: boolean }) {
   const ix = useAsbabIndex()
+  const kix = useKulievIndex()
   const [open, setOpen] = useState(false)
-  const n = ix?.w?.[sid]
-  if (!n) return null
+  const n = ix?.w?.[sid] ?? 0
+  // «О суре»: вступление Кулиева и/или записи книг о суре целиком
+  if (!n && !kix?.s[sid]?.intro) return null
   return (
     <>
-      <button className={'s-story' + (compact ? ' compact' : '')} aria-label="История суры"
+      <button className={'s-story' + (compact ? ' compact' : '')} aria-label="О суре"
         onClick={(e) => { e.stopPropagation(); haptic.tap(); setOpen(true) }}>
-        <Icon id="scroll" />{!compact && <>История суры{n > 1 ? ` · ${n}` : ''}</>}
+        <Icon id="scroll" />{!compact && <>О суре</>}
       </button>
       {/* окно — поверх всего экрана; нажатия в нём не доходят до читалки (не прячут панели) */}
       {open && createPortal(
@@ -71,13 +75,25 @@ function SurahStorySheet({ sid, name, onClose }: { sid: number; name?: string; o
   const meta = useQuranMeta() // название суры, если его не передали (строка заголовка в мусхафе)
   const [stories, setStories] = useState<AsbabStory[] | null>(null)
   const [open, setOpen] = useState<string | null>(null)
+  const [kv, setKv] = useState<KulievSurah | null>(null)
   useEffect(() => { loadAsbabSurah(sid).then(setStories) }, [sid])
+  useEffect(() => { loadKulievSurah(sid).then(setKv) }, [sid])
   const list = stories?.filter((x) => x.whole) ?? []
   return (
     <Sheet onClose={onClose} tall>
-      <SheetHead title="История суры" sub={`${name ?? meta?.surahs[sid - 1]?.name ?? ''} · где и когда ниспослана`} onClose={onClose} />
+      <SheetHead title="О суре" sub={name ?? meta?.surahs[sid - 1]?.name ?? ''} onClose={onClose} />
       <div className="body">
         {(!stories || !ix) && <div className="loading">Загрузка…</div>}
+        {kv && kv.intro.length > 0 && (
+          <>
+            <div className="as-label">Вступление</div>
+            <div className="kv">
+              <KvNote paras={kv.intro} />
+              <div className="kv-src">Комментарии к переводу смыслов Корана, Э. Кулиев (издание Комплекса короля Фахда).</div>
+            </div>
+          </>
+        )}
+        {ix && list.length > 0 && <div className="as-label">Где и когда ниспослана</div>}
         {ix && list.length > 0 && (
           <div className="asb-list">
             {list.map((x) => (
@@ -86,7 +102,7 @@ function SurahStorySheet({ sid, name, onClose }: { sid: number; name?: string; o
             ))}
           </div>
         )}
-        <div className="tafsir-hint asb-ai">Истории переведены с арабского с помощью ИИ, а не человеком — в переводе возможны неточности</div>
+        {list.length > 0 && <div className="tafsir-hint asb-ai">Истории переведены с арабского с помощью ИИ, а не человеком — в переводе возможны неточности</div>}
       </div>
     </Sheet>
   )

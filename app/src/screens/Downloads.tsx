@@ -5,7 +5,7 @@ import { Sheet, SheetHead, TabBar, useQuranMeta } from '../components/ui'
 import { appleWebKit, fontVariant } from '../lib/fonts'
 import { storageUsage } from '../lib/idb'
 import { cancelDownload, deleteDownloads, downloadAudio, downloadData, downloadFonts, offlineStatus, useDownloads } from '../lib/offline'
-import { RECITERS } from '../store/player'
+import { RECITERS, bitrateOf, setBitrates } from '../store/player'
 import { useStore } from '../store/settings'
 import { useUi } from '../store/ui'
 
@@ -15,7 +15,9 @@ const mb = (bytes: number) => (bytes >= 1e9 ? (bytes / 1e9).toFixed(1) + ' ГБ'
 export default function Downloads() {
   const nav = useNavigate()
   const meta = useQuranMeta()
-  const { tajweed, reciter } = useStore()
+  const { tajweed, reciter, bitrates } = useStore()
+  const kbps = bitrateOf(reciter, bitrates)
+  setBitrates(bitrates) // загрузка пойдёт в выбранном качестве
   const theme = useUi((s) => s.theme)
   const { job, version } = useDownloads()
   const [status, setStatus] = useState<Status | null>(null)
@@ -89,7 +91,7 @@ export default function Downloads() {
           <Card icon="open" id={'fonts:' + variant} title="Страницы мусхафа"
             sub={`Шрифты 604 страниц ${tajweed ? 'с таджвидом' : 'без таджвида'}${appleWebKit && tajweed ? (theme === 'dark' ? ' (тёмная тема)' : ' (светлая тема)') : ''} · ${fontsSize}`}
             done={status.fonts.done} total={status.fonts.total} onDownload={() => downloadFonts(variant)} onDelete={() => deleteDownloads('fonts', variant)} />
-          <Card icon="sound" id={'audio:' + reciter} title={`Аудио · ${recName}`} sub="Весь Коран по аятам · ≈ 0,7–1 ГБ"
+          <Card icon="sound" id={'audio:' + reciter} title={`Аудио · ${recName}`} sub={`Весь Коран по аятам · ${kbps} кбит/с · ≈ ${kbps <= 64 ? '0,5' : kbps <= 128 ? '1' : '1,4'} ГБ. Качество — в настройках, в выборе чтеца`}
             done={status.audio.done} total={status.audio.total}
             onDownload={() => meta && downloadAudio(reciter, meta.surahs, 'Весь Коран')} onDelete={() => deleteDownloads('audio', reciter)}>
             <button className="srow2" style={{ marginTop: 10, marginBottom: 0 }} disabled={busy} onClick={() => setPickSurahs(true)}>

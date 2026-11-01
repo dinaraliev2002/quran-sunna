@@ -6,7 +6,9 @@ import { haptic } from '../../lib/telegram'
 import { QpcText } from './views'
 import { TafsirText } from './TafsirText'
 import { AsbabBlock } from './Asbab'
-import { RECITERS, type MemoOptions, type PauseMode } from '../../store/player'
+import { KulievBlock, SajdaBlock } from './Kuliev'
+import { RECITERS, bitrateOf, type MemoOptions, type PauseMode } from '../../store/player'
+import { ReciterList } from '../../components/ReciterList'
 import { useStore, type ReadMode, type Translation } from '../../store/settings'
 
 const TRANSLATIONS: Record<Translation, string> = { ku: 'Эльмир Кулиев', aa: 'Абу Адель' }
@@ -34,9 +36,9 @@ export function ModePop({ mode, onPick }: { mode: ReadMode; onPick: (m: ReadMode
   )
 }
 
-export function MenuPanel({ sub, tajweed, onClose, onPlay, onBookmarks, onSearch, onMemo, onTajweed, onSettings }: {
+export function MenuPanel({ sub, tajweed, onClose, onPlay, onBookmarks, onSearch, onMemo, onTajweed, onSettings, onGlossary, onSajda }: {
   sub: string; tajweed: boolean; mode: ReadMode
-  onClose: () => void; onPlay: () => void; onBookmarks: () => void; onSearch: () => void; onMemo: () => void; onTajweed: () => void; onSettings: () => void
+  onClose: () => void; onPlay: () => void; onBookmarks: () => void; onSearch: () => void; onMemo: () => void; onTajweed: () => void; onSettings: () => void; onGlossary?: () => void; onSajda?: () => void
 }) {
   // окно снизу — закрывается свайпом вниз, как и остальные
   return (
@@ -63,6 +65,20 @@ export function MenuPanel({ sub, tajweed, onClose, onPlay, onBookmarks, onSearch
           <div className="t"><b>Таджвид</b><span>Цветная подсветка правил чтения</span></div>
           <span className={'switch' + (tajweed ? ' on' : '')} />
         </button>
+        {onGlossary && (
+          <button className="mrow" onClick={onGlossary}>
+            <span className="mi"><Icon id="scroll" /></span>
+            <div className="t"><b>Словарь терминов</b><span>Арабские слова и выражения из Корана</span></div>
+            <Icon id="right" className="icon chev" />
+          </button>
+        )}
+        {onSajda && (
+          <button className="mrow" onClick={onSajda}>
+            <span className="mi"><Icon id="sajda" /></span>
+            <div className="t"><b>Земные поклоны</b><span>15 мест в Коране и мольба</span></div>
+            <Icon id="right" className="icon chev" />
+          </button>
+        )}
         <button className="mrow" onClick={onSettings}>
           <span className="mi">Aa</span>
           <div className="t"><b>Настройки</b><span>Перевод · чтец · шрифт</span></div>
@@ -298,6 +314,8 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
             <div className="as-label">Перевод · {TRANSLATIONS[st.translation]}</div>
             <div className="as-tr">{st.translation === 'aa' ? a.aa : a.ku}</div>
             <AsbabBlock key={key} surah={surah.id} ayah={cur} />
+            <SajdaBlock key={'sj' + key} surah={surah.id} ayah={cur} />
+            <KulievBlock key={'kv' + key} surah={surah.id} ayah={cur} />
             <div className="as-label">Тафсир ас-Саади{range ? ` · ${range}` : ''}</div>
             {tf === undefined && <div className="loading" style={{ height: 80 }}>Загрузка…</div>}
             {tf !== undefined && !t && <div className="empty">Для этого аята тафсир не найден</div>}
@@ -359,15 +377,11 @@ export function ReaderSettingsSheet({ onClose }: { onClose: () => void }) {
             <span>{TRANSLATIONS[k]}</span>{st.translation === k && <Icon id="check" />}
           </button>
         ))}
-        {open === 'rec' && Object.entries(RECITERS).map(([k, r]) => (
-          <button key={k} className="opt-row" onClick={() => { st.set({ reciter: k }); setOpen(null) }}>
-            <span>{r.name}</span>{st.reciter === k && <Icon id="check" />}
-          </button>
-        ))}
+        {open === 'rec' && <ReciterList onDone={() => setOpen(null)} />}
         {!open && (
           <>
             <button className="srow2" onClick={() => setOpen('tr')}><div>Перевод<span>{TRANSLATIONS[st.translation]}</span></div><Icon id="right" className="icon" /></button>
-            <button className="srow2" onClick={() => setOpen('rec')}><div>Чтец<span>{(RECITERS[st.reciter] ?? RECITERS.alafasy).name}</span></div><Icon id="right" className="icon" /></button>
+            <button className="srow2" onClick={() => setOpen('rec')}><div>Чтец<span>{(RECITERS[st.reciter] ?? RECITERS.alafasy).name} · {bitrateOf(st.reciter, st.bitrates)} кбит/с</span></div><Icon id="right" className="icon" /></button>
             <button className="srow2" onClick={() => st.set({ tajweed: !st.tajweed })}><div>Цветной таджвид<span>Как в печатном мусхафе с таджвидом</span></div><span className={'switch' + (st.tajweed ? ' on' : '')} /></button>
             {/* в «Мусхафе» размер текста подстраивается под страницу сам — эти настройки там ни на что не влияют */}
             {st.mode !== 'mushaf' && <>

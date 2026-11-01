@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Icon } from './Icon'
 import { loadMeta, loadSurahs, surahGlyph, type Surah } from '../lib/data'
@@ -42,7 +42,7 @@ export function SurahRow({ s, sort, current, onClick }: { s: Surah; sort?: 'mush
  * Всплывающее окно снизу. Закрывается: тапом по затемнению, крестиком или свайпом вниз —
  * за «ручку»/заголовок, а если содержимое прокручено до верха — и за само содержимое.
  */
-export function Sheet({ onClose, children, tall }: { onClose: () => void; children: ReactNode; tall?: boolean }) {
+export function Sheet({ onClose, children, tall, onDim }: { onClose: () => void; children: ReactNode; tall?: boolean; onDim?: (e: MouseEvent) => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const dimRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef(onClose)
@@ -103,7 +103,7 @@ export function Sheet({ onClose, children, tall }: { onClose: () => void; childr
 
   return (
     <>
-      <div className="dim" ref={dimRef} onClick={onClose} />
+      <div className="dim" ref={dimRef} onClick={onDim ?? onClose} />
       <div className={'sheet' + (tall ? ' tall' : '')} ref={ref}>
         <div className="handle" />
         {children}

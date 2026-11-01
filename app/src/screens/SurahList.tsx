@@ -1,11 +1,14 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { haptic } from '../lib/telegram'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Tour } from '../components/Tour'
 import { plural, SurahRow, TabBar, useQuranMeta } from '../components/ui'
 import { loadSurah, surahByPage, surahGlyph, TOTAL_PAGES } from '../lib/data'
 import { useAsbabIndex } from './reader/Asbab'
-import { storySurahs } from './Stories'
+import { setStoryMode, useStoryMode, type StoryMode } from '../lib/storyMode'
+import { useKulievIndex } from './reader/Kuliev'
+import { MODE_LABEL, modeSurahs } from './Stories'
 import { useStore } from '../store/settings'
 
 type Place = 'all' | 'mk' | 'md'
@@ -17,6 +20,8 @@ export default function SurahList() {
   const nav = useNavigate()
   const meta = useQuranMeta()
   const ix = useAsbabIndex()
+  const kx = useKulievIndex()
+  const mode = useStoryMode(!!kx)
   const lastRead = useStore((s) => s.lastRead)
   const storyLast = useStore((s) => s.storyLast)
   const [sort, setSortState] = useState(memory.sort)
@@ -28,19 +33,22 @@ export default function SurahList() {
   const wrap = useRef<HTMLDivElement>(null)
   const offset = useRef(0) // на сколько пикселей уехал верхний блок
   const settle = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const [modeMenu, setModeMenu] = useState(false)
+  const press = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const longPressed = useRef(false)
   const setSort = (v: typeof sort) => { memory.sort = v; setSortState(v) }
   const setPlace = (v: Place) => { memory.place = v; setPlaceState(v) }
 
   const list = useMemo(() => {
     if (!meta) return []
     let l = meta.surahs.filter((s) => place === 'all' || (place === 'mk') === s.mk)
-    if (sort === 'stories') { const has = new Set(storySurahs(ix)); l = l.filter((s) => has.has(s.id)) }
+    if (sort === 'stories') { const has = new Set(modeSurahs(ix, kx, mode)); l = l.filter((s) => has.has(s.id)) }
     if (query) {
       const q = query.trim().toLowerCase().replace(/[-\s]/g, '')
       l = l.filter((s) => String(s.id) === q || s.name.toLowerCase().replace(/[-\s]/g, '').includes(q) || s.meaning.toLowerCase().includes(q))
     }
     return sort === 'rev' ? [...l].sort((a, b) => a.rev - b.rev) : l
-  }, [meta, sort, place, query, ix])
+  }, [meta, sort, place, query, ix, kx, mode])
 
   // поиск числом: страница мусхафа 1–604
   const num = query && /^\d{1,3}$/.test(query.trim()) ? Number(query.trim()) : 0
@@ -103,7 +111,7 @@ export default function SurahList() {
   }
 
   // во вкладке «Истории» считаем только суры, у которых есть истории
-  const storyIds = new Set(storySurahs(ix))
+  const storyIds = new Set(modeSurahs(ix, kx, mode))
   const pool = meta ? meta.surahs.filter((s) => sort !== 'stories' || storyIds.has(s.id)) : []
   const counts = meta ? { all: pool.length, mk: pool.filter((s) => s.mk).length, md: pool.filter((s) => !s.mk).length } : { all: 114, mk: 0, md: 0 }
   const last = lastRead && meta ? meta.surahs[lastRead.s - 1] : null
@@ -129,15 +137,15 @@ export default function SurahList() {
           <div ref={sub} className="sl-sub-inner">
             {sort === 'stories' ? (
               // во вкладке «Истории» — своё место чтения, по историям аятов
-              <button className="continue" onClick={() => nav(storyLast ? `/stories/${storyLast.s}?a=${storyLast.a}` : `/stories/${storySurahs(ix)[0] ?? 1}`)}>
+              <button className="continue" onClick={() => nav(storyLast ? `/stories/${storyLast.s}?a=${storyLast.a}` : `/stories/${modeSurahs(ix, kx, mode)[0] ?? 1}`)}>
                 <div className="t">
-                  <b>{lastStory ? 'Продолжить истории' : 'Начать читать истории'}</b>
-                  <span>{lastStory && storyLast ? `${lastStory.name} · аят ${storyLast.a}` : 'Истории аятов с первой суры'}</span>
+                  <b>{lastStory ? 'Продолжить чтение' : 'Начать чтение'}</b>
+                  <span>{lastStory && storyLast ? `${lastStory.name} · аят ${storyLast.a}` : mode === 'kv' ? 'Комментарии с первой суры' : mode === 'st' ? 'Истории аятов с первой суры' : 'Истории и комментарии с первой суры'}</span>
                 </div>
                 <div className="go"><Icon id="play" /></div>
               </button>
             ) : (
-              <button className="continue" onClick={() => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}`) : nav('/read/1'))}>
+              <button className="continue" onClick={() => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}&hl=1`) : nav('/read/1'))}>
                 <div className="t">
                   <b>{last ? 'Продолжить чтение' : 'Начать чтение'}</b>
                   <span>{last && lastRead ? `${last.name} · аят ${lastRead.a} · стр. ${lastRead.p}` : 'Аль-Фатиха · стр. 1'}</span>
@@ -148,7 +156,25 @@ export default function SurahList() {
             <div className="sortseg">
               <button className={sort === 'mushaf' ? 'on' : ''} onClick={() => setSort('mushaf')}>По порядку</button>
               <button className={sort === 'rev' ? 'on' : ''} onClick={() => setSort('rev')}>По ниспосланию</button>
-              <button className={sort === 'stories' ? 'on' : ''} onClick={() => setSort('stories')}>Истории</button>
+              <button className={sort === 'stories' ? 'on' : ''}
+                onPointerDown={() => { longPressed.current = false; if (kx) press.current = setTimeout(() => { longPressed.current = true; haptic.tap(); setModeMenu(true) }, 450) }}
+                onPointerUp={() => clearTimeout(press.current)} onPointerLeave={() => clearTimeout(press.current)} onPointerCancel={() => clearTimeout(press.current)}
+                onContextMenu={(e) => { e.preventDefault(); if (kx) setModeMenu(true) }}
+                onClick={() => { if (longPressed.current) return; if (sort === 'stories' && kx) setModeMenu(true); else setSort('stories') }}>
+                Истории{sort === 'stories' && kx && <Icon id="up" className="icon modechev" />}
+              </button>
+              {modeMenu && kx && (
+                <>
+                  <div className="modemenu-bg" onClick={() => setModeMenu(false)} />
+                  <div className="modemenu">
+                    {(['all', 'st', 'kv'] as StoryMode[]).map((m) => (
+                      <button key={m} className={mode === m ? 'on' : ''} onClick={() => { haptic.tap(); setStoryMode(m); setSort('stories'); setModeMenu(false) }}>
+                        {MODE_LABEL[m]}{mode === m && <Icon id="check" className="icon" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -173,14 +199,20 @@ export default function SurahList() {
       ))}
       {/* «Истории»: только суры, у которых есть истории ниспослания, — читать их подряд */}
       {sort === 'stories' && list.map((s) => {
-        const n = ix?.n?.[s.id] ?? 0
-        const w = ix?.w?.[s.id] ?? 0
+        const n = mode === 'kv' ? 0 : ix?.n?.[s.id] ?? 0
+        const w = mode === 'kv' ? 0 : ix?.w?.[s.id] ?? 0
+        const k = mode === 'st' ? 0 : kx?.s[s.id]?.n.length ?? 0
+        const parts = [
+          n ? `${n} ${plural(n, 'история', 'истории', 'историй')}` : '',
+          w ? 'история суры' : '',
+          k ? `${k} ${plural(k, 'комментарий', 'комментария', 'комментариев')}` : (mode !== 'st' && kx?.s[s.id]?.intro ? 'вступление' : ''),
+        ].filter(Boolean)
         return (
           <button key={s.id} className="srow" onClick={() => nav(`/stories/${s.id}`)}>
             <div className="num-badge"><span>{s.id}</span></div>
             <div className="t">
               <b>{s.name}</b>
-              <span>{n ? `${n} ${plural(n, 'история', 'истории', 'историй')} у аятов` : 'только история суры'}{n && w ? ' · история суры' : ''}</span>
+              <span>{parts.join(' · ')}</span>
             </div>
             <div className="r">
               <span className="sname">{surahGlyph(s.id)}</span>
@@ -192,7 +224,7 @@ export default function SurahList() {
       <TabBar />
       {query === null && <Tour id="quran" ready={!!meta} steps={[
         { el: '.sl .continue', title: 'Продолжить чтение', text: 'Открывает Коран там, где вы остановились.' },
-        { el: '.sl .sortseg', title: 'Порядок сур', text: 'По порядку мусхафа или по ниспосланию. «Истории» — читать подряд только аяты с историями ниспослания; у них своё «Продолжить».' },
+        { el: '.sl .sortseg', title: 'Порядок сур', text: 'По порядку мусхафа или по ниспосланию. «Истории» — читать подряд истории ниспослания и комментарии. Зажмите эту кнопку (или нажмите на неё ещё раз) — можно выбрать: всё вместе, только истории или только комментарии.' },
         { el: '.sl .sticky-title .icon-btn', title: 'Поиск', text: 'Найдите суру по названию или номеру. Введите число — откроется и страница мусхафа с этим номером.' },
         { el: '.sl-chips', title: 'Мекканские и мединские', text: 'Показать только суры, ниспосланные в Мекке или в Медине.' },
       ]} />}

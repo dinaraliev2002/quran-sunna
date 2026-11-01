@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+kuliev-src/
+
+# комментарии Кулиева — только для тестовой версии (авторский текст)
+public/data/kuliev
+kuliev-src

@@ -6,7 +6,10 @@ import { plural, Sheet, SheetHead, useQuranMeta } from '../components/ui'
 import { EVENING, loadAzkar, MORNING, nowIsMorning, type AzkarData } from '../lib/azkar'
 import { loadSurah, surahGlyph, type Ayah } from '../lib/data'
 import { hadithOfDay, type EncHadith } from '../lib/hadith'
-import { haptic, shareText, tgUser } from '../lib/telegram'
+import { pageFontFamily } from '../lib/fonts'
+import { shareCardImage } from '../lib/shareImage'
+import { APP_LINK, haptic, shareText, tgUser } from '../lib/telegram'
+import { useUi } from '../store/ui'
 import { useStore, type TaskId } from '../store/settings'
 import { useChapterProgress } from './azkar/Azkar'
 import { useHifzToday } from './hifz/parts'
@@ -95,7 +98,7 @@ export default function Home() {
   const hzSub = !hz.started ? 'Заучивание хадисов: начните с первого' : hzLeft === 0 ? 'Повторы и новые хадисы на сегодня сделаны'
     : [hz.due.length ? `${hz.due.length} на повтор` : '', hz.newLeft ? `${hz.newLeft} ${plural(hz.newLeft, 'новый', 'новых', 'новых')}` : ''].filter(Boolean).join(' · ')
 
-  const continueReading = () => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}`) : nav('/read/1'))
+  const continueReading = () => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}&hl=1`) : nav('/read/1'))
   const pagesToday = today.pages.length
   const tasks: { id: TaskId; title: string; sub: string; action?: () => void }[] = [
     { id: 'read', title: 'Прочитать страницу Корана', sub: pagesToday ? `Сегодня: ${pagesToday} ${plural(pagesToday, 'страница', 'страницы', 'страниц')}` : 'Отметится само, когда побудете на странице минуту', action: continueReading },
@@ -226,7 +229,11 @@ export default function Home() {
           <div className="h-aod-ref">{meta.surahs[Number(aod.key.split(':')[0]) - 1].name} · {aod.key}</div>
           <div className="h-aod-act">
             <button onClick={() => nav(`/read/${aod.key.split(':')[0]}?a=${aod.a.n}&from=link`)}><Icon id="book" />Открыть</button>
-            <button onClick={() => shareText(`${aod.a.ku}\n— ${meta.surahs[Number(aod.key.split(':')[0]) - 1].name}, ${aod.key}`)}><Icon id="share" />Поделиться</button>
+            <button onClick={() => shareText(`${aod.a.ku}\n— ${meta.surahs[Number(aod.key.split(':')[0]) - 1].name}, ${aod.key}`)}><Icon id="share" />Текстом</button>
+            <button onClick={() => {
+              const ref = `${meta.surahs[Number(aod.key.split(':')[0]) - 1].name} · ${aod.key}`
+              shareCardImage({ kind: 'ayah', arabic: aod.a.g, arabicFont: pageFontFamily(aod.a.p, tajweed, useUi.getState().theme), text: aod.a.ku, ref }, `${ref}\n\n${APP_LINK}`).catch(() => {})
+            }}><Icon id="share" />Картинкой</button>
           </div>
         </section>
       )}
@@ -240,7 +247,11 @@ export default function Home() {
           <div className="h-aod-act">
             <button onClick={() => nav(`/hadith/e/${hod.id}`)}><Icon id="info" />Объяснение</button>
             <button onClick={() => shareText(`${hod.ru}
-— ${hod.src}`)}><Icon id="share" />Поделиться</button>
+— ${hod.src}`)}><Icon id="share" />Текстом</button>
+            <button onClick={() => {
+              const ref = `${hod.src}${hod.grade ? ` · ${hod.grade}` : ''}`
+              shareCardImage({ kind: 'hadith', intro: hod.in || undefined, text: hod.in ? hod.ru.slice(hod.in.length).trim() : hod.ru, ref }, `${hod.src}\n\n${APP_LINK}`).catch(() => {})
+            }}><Icon id="share" />Картинкой</button>
           </div>
         </section>
       )}
