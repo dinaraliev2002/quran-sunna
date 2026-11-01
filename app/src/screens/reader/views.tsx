@@ -1,7 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE, type RefObject } from 'react'
 import { Icon } from '../../components/Icon'
 import { SurahBanner } from '../../components/SurahBanner'
-import { hasAsbab, hasKuliev, isSajda, hizbOf, loadMushafPage, loadSurah, QUARTER_LABEL, type Ayah, type MushafPage, type Surah } from '../../lib/data'
+import { hasAsbab, hasKuliev, isSajda, hizbOf, loadMushafPage, loadSurah, loadWbw, QUARTER_LABEL, type Ayah, type MushafPage, type Surah } from '../../lib/data'
 import { loadPageFont, pageFont, pagePalette, useFontReady } from '../../lib/fonts'
 import { haptic } from '../../lib/telegram'
 import { useUi } from '../../store/ui'
@@ -21,7 +21,7 @@ export interface AyahActions {
   onBookmark: (key: string) => void
 }
 
-export interface ViewOpts { tajweed: boolean; translation: 'ku' | 'aa' }
+export interface ViewOpts { tajweed: boolean; translation: 'ku' | 'aa'; wbw: boolean }
 
 // ---------- Текст глифами шрифта страницы мусхафа (пока шрифт грузится — не показываем «квадратики») ----------
 export function QpcText({ page, glyphs, tajweed, className = '' }: { page: number; glyphs: string; tajweed: boolean; className?: string }) {
@@ -31,6 +31,39 @@ export function QpcText({ page, glyphs, tajweed, className = '' }: { page: numbe
   return (
     <div className={className + ' qpc' + (ready ? '' : ' loading-font')} style={{ fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(page) }}>
       {glyphs}
+    </div>
+  )
+}
+
+/** Пословный перевод суры (по аятам); null — ещё грузится или нет сети */
+export function useWbw(sid: number) {
+  const [rows, setRows] = useState<string[][] | null>(null)
+  useEffect(() => {
+    let alive = true
+    loadWbw(sid).then((r) => alive && setRows(r)).catch(() => {})
+    return () => { alive = false }
+  }, [sid])
+  return rows
+}
+
+/** Аят по словам: арабское слово (глифом страницы мусхафа) и русская подпись под ним */
+function WbwText({ sid, a, tajweed, hidden }: { sid: number; a: Ayah; tajweed: boolean; hidden: boolean }) {
+  const theme = useUi((s) => s.theme)
+  const family = pageFont(a.p, tajweed, theme)
+  const ready = useFontReady(family)
+  const tr = useWbw(sid)?.[a.n - 1]
+  const gl = a.g.split(' ')
+  const glyph = gl.length === a.w.length + 1 // не у всех аятов глифы совпадают со словами — тогда текст Усмани
+  const st = glyph ? { fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(a.p) } : undefined
+  return (
+    <div className={'wbw a-wbw' + (glyph && !ready ? ' loading-font' : '') + (hidden ? ' hidden' : '')}>
+      {a.w.map((w, i) => (
+        <div className="w" key={i}>
+          <span className={'wa' + (glyph ? ' qpc' : '')} style={st}>{glyph ? gl[i] : w}</span>
+          <span className="wt">{tr ? tr[i] || '·' : ' '}</span>
+        </div>
+      ))}
+      {glyph && <span className="wa qpc a-end" style={st}>{gl[gl.length - 1]}</span>}
     </div>
   )
 }
@@ -109,7 +142,9 @@ export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, h
           <button className={'a-act' + (marked ? ' on' : '')} onClick={() => act.onBookmark(key)} aria-label="Закладка"><Icon id="bookmark" /></button>
         </div>
       </div>
-      <QpcText page={a.p} glyphs={a.g} tajweed={opts.tajweed} className={'a-ar' + (hidden ? ' hidden' : '')} />
+      {opts.wbw
+        ? <WbwText sid={sid} a={a} tajweed={opts.tajweed} hidden={hidden} />
+        : <QpcText page={a.p} glyphs={a.g} tajweed={opts.tajweed} className={'a-ar' + (hidden ? ' hidden' : '')} />}
       <div className="a-tr">{opts.translation === 'aa' ? a.aa : a.ku}</div>
     </div>
   )

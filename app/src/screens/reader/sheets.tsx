@@ -36,8 +36,8 @@ export function ModePop({ mode, onPick }: { mode: ReadMode; onPick: (m: ReadMode
   )
 }
 
-export function MenuPanel({ sub, tajweed, onClose, onPlay, onBookmarks, onSearch, onMemo, onTajweed, onSettings, onGlossary, onSajda }: {
-  sub: string; tajweed: boolean; mode: ReadMode
+export function MenuPanel({ sub, mode, tajweed, wbw, onWbw, onClose, onPlay, onBookmarks, onSearch, onMemo, onTajweed, onSettings, onGlossary, onSajda }: {
+  sub: string; tajweed: boolean; mode: ReadMode; wbw: boolean; onWbw: () => void
   onClose: () => void; onPlay: () => void; onBookmarks: () => void; onSearch: () => void; onMemo: () => void; onTajweed: () => void; onSettings: () => void; onGlossary?: () => void; onSajda?: () => void
 }) {
   // окно снизу — закрывается свайпом вниз, как и остальные
@@ -55,10 +55,10 @@ export function MenuPanel({ sub, tajweed, onClose, onPlay, onBookmarks, onSearch
           <div className="t"><b>Заучивание</b><span>Отрывок, повторы, скрытие текста</span></div>
           <Icon id="right" className="icon chev" />
         </button>
-        <button className="mrow" disabled style={{ opacity: .55 }}>
+        <button className="mrow" onClick={onWbw}>
           <span className="mi"><Icon id="words" /></span>
-          <div className="t"><b>Пословный перевод</b><span>Скоро: готовим русский перевод слов</span></div>
-          <span className="switch" />
+          <div className="t"><b>Пословный перевод</b><span>{mode === 'mushaf' ? 'Виден в режимах «Страница» и «Сура»' : 'Русская подпись под каждым словом'}</span></div>
+          <span className={'switch' + (wbw ? ' on' : '')} />
         </button>
         <button className="mrow" onClick={onTajweed}>
           <span className="mi"><Icon id="eye" /></span>
@@ -223,6 +223,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
   const [tf, setTf] = useState<Record<string, string> | null | undefined>(undefined)
   const [cur, setCur] = useState(ayah)
   const [slide, setSlide] = useState<'' | 'l' | 'r'>('')
+  const [cfg, setCfg] = useState(false) // панель настроек окна
   const bodyRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     loadSurah(surah.id).then(setAyahs)
@@ -329,6 +330,16 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
         {!a && <div className="loading">Загрузка…</div>}
         {a && (
           <div key={cur} className={'ayah-sheet' + (slide ? ' slide-' + slide : '')}>
+            <div className="as-cfg">
+              <button className={cfg ? 'on' : ''} onClick={() => { haptic.tap(); setCfg(!cfg) }} aria-label="Настройки окна"><Icon id="gear" /></button>
+            </div>
+            {cfg && (
+              <button className="mrow as-cfgrow" onClick={() => { haptic.tap(); st.set({ wbwSheet: !st.wbwSheet }) }}>
+                <span className="mi"><Icon id="words" /></span>
+                <div className="t"><b>Пословный перевод в этом окне</b><span>Чтение с подписями под словами — в меню чтения</span></div>
+                <span className={'switch' + (st.wbwSheet ? ' on' : '')} />
+              </button>
+            )}
             <QpcText page={a.p} glyphs={a.g} tajweed={st.tajweed} className="as-ar" />
             <div className="as-actions">
               <button onClick={() => onPlay(surah.id, cur)}><Icon id="play" />Слушать</button>
@@ -336,7 +347,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
             </div>
             <div className="as-label">Перевод · {TRANSLATIONS[st.translation]}</div>
             <div className="as-tr">{st.translation === 'aa' ? a.aa : a.ku}</div>
-            <WbwBlock key={'wb' + key} surah={surah.id} ayah={cur} words={a.w} />
+            {st.wbwSheet && <WbwBlock key={'wb' + key} surah={surah.id} ayah={cur} words={a.w} />}
             <AsbabBlock key={key} surah={surah.id} ayah={cur} />
             <SajdaBlock key={'sj' + key} surah={surah.id} ayah={cur} />
             <KulievBlock key={'kv' + key} surah={surah.id} ayah={cur} />

@@ -246,7 +246,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     onBookmark: (k) => { haptic.tap(); st.toggleBookmark(k) },
   }), [player.current, player.status, player.memo, player.queue, st, playFrom])
 
-  const opts = useMemo(() => ({ tajweed: st.tajweed, translation: st.translation }), [st.tajweed, st.translation])
+  const opts = useMemo(() => ({ tajweed: st.tajweed, translation: st.translation, wbw: st.wbw }), [st.tajweed, st.translation, st.wbw])
   const renderPage = useCallback((p: number) => <PageAyahs page={p} surahs={surahs} opts={opts} act={act} />, [surahs, opts, act])
   const onAyahHold = useCallback((key: string) => { const [s, a] = key.split(':').map(Number); setOverlay({ tafsir: [s, a] }) }, [])
   const renderMushaf = useCallback((p: number) => <MushafView page={p} tajweed={st.tajweed} playing={player.current} onAyahHold={onAyahHold} />, [st.tajweed, player.current, onAyahHold])
@@ -368,6 +368,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
           onSearch={() => setOverlay('search')}
           onMemo={() => setOverlay('memo')}
           onTajweed={() => { haptic.tap(); st.set({ tajweed: !st.tajweed }) }}
+          wbw={st.wbw} onWbw={() => { haptic.tap(); st.set({ wbw: !st.wbw }) }}
           onSettings={() => setOverlay('settings')}
           onGlossary={kulievIx ? () => nav('/glossary', { state: { from: { id: surah.id, name: surah.name, sub: `стр. ${page}` } } }) : undefined}
           onSajda={kulievIx ? () => nav('/sajda', { state: { from: { id: surah.id, name: surah.name, sub: `стр. ${page}` } } }) : undefined}
