@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead, SurahRow } from '../../components/ui'
 import { loadSurah, loadTafsir, surahByPage, tafsirFor, TOTAL_PAGES, type Ayah, type Surah } from '../../lib/data'
@@ -219,6 +220,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
   }, [a])
   const key = `${surah.id}:${cur}`
   const marked = st.bookmarks.includes(key)
+  const nav = useNavigate()
   const go = (n: number, dir: 'l' | 'r') => {
     if (n < 1 || n > surah.ayahs) return
     haptic.tick()
@@ -310,6 +312,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
             <div className="as-actions">
               <button onClick={() => onPlay(surah.id, cur)}><Icon id="play" />Слушать</button>
               <button className={marked ? 'on' : ''} onClick={() => { haptic.tap(); st.toggleBookmark(key) }}><Icon id="bookmark" />{marked ? 'В закладках' : 'В закладки'}</button>
+              <button onClick={() => { haptic.tap(); nav(`/hifz/quran/learn?s=${surah.id}&a=${cur}`) }}><Icon id="brain" />Учить</button>
             </div>
             <div className="as-label">Перевод · {TRANSLATIONS[st.translation]}</div>
             <div className="as-tr">{st.translation === 'aa' ? a.aa : a.ku}</div>

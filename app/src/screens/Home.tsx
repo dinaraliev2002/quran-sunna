@@ -13,6 +13,7 @@ import { useUi } from '../store/ui'
 import { useStore, type TaskId } from '../store/settings'
 import { useChapterProgress } from './azkar/Azkar'
 import { useHifzToday } from './hifz/parts'
+import { useQhToday } from './hifz/Quran'
 import { QpcText } from './reader/views'
 
 function hijriToday() {
@@ -93,8 +94,12 @@ export default function Home() {
 
   // заучивание: повтор и новые хадисы по плану; всё сделано → задача отмечается сама
   const hz = useHifzToday()
-  const hzLeft = hz.due.length + hz.newLeft
-  useEffect(() => { if (hz.started && hzLeft === 0) markTask('memo', true) }, [hz.started, hzLeft, markTask])
+  const qh = useQhToday()
+  const hzLeft = hz.due.length + hz.newLeft + (qh.started ? qh.due.length + qh.newLeft : 0)
+  useEffect(() => { if ((hz.started || qh.started) && hzLeft === 0) markTask('memo', true) }, [hz.started, qh.started, hzLeft, markTask])
+  const qhSub = !qh.started ? 'Заучивание наизусть: начните с 30-го джуза'
+    : [qh.due.length ? `${qh.due.length} на повтор` : '', qh.newLeft ? `${qh.newLeft} ${plural(qh.newLeft, 'новый аят', 'новых аята', 'новых аятов')}` : ''].filter(Boolean).join(' · ') || 'Повторы и новые аяты на сегодня сделаны'
+  const memoSub = [hz.due.length ? `${hz.due.length} ${plural(hz.due.length, 'хадис', 'хадиса', 'хадисов')}` : '', qh.due.length ? `${qh.due.length} ${plural(qh.due.length, 'отрывок', 'отрывка', 'отрывков')} Корана` : ''].filter(Boolean).join(' · ')
   const hzSub = !hz.started ? 'Заучивание хадисов: начните с первого' : hzLeft === 0 ? 'Повторы и новые хадисы на сегодня сделаны'
     : [hz.due.length ? `${hz.due.length} на повтор` : '', hz.newLeft ? `${hz.newLeft} ${plural(hz.newLeft, 'новый', 'новых', 'новых')}` : ''].filter(Boolean).join(' · ')
 
@@ -104,7 +109,7 @@ export default function Home() {
     { id: 'read', title: 'Прочитать страницу Корана', sub: pagesToday ? `Сегодня: ${pagesToday} ${plural(pagesToday, 'страница', 'страницы', 'страниц')}` : 'Отметится само, когда побудете на странице минуту', action: continueReading },
     { id: 'morning', title: 'Утренние азкары', sub: azSub(MORNING, 'После утреннего намаза'), action: () => nav(`/azkar/ch/${MORNING}`) },
     { id: 'evening', title: 'Вечерние азкары', sub: azSub(EVENING, 'После послеполуденного намаза'), action: () => nav(`/azkar/ch/${EVENING}`) },
-    { id: 'memo', title: 'Повторить выученное', sub: hzSub, action: () => nav(hz.due.length ? '/hifz/review' : '/hifz') },
+    { id: 'memo', title: 'Повторить выученное', sub: memoSub ? `На повтор: ${memoSub}` : hzSub, action: () => nav(hz.due.length ? '/hifz/review' : qh.due.length ? '/hifz/quran/review' : '/hifz') },
   ]
   const doneCount = tasks.filter((t) => today.done.includes(t.id)).length
   const [memo, setMemo] = useState(false)
@@ -266,10 +271,10 @@ export default function Home() {
               <div className="t"><b>Хадисы</b><span>{hzSub}</span></div>
               {hz.due.length > 0 ? <span className="az-count">{hz.due.length}</span> : <Icon id="right" className="icon chev-s" />}
             </button>
-            <button className="list-item" onClick={() => nav(lastRead ? `/read/${lastRead.s}?a=${lastRead.a}&memo=1` : '/read/1?memo=1')}>
+            <button className="list-item" onClick={() => nav(qh.due.length ? '/hifz/quran/review' : '/hifz/quran')}>
               <div className="ib"><Icon id="book" /></div>
-              <div className="t"><b>Коран</b><span>Заучивание на слух: чтец повторяет аят и отрывок{last ? ` · ${last.name}` : ''}</span></div>
-              <Icon id="right" className="icon chev-s" />
+              <div className="t"><b>Коран</b><span>{qhSub}</span></div>
+              {qh.due.length > 0 ? <span className="az-count">{qh.due.length}</span> : <Icon id="right" className="icon chev-s" />}
             </button>
             <button className="list-item" onClick={() => nav('/names')}>
               <div className="ib"><Icon id="star" /></div>

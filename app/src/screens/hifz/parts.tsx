@@ -171,3 +171,15 @@ function HifzAddSheet({ hadithRef, suggest, onClose }: { hadithRef: string; sugg
     </Sheet>
   )
 }
+
+/** Переключатель «Хадисы / Коран» в разделе «Заучивание» */
+export function HifzTabs({ on }: { on: 'hadith' | 'quran' }) {
+  const nav = useNavigate()
+  const go = (to: string) => { haptic.tick(); nav(to, { replace: true }) }
+  return (
+    <div className="qh-tabs">
+      <button className={on === 'hadith' ? 'on' : ''} onClick={() => on !== 'hadith' && go('/hifz')}>Хадисы</button>
+      <button className={on === 'quran' ? 'on' : ''} onClick={() => on !== 'quran' && go('/hifz/quran')}>Коран</button>
+    </div>
+  )
+}

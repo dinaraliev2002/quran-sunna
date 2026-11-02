@@ -1,7 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE, type RefObject } from 'react'
 import { Icon } from '../../components/Icon'
 import { SurahBanner } from '../../components/SurahBanner'
-import { hasAsbab, hasKuliev, isSajda, hizbOf, loadMushafPage, loadSurah, loadWbw, QUARTER_LABEL, type Ayah, type MushafPage, type Surah } from '../../lib/data'
+import { arDigits, hasAsbab, hasKuliev, isSajda, hizbOf, loadMushafPage, loadSurah, loadWbw, QUARTER_LABEL, type Ayah, type MushafPage, type Surah } from '../../lib/data'
 import { loadPageFont, pageFont, pagePalette, useFontReady } from '../../lib/fonts'
 import { haptic } from '../../lib/telegram'
 import { useUi } from '../../store/ui'
@@ -86,6 +86,31 @@ function WbwText({ sid, a, tajweed, hidden }: { sid: number; a: Ayah; tajweed: b
       ))}
       {/* номер аята — тем же глифом страницы, что и в обычном чтении */}
       <QpcText page={a.p} glyphs={gl[gl.length - 1]} tajweed={tajweed} className="wbw-end" />
+    </div>
+  )
+}
+
+/**
+ * Аят по словам для заучивания: глифы страницы мусхафа (с таджвидом), скрытые слова — пустые рамки той же ширины.
+ * hide(i) — скрыто ли слово i; нажатие на скрытое слово — onPeek(i).
+ */
+export function AyahWords({ a, tajweed, hide, onPeek }: { a: Ayah; tajweed: boolean; hide?: (i: number) => boolean; onPeek?: (i: number) => void }) {
+  const theme = useUi((s) => s.theme)
+  const family = pageFont(a.p, tajweed, theme)
+  const ready = useFontReady(family)
+  const gl = a.g.split(' ')
+  const glyph = gl.length === a.w.length + 1
+  const parts = a.tj.replace(/<[^>]+>/g, (m) => m.replace(/ /g, '')).split(' ').map((x) => x.replace(//g, ' '))
+  const colored = !glyph && tajweed && parts.length === a.w.length
+  return (
+    <div className={'qw-ayah' + (glyph ? ' qpc' : '') + (glyph && !ready ? ' loading-font' : '')} dir="rtl" style={glyph ? { fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(a.p) } : undefined}>
+      {a.w.map((w, i) => {
+        const inner = glyph ? gl[i] : colored ? <span dangerouslySetInnerHTML={{ __html: parts[i] }} /> : w
+        return hide?.(i)
+          ? <button key={i} className={'qw gap' + (glyph ? '' : ' txt')} onClick={() => onPeek?.(i)} aria-label="Показать слово"><span>{inner}</span></button>
+          : <span key={i} className={'qw' + (glyph ? '' : ' txt')}>{inner}</span>
+      })}
+      {glyph ? <span className="qw end">{gl[gl.length - 1]}</span> : <span className="qw txt end">{arDigits(a.n)}</span>}
     </div>
   )
 }

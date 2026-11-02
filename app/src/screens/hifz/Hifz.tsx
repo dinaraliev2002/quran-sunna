@@ -6,7 +6,7 @@ import { plural, Sheet, SheetHead } from '../../components/ui'
 import { baseOf, bodyWords, dayNum, inDays, LEARNED_STAGE, loadHifzSet, MAX_NEW, partsOf, SETS, type HifzCard, type HifzItem } from '../../lib/hifz'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
-import { HadithBody, StageDots, useHifzToday, WarnSheet } from './parts'
+import { HadithBody, HifzTabs, StageDots, useHifzToday, WarnSheet } from './parts'
 import { SplitControl } from './SplitEditor'
 
 // Раздел «Заучивание»: что на сегодня (повтор по всем наборам и новые по плану), выбор набора, план, список хадисов
@@ -40,6 +40,7 @@ export default function Hifz() {
         <div className="ttl"><b>Заучивание</b><span>Хадисы</span></div>
         <span className="icon-btn ghost"><Icon id="brain" /></span>
       </div>
+      <HifzTabs on="hadith" />
 
       {/* ===== сегодня ===== */}
       <section className="hz-hero">

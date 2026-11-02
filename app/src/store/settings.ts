@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { baseOf, dayNum, schedule, type Grade, type HifzCard, type MyHifz, type SetId, type Split } from '../lib/hifz'
+import { parseQh, qhShards, QH_KEY, QH_SHARDS } from '../lib/hifzQuran'
 import { cloudGet, cloudGetBoth, cloudSet, localSet } from '../lib/telegram'
 
 export type ReadMode = 'mushaf' | 'page' | 'sura'
@@ -10,7 +11,7 @@ export interface LastRead { s: number; a: number; p: number }
 
 /** Ежедневные дела на главной */
 export type TaskId = 'read' | 'morning' | 'evening' | 'memo'
-interface Today { d: string; done: TaskId[]; pages: number[]; /** азкары: «глава:азкар» → сколько раз прочитан сегодня */ az?: Record<string, number>; /** заучивание: хадисы, выученные сегодня впервые */ hz?: string[] }
+interface Today { d: string; done: TaskId[]; pages: number[]; /** азкары: «глава:азкар» → сколько раз прочитан сегодня */ az?: Record<string, number>; /** заучивание: хадисы, выученные сегодня впервые */ hz?: string[]; /** заучивание Корана: сколько аятов выучено сегодня впервые */ qa?: number }
 
 interface Settings {
   /** пройденные экскурсы по разделам (подсказки показываются один раз) */
@@ -45,6 +46,10 @@ interface Settings {
   hzDrills: boolean // упражнения при заучивании: пропуски, первые буквы, сборка
   hzAr: boolean // показывать арабский текст при чтении
   hzSet: SetId // набор, из которого берутся новые хадисы
+  qhPerDay: number // заучивание Корана: новых аятов в день
+  qhDrills: boolean // упражнения: видно слово через одно, через два
+  qhRepeat: number // сколько раз чтец повторяет каждый аят при прослушивании
+  qhPos: { s: number; a: number } | null // откуда учить дальше (выбранная сура); null — 30-й джуз с конца
   hzRate: number // скорость озвучки хадисов
 }
 
@@ -73,6 +78,7 @@ interface Store extends Settings, Progress {
   learned: number[] // выученные имена Аллаха (номера)
   hifz: Record<string, HifzCard> // заучивание: ключ хадиса (lib/hifz) → ступень и день повтора
   myHifz: MyHifz[] // «Мой набор» для заучивания
+  qhifz: Record<string, HifzCard> // заучивание Корана: «сура:с-по» → ступень и день повтора
   hzSplit: Record<string, Split> // длинные хадисы: ключ → на сколько частей разбит (или свои разрезы)
   act: Activity // активность по дням (последние ~20 недель)
   hydrated: boolean
@@ -103,6 +109,11 @@ interface Store extends Settings, Progress {
   myHifzAdd: (ref: string, q: string) => boolean
   myHifzRemove: (ref: string) => void
   myHifzEdit: (id: number, q: string) => void
+  /** отрывок Корана выучен впервые → повтор завтра; дальше учим со следующего аята */
+  qhLearn: (key: string) => void
+  qhGrade: (key: string, grade: Grade) => void
+  /** убрать отрывки суры из заучивания (все или один) */
+  qhReset: (s: number, key?: string) => void
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -130,6 +141,10 @@ const DEFAULT_SETTINGS: Settings = {
   hzDrills: false,
   hzAr: false,
   hzSet: 'nawawi',
+  qhPerDay: 3,
+  qhDrills: true,
+  qhRepeat: 3,
+  qhPos: null,
   hzRate: 1,
   hdAr: false, // арабский текст хадисов — по умолчанию выключен (новое имя, чтобы не взять старое сохранённое «вкл»)
 }
@@ -167,6 +182,7 @@ function snapshot(s: Store): [string, string][] {
     [NAMES_KEY, s.learned.join(',')],
     [HIFZ_KEY, JSON.stringify({ c: hifzString(s.hifz), p: Object.entries(s.hzSplit).map(([k, v]) => `${k}:${Array.isArray(v) ? 'c' + v.join('.') : v}`).join(','), _t: t })],
     [MY_HIFZ_KEY, myString(s.myHifz, t)],
+    ...qhShards(s.qhifz).map((c, i): [string, string] => [`${QH_KEY}_${i}`, JSON.stringify({ c, _t: t })]),
     [ACT_KEY, JSON.stringify({ a: Object.entries(s.act).map(([d, v]) => `${d}:${v.join(':')}`).join(','), _t: t })],
   ]
 }
@@ -239,6 +255,7 @@ export const useStore = create<Store>((set, get) => ({
   hfav: [],
   learned: [],
   hifz: {},
+  qhifz: {},
   myHifz: [],
   hzSplit: {},
   act: {},
@@ -325,6 +342,27 @@ export const useStore = create<Store>((set, get) => ({
     })
     persist(get())
   },
+  qhLearn: (key) => {
+    const today = currentToday(get().today)
+    const m = key.match(/^(\d+):(\d+)-(\d+)$/)!
+    set({
+      qhifz: { ...get().qhifz, [key]: schedule(undefined, 'good') },
+      today: { ...today, qa: (today.qa ?? 0) + (+m[3] - +m[2] + 1) },
+      qhPos: { s: +m[1], a: +m[3] + 1 },
+      act: bumpAct(get().act, 1),
+    })
+    persist(get())
+  },
+  qhGrade: (key, grade) => {
+    set({ qhifz: { ...get().qhifz, [key]: schedule(get().qhifz[key], grade, dayNum()) }, act: bumpAct(get().act, 2) })
+    persist(get())
+  },
+  qhReset: (s, key) => {
+    const h = { ...get().qhifz }
+    for (const k of Object.keys(h)) if (key ? k === key : k.startsWith(s + ':')) delete h[k]
+    set({ qhifz: h })
+    persist(get())
+  },
   hifzGrade: (key, grade) => {
     const cur = get().hifz[key]
     set({ hifz: { ...get().hifz, [key]: schedule(cur, grade, dayNum()) }, act: bumpAct(get().act, 2) })
@@ -387,6 +425,8 @@ export async function hydrateStore() {
     return JSON.stringify((l._t ?? 0) >= (c._t ?? 0) && local ? l : cloud ? c : l)
   }
   const [s, p, b, old, hf, nl, hz, my, ac] = await Promise.all([newest(SETTINGS_KEY), newest(PROGRESS_KEY), cloudGet(BOOKMARKS_KEY), cloudGet('progress_v1'), cloudGet(HFAV_KEY), cloudGet(NAMES_KEY), newest(HIFZ_KEY), newest(MY_HIFZ_KEY), newest(ACT_KEY)])
+  const qh = await Promise.all(Array.from({ length: QH_SHARDS }, (_, i) => newest(`${QH_KEY}_${i}`)))
+  const qhifz = parseQh(qh.map((v) => String(parse(v).c ?? '')))
   const legacy = parse(old) // первая версия хранила всё в одном ключе
   const progress: Progress = { ...DEFAULT_PROGRESS, ...pick(legacy, ['lastRead', 'streak', 'lastDay']), ...parse(p) }
   progress.today = currentToday(progress.today ?? emptyToday())
@@ -413,7 +453,7 @@ export async function hydrateStore() {
   const act = parseAct(String(parse(ac).a ?? ''))
   if (!progress.since) progress.since = dayNum() // первый вход — «с нами N дней» считается отсюда
   progress.bestStreak = Math.max(progress.bestStreak ?? 0, progress.streak)
-  useStore.setState({ ...DEFAULT_SETTINGS, ...settings, ...progress, bookmarks, hfav, learned, hifz, myHifz, hzSplit, act, hydrated: true })
+  useStore.setState({ ...DEFAULT_SETTINGS, ...settings, ...progress, bookmarks, hfav, learned, hifz, qhifz, myHifz, hzSplit, act, hydrated: true })
 }
 
 // Telegram держит приложение в памяти — проверяем смену дня при каждом возвращении и раз в минуту
