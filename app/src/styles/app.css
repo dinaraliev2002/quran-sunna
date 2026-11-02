@@ -1373,3 +1373,24 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .sl-right { display: flex; align-items: center; gap: 8px; }
 .sl-learn { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px 0 12px; border-radius: 22px; background: var(--emerald); color: #fff; font-weight: 800; font-size: 15px; }
 .sl-learn .icon { width: 20px; height: 20px; }
+.qh-hid { overflow: hidden; padding: 14px 0 8px; }
+.qh-tr { margin-bottom: 4px; }
+.qh-dot { width: 34px; height: 34px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--gold); color: #fff; flex: none; margin-inline-end: 6px; }
+.qh-dot .icon { width: 16px; height: 16px; }
+.qh-dot.on { background: var(--emerald); }
+.hz-sets.qh-sets { display: flex; overflow-x: auto; margin: 0 -18px; padding: 2px 18px 6px; gap: 8px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.hz-sets.qh-sets::-webkit-scrollbar { display: none; }
+.hz-sets.qh-sets button { flex: none; width: 128px; scroll-snap-align: start; }
+.qh-my { display: flex; align-items: center; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line, rgba(127,127,127,.15)); }
+.qh-my .t { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.qh-my .t b { font-size: 15px; }
+.qh-my .t span { font-size: 12.5px; color: var(--text-2); }
+.qh-my button { width: 36px; height: 36px; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; flex: none; }
+.qh-my button:disabled { opacity: .35; }
+.qh-my .icon.flip { transform: rotate(180deg); }
+.mus .mushaf { touch-action: manipulation; }
+.mw-tip { position: fixed; z-index: 30; transform: translate(-50%, -100%); max-width: 220px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 14px 9px; border-radius: 14px; background: var(--surface); color: var(--text); box-shadow: 0 6px 24px rgba(0,0,0,.25); border: 1px solid var(--line, rgba(127,127,127,.2)); text-align: center; pointer-events: none; animation: mwtip .15s ease-out; }
+.mw-tip.below { transform: translate(-50%, 0); }
+.mw-tip .g { font-size: 26px; line-height: 1.7; direction: rtl; }
+.mw-tip b { font-size: 14.5px; font-weight: 700; line-height: 1.3; }
+@keyframes mwtip { from { opacity: 0; } }

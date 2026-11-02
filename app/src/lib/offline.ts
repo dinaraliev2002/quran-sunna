@@ -89,6 +89,12 @@ export async function offlineStatus(fontVariantNow: string, reciter: string) {
   }
 }
 
+/** Удалить скачанное аудио одной суры у чтеца */
+export async function deleteAudioSurah(reciter: string, surah: number) {
+  await idbDeletePrefix(`audio:${reciter}:${String(surah).padStart(3, '0')}`)
+  useDownloads.setState((s) => ({ version: s.version + 1 }))
+}
+
 export async function deleteDownloads(kind: 'fonts' | 'audio' | 'all', key?: string) {
   if (kind === 'fonts') await idbDeletePrefix(`font:${key}:`)
   else if (kind === 'audio') await idbDeletePrefix(`audio:${key}:`)

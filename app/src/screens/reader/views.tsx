@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { memo, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE, type RefObject } from 'react'
 import { Icon } from '../../components/Icon'
 import { SurahBanner } from '../../components/SurahBanner'
@@ -94,7 +95,7 @@ function WbwText({ sid, a, tajweed, hidden }: { sid: number; a: Ayah; tajweed: b
  * Аят по словам для заучивания: глифы страницы мусхафа (с таджвидом), скрытые слова — пустые рамки той же ширины.
  * hide(i) — скрыто ли слово i; нажатие на скрытое слово — onPeek(i).
  */
-export function AyahWords({ a, tajweed, hide, onPeek, tr }: { a: Ayah; tajweed: boolean; hide?: (i: number) => boolean; onPeek?: (i: number) => void; tr?: string[] | null }) {
+export function AyahWords({ a, tajweed, hide, onPeek, tr, after }: { a: Ayah; tajweed: boolean; hide?: (i: number) => boolean; onPeek?: (i: number) => void; tr?: string[] | null; after?: React.ReactNode }) {
   const theme = useUi((s) => s.theme)
   const family = pageFont(a.p, tajweed, theme)
   const ready = useFontReady(family)
@@ -114,6 +115,7 @@ export function AyahWords({ a, tajweed, hide, onPeek, tr }: { a: Ayah; tajweed: 
           : <div key={i} className="w">{word}{t}</div>
       })}
       {glyph ? <QpcText page={a.p} glyphs={gl[gl.length - 1]} tajweed={tajweed} className="wbw-end" /> : <span className="wbw-end qw txt end">{arDigits(a.n)}</span>}
+      {after}
     </div>
   )
   return (
@@ -125,6 +127,7 @@ export function AyahWords({ a, tajweed, hide, onPeek, tr }: { a: Ayah; tajweed: 
           : <span key={i} className={'qw' + (glyph ? '' : ' txt')}>{inner}</span>
       })}
       {glyph ? <span className="qw end">{gl[gl.length - 1]}</span> : <span className="qw txt end">{arDigits(a.n)}</span>}
+      {after}
     </div>
   )
 }
@@ -417,6 +420,8 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
   const [pressed, setPressed] = useState<string | null>(null)
   const box = useRef<HTMLDivElement>(null)
   const hold = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null)
+  const tap = useRef<{ t: number; el: HTMLElement } | null>(null)
+  const [tip, setTip] = useState<{ x: number; top: number; bottom: number; g: string; text: string } | null>(null)
   const theme = useUi((s) => s.theme)
   const ix = useAsbabIndex() // у каких сур есть «История суры» — кнопка в звезде заголовка
   const kix = useKulievIndex()
@@ -456,9 +461,45 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
     return () => ro.disconnect()
   }, [ready, mp, page, scroll])
 
+  // страница сменилась — подсказка со словом больше не нужна; сама пропадает через 5 секунд
+  useEffect(() => { setTip(null) }, [page])
+  useEffect(() => {
+    if (!tip) return
+    const t = setTimeout(() => setTip(null), 5000)
+    return () => clearTimeout(t)
+  }, [tip])
+
+  // двойное нажатие на слово → подсказка с переводом этого слова
+  const showWord = async (el: HTMLElement) => {
+    const key = el.dataset.k!
+    const [s, a] = key.split(':').map(Number)
+    const same = [...(box.current?.querySelectorAll<HTMLElement>(`span[data-k="${key}"]:not([data-e])`) ?? [])]
+    const i = same.indexOf(el)
+    if (i < 0) return
+    const rows = await loadWbw(s).catch(() => null)
+    const tr = rows?.[a - 1]
+    if (!tr) return
+    let k = i
+    while (k > 0 && !tr[k]) k-- // пустая подпись — слово переведено вместе с предыдущим
+    if (!tr[k]) return
+    haptic.tick()
+    const r = el.getBoundingClientRect()
+    setTip({ x: r.left + r.width / 2, top: r.top, bottom: r.bottom, g: el.textContent ?? '', text: tr[k] })
+  }
+  const onUp = (e: RPE) => {
+    const quick = hold.current !== null // отпустили до долгого нажатия и без сдвига
+    cancelHold()
+    if (!quick) { tap.current = null; return }
+    const el = (e.target as HTMLElement).closest<HTMLElement>('span[data-k]')
+    if (!el || el.dataset.e) { tap.current = null; return }
+    const now = Date.now()
+    if (tap.current && now - tap.current.t < 350 && tap.current.el === el) { tap.current = null; showWord(el) } else tap.current = { t: now, el }
+  }
+
   // долгое нажатие на аят → окно с переводом и тафсиром
   const cancelHold = () => { if (hold.current) clearTimeout(hold.current.timer); hold.current = null; setPressed(null) }
   const onDown = (e: RPE) => {
+    if (tip) setTip(null)
     const key = (e.target as HTMLElement).closest<HTMLElement>('[data-k]')?.dataset.k
     if (!key) return
     const timer = setTimeout(() => { hold.current = null; haptic.tap(); setPressed(null); onAyahHold(key) }, 450)
@@ -474,7 +515,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
   return (
     <div className={'mus' + (scroll ? ' scroll' : '')}>
       <div className={'mushaf' + (page <= 2 ? ' short' : '')} ref={box}
-        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={cancelHold} onPointerCancel={cancelHold} onContextMenu={(e) => e.preventDefault()}>
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancelHold} onContextMenu={(e) => e.preventDefault()}>
         <div className="lines">
           {layoutLines(mp).map((l, i) => {
             if (l.kind === 'head') return (
@@ -484,8 +525,8 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
             if (l.kind === 'empty') return <div key={i} className="ln" />
             return (
               <div key={i} className={'ln w' + (page <= 2 ? ' center' : '')} style={{ fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(page) }}>
-                {mp.lines[l.n].map(([g, key], j) => (
-                  <span key={j} data-k={key} className={key === playing ? 'hl' : key === pressed ? 'press' : ''}>{g}</span>
+                {mp.lines[l.n].map(([g, key, end], j) => (
+                  <span key={j} data-k={key} data-e={end ? 1 : undefined} className={key === playing ? 'hl' : key === pressed ? 'press' : ''}>{g}</span>
                 ))}
               </div>
             )
@@ -493,6 +534,11 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
         </div>
         <div className="pfoot">{page}</div>
       </div>
+      {tip && createPortal(
+        <div className={'mw-tip' + (tip.top < 130 ? ' below' : '')} style={{ left: Math.min(Math.max(tip.x, 90), window.innerWidth - 90), top: tip.top < 130 ? tip.bottom + 8 : tip.top - 8 }}>
+          <span className="g qpc" style={{ fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(page) }}>{tip.g}</span>
+          <b>{tip.text}</b>
+        </div>, document.body)}
     </div>
   )
 })

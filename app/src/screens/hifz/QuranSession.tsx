@@ -63,7 +63,7 @@ function QuranSession({ mode }: { mode: 'learn' | 'review' }) {
       // с выбранного аята (из читалки) или откуда учим дальше
       const s0 = Number(search.get('s')), a0 = Number(search.get('a'))
       if (s0 && a0) st.set({ qhPos: { s: s0, a: a0 } })
-      const start = s0 && a0 ? { s: s0, a: a0, end: surahs[s0 - 1].ayahs } : nextStart(cards, st.qhPos, (s) => surahs[s - 1].ayahs, qSet(st.qhSet))
+      const start = s0 && a0 ? { s: s0, a: a0, end: surahs[s0 - 1].ayahs } : nextStart(cards, st.qhPos, (s) => surahs[s - 1].ayahs, qSet(st.qhSet, st.qhMy))
       const left = Math.max(0, st.qhPerDay - (st.today.qa ?? 0))
       const n = Number(search.get('n')) || left || st.qhPerDay
       p = !start ? Promise.resolve([]) : loadSurah(start.s).then((ay) => {
@@ -185,7 +185,12 @@ function Ayahs({ item, hide }: { item: QItem; hide?: (a: QItem['ayahs'][number],
   const words = useWbw(item.s)
   const current = usePlayer((s) => s.current)
   const [shown, setShown] = useState<Set<string>>(new Set())
-  const peek = (id: string) => { haptic.tick(); setShown((s) => new Set(s).add(id)) }
+  // подсмотренное слово видно 3 секунды, потом снова закрывается
+  const peek = (id: string) => {
+    haptic.tick()
+    setShown((s) => new Set(s).add(id))
+    setTimeout(() => setShown((s) => { const n = new Set(s); n.delete(id); return n }), 3000)
+  }
   return (
     <>
       {item.ayahs.map((a) => (
@@ -280,6 +285,20 @@ export function GearSheet({ onClose }: { onClose: () => void }) {
   )
 }
 
+/** Круглая кнопка у номера аята: слушать этот аят / пауза */
+function PlayDot({ k }: { k: string }) {
+  const current = usePlayer((s) => s.current)
+  const status = usePlayer((s) => s.status)
+  const mine = current === k
+  const on = mine && (status === 'playing' || status === 'loading')
+  return (
+    <button className={'qh-dot' + (on ? ' on' : '')} aria-label={on ? 'Пауза' : 'Слушать аят'}
+      onClick={() => { haptic.tap(); const p = usePlayer.getState(); if (mine && p.status !== 'idle') p.toggle(); else p.play([k]) }}>
+      <Icon id={on ? 'pause' : 'play'} />
+    </button>
+  )
+}
+
 /** По памяти: виден перевод, арабский размыт; нажатие на аят — открыть и послушать; «Проверить себя» — открыть всё */
 function Tell({ item, review, children }: { item: QItem; review?: boolean; children: ReactNode }) {
   const tajweed = useStore((s) => s.tajweed)
@@ -300,7 +319,7 @@ function Tell({ item, review, children }: { item: QItem; review?: boolean; child
           <div key={a.n} className={'qh-ayah' + (current === `${item.s}:${a.n}` ? ' playing' : '')}>
             <div className="qh-tr"><b>{a.n}</b>{tr === 'aa' ? a.aa : a.ku}</div>
             {open.has(a.n)
-              ? <AyahWords a={a} tajweed={tajweed} />
+              ? <AyahWords a={a} tajweed={tajweed} after={<PlayDot k={`${item.s}:${a.n}`} />} />
               : <div className="qh-hid" onClick={() => reveal(a.n)}><div className="qh-blur"><AyahWords a={a} tajweed={tajweed} /></div><span className="qh-reveal-l">Нажмите, чтобы открыть</span></div>}
           </div>
         ))}

@@ -41,6 +41,25 @@ export const idbHas = (key: string) => tx<IDBValidKey | undefined>('readonly', (
 export const idbKeys = (prefix: string) =>
   tx<IDBValidKey[]>('readonly', (s) => s.getAllKeys(IDBKeyRange.bound(prefix, prefix + '￿'))).then((k) => (k ?? []) as string[])
 
+/** Размеры записей с префиксом: [{ key, size }] — для экрана «Загрузки» */
+export function idbSizes(prefix: string): Promise<{ key: string; size: number }[]> {
+  return db().then((d) => new Promise((resolve) => {
+    const out: { key: string; size: number }[] = []
+    if (!d) return resolve(out)
+    try {
+      const req = d.transaction(STORE, 'readonly').objectStore(STORE).openCursor(IDBKeyRange.bound(prefix, prefix + '￿'))
+      req.onsuccess = () => {
+        const c = req.result
+        if (!c) return resolve(out)
+        const v = c.value
+        out.push({ key: String(c.key), size: v instanceof Blob ? v.size : v instanceof ArrayBuffer ? v.byteLength : 0 })
+        c.continue()
+      }
+      req.onerror = () => resolve(out)
+    } catch { resolve(out) }
+  }))
+}
+
 /** Удалить все записи с префиксом */
 export const idbDeletePrefix = (prefix: string) => tx('readwrite', (s) => s.delete(IDBKeyRange.bound(prefix, prefix + '￿')))
 

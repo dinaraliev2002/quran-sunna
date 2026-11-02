@@ -59,13 +59,19 @@ export const QSETS: QSet[] = [
   { id: 'salah', name: 'Для намаза', ar: 'للصلاة', short: 'Для намаза', sub: 'аль-Фатиха и 10 коротких сур', why: 'Аль-Фатиха читается в каждом ракаате', ranges: whole(1, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 103) },
   { id: 'kursi', name: 'Аят аль-Курси', ar: 'آية الكرسي', short: 'Аят аль-Курси', sub: 'Аль-Бакара, 255', why: 'Величайший аят Корана (Муслим)', ranges: [{ s: 2, a: 255, b: 255 }] },
   { id: 'baqara-end', name: 'Конец суры аль-Бакара', ar: 'خواتيم البقرة', short: 'Конец аль-Бакары', sub: 'Аль-Бакара, 285–286', why: 'Кто прочтёт их ночью, тому их будет достаточно (аль-Бухари, Муслим)', ranges: [{ s: 2, a: 285, b: 286 }] },
-  { id: 'kahf10', name: 'Начало суры аль-Кахф', ar: 'أوائل الكهف', short: 'Начало аль-Кахф', sub: 'Аль-Кахф, 1–10', why: 'Кто выучит первые десять аятов, будет защищён от Даджаля (Муслим)', ranges: [{ s: 18, a: 1, b: 10 }] },
   { id: 'mulk', name: 'Аль-Мульк', ar: 'الملك', short: 'Аль-Мульк', sub: '30 аятов', why: 'Сура заступится за читавшего её, пока ему не простят (ат-Тирмизи)', ranges: whole(67) },
   { id: 'juz29', name: '29-й джуз', ar: 'جزء تبارك', short: '29-й джуз', sub: 'аль-Мульк … аль-Мурсалят', ranges: whole(67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77) },
   { id: 'popular', name: 'Известные суры', ar: 'سور مشهورة', short: 'Известные суры', sub: 'Йа Син, ар-Рахман, аль-Ваки‘а, ас-Саджда', ranges: whole(36, 55, 56, 32) },
-  { id: 'kahf', name: 'Аль-Кахф', ar: 'الكهف', short: 'Аль-Кахф', sub: '110 аятов', why: 'Сура, которую читают в пятницу', ranges: whole(18) },
+  { id: 'kahf', name: 'Аль-Кахф', ar: 'الكهف', short: 'Аль-Кахф', sub: '110 аятов', why: 'Сура, которую читают в пятницу. Кто выучит её первые десять аятов, будет защищён от Даджаля (Муслим)', ranges: whole(18) },
 ]
-export const qSet = (id: string) => QSETS.find((x) => x.id === id) ?? QSETS[0]
+/** Запись «моего набора»: «67» — сура целиком, «2:255-255» — аяты */
+export const myEntry = (s: number, a?: number, b?: number) => (a ? `${s}:${a}-${b ?? a}` : String(s))
+export function parseMyEntry(e: string): QRange | null {
+  const m = e.match(/^(\d+)(?::(\d+)-(\d+))?$/)
+  return m ? { s: +m[1], ...(m[2] ? { a: +m[2], b: +m[3] } : {}) } : null
+}
+export const mySet = (my: string[]): QSet => ({ id: 'my', name: 'Мой набор', ar: 'مجموعتي', short: 'Мой набор', sub: 'Ваши суры и аяты', ranges: my.map(parseMyEntry).filter((r): r is QRange => !!r) })
+export const qSet = (id: string, my: string[] = []) => (id === 'my' ? mySet(my) : QSETS.find((x) => x.id === id) ?? QSETS[0])
 
 /** Откуда начать новый отрывок: выбранное место (если ещё не учено), иначе первый неначатый аят подборки. end — последний аят отрезка */
 export function nextStart(cards: Record<string, HifzCard>, pos: { s: number; a: number } | null, ayahCount: (s: number) => number, set: QSet = QSETS[0]) {

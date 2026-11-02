@@ -52,6 +52,7 @@ export interface Settings {
   qhRate: number // скорость чтеца при заучивании, 0.5–1.5
   qhWbw: boolean // пословный перевод в уроке (иначе обычный перевод под аятом)
   qhChain: boolean // слушать цепочкой: 1 → 1–2 → 1–3
+  qhMy: string[] // «мой набор»: «67» — сура, «2:255-255» — аяты (lib/hifzQuran myEntry)
   qhSet: string // подборка, из которой берутся новые аяты (lib/hifzQuran QSETS)
   qhGoal: { t: string; by: number } | null // цель: «set:juz30» или «s:18» — выучить к дню by (dayNum)
   qhRepeat: number // сколько раз чтец повторяет каждый аят при прослушивании
@@ -156,6 +157,7 @@ const DEFAULT_SETTINGS: Settings = {
   qhRate: 1,
   qhWbw: true,
   qhChain: false,
+  qhMy: [],
   qhSet: 'juz30',
   qhGoal: null,
   qhRepeat: 3,

@@ -3,14 +3,74 @@ import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Sheet, SheetHead, TabBar, useQuranMeta } from '../components/ui'
 import { appleWebKit, fontVariant } from '../lib/fonts'
-import { storageUsage } from '../lib/idb'
-import { cancelDownload, deleteDownloads, downloadAudio, downloadData, downloadFonts, offlineStatus, useDownloads } from '../lib/offline'
+import { TOTAL_PAGES, type Surah } from '../lib/data'
+import { idbSizes, storageUsage } from '../lib/idb'
+import { cancelDownload, deleteAudioSurah, deleteDownloads, downloadAudio, downloadData, downloadFonts, offlineStatus, useDownloads } from '../lib/offline'
 import { RECITERS, bitrateOf, setBitrates } from '../store/player'
 import { useStore } from '../store/settings'
 import { useUi } from '../store/ui'
 
 type Status = Awaited<ReturnType<typeof offlineStatus>>
 const mb = (bytes: number) => (bytes >= 1e9 ? (bytes / 1e9).toFixed(1) + ' ГБ' : Math.round(bytes / 1e6) + ' МБ')
+
+const mbs = (bytes: number) => (bytes >= 1e9 ? (bytes / 1e9).toFixed(1) + ' ГБ' : bytes >= 1e6 ? Math.round(bytes / 1e6) + ' МБ' : Math.max(1, Math.round(bytes / 1e3)) + ' КБ')
+const FONT_NAME: Record<string, string> = { v2: 'Страницы без таджвида', v4c: 'Страницы с таджвидом', 'v4s-light': 'Страницы с таджвидом · светлая тема', 'v4s-dark': 'Страницы с таджвидом · тёмная тема' }
+
+/** Что занимает место: аудио по чтецам (всё или по сурам) и шрифты страниц; удаление с подтверждением */
+function Storage({ surahs, version, busy }: { surahs: Surah[]; version: number; busy: boolean }) {
+  const [audio, setAudio] = useState<{ key: string; size: number }[] | null>(null)
+  const [fonts, setFonts] = useState<{ key: string; size: number }[] | null>(null)
+  const [confirm, setConfirm] = useState('')
+  const [open, setOpen] = useState<string | null>(null) // чтец, у которого правим суры
+  useEffect(() => {
+    idbSizes('audio:').then(setAudio)
+    idbSizes('font:').then(setFonts)
+  }, [version])
+  if (!audio || !fonts) return null
+  // аудио по чтецам: ключ «audio:чтец:ССС ААА»
+  const byRec = new Map<string, { n: number; size: number }>()
+  for (const it of audio) { const r = it.key.split(':')[1]; const o = byRec.get(r) ?? { n: 0, size: 0 }; o.n++; o.size += it.size; byRec.set(r, o) }
+  const byVar = new Map<string, { n: number; size: number }>()
+  for (const it of fonts) { const v = it.key.split(':')[1]; const o = byVar.get(v) ?? { n: 0, size: 0 }; o.n++; o.size += it.size; byVar.set(v, o) }
+  if (!byRec.size && !byVar.size) return null
+  const ask = (id: string, run: () => void) => (confirm === id ? <button className="dl-link danger" disabled={busy} onClick={() => { setConfirm(''); run() }}>Точно удалить</button> : <button className="dl-link danger" disabled={busy} onClick={() => setConfirm(id)}>Удалить</button>)
+  return (
+    <>
+      <div className="group-t">Что занимает место</div>
+      {[...byRec].map(([r, v]) => (
+        <div key={r} className="dl-card">
+          <div className="dl-head"><span className="dl-ic"><Icon id="sound" /></span><div className="t"><b>Аудио · {(RECITERS[r] ?? { name: r }).name}</b><span>{v.n} {v.n === 1 ? 'аят' : 'аятов'} · {mbs(v.size)}</span></div></div>
+          <div className="dl-row"><button className="dl-link" disabled={busy} onClick={() => setOpen(r)}>По сурам</button>{ask('a:' + r, () => deleteDownloads('audio', r))}</div>
+        </div>
+      ))}
+      {[...byVar].map(([v, o]) => (
+        <div key={v} className="dl-card">
+          <div className="dl-head"><span className="dl-ic"><Icon id="open" /></span><div className="t"><b>{FONT_NAME[v] ?? v}</b><span>{o.n} из {TOTAL_PAGES} страниц · {mbs(o.size)}</span></div></div>
+          <div className="dl-row"><span /> {ask('f:' + v, () => deleteDownloads('fonts', v))}</div>
+        </div>
+      ))}
+      <p className="dl-note small">Удалённое можно скачать снова. Страницы и аудио, которые вы откроете, снова сохранятся сами, если места хватает.</p>
+      {open && (
+        <Sheet onClose={() => setOpen(null)} tall>
+          <SheetHead title="Аудио по сурам" sub={(RECITERS[open] ?? { name: open }).name} onClose={() => setOpen(null)} />
+          <div className="body">
+            {surahs.map((s) => {
+              const its = audio.filter((x) => x.key.startsWith(`audio:${open}:${String(s.id).padStart(3, '0')}`))
+              if (!its.length) return null
+              return (
+                <div key={s.id} className="opt-row">
+                  <div className="num-badge"><span>{s.id}</span></div>
+                  <span>{s.name}<small>{its.length} из {s.ayahs} · {mbs(its.reduce((a, x) => a + x.size, 0))}</small></span>
+                  <button className="dl-link danger" disabled={busy} onClick={() => deleteAudioSurah(open, s.id)}>Удалить</button>
+                </div>
+              )
+            })}
+          </div>
+        </Sheet>
+      )}
+    </>
+  )
+}
 
 export default function Downloads() {
   const nav = useNavigate()
@@ -103,6 +163,7 @@ export default function Downloads() {
             {appleWebKit && tajweed && ' На iPhone для светлой и тёмной темы — разные файлы страниц с таджвидом.'}
           </p>
           {usage && <p className="dl-note small">Занято на телефоне: {mb(usage.used)}</p>}
+          {meta && <Storage surahs={meta.surahs} version={version} busy={busy} />}
         </>
       )}
 

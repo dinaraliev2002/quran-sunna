@@ -4,6 +4,7 @@ import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead, SurahRow } from '../../components/ui'
 import { loadSurah, loadTafsir, surahByPage, tafsirFor, TOTAL_PAGES, type Ayah, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
+import { myEntry } from '../../lib/hifzQuran'
 import { QpcText } from './views'
 import { TafsirText } from './TafsirText'
 import { AsbabBlock } from './Asbab'
@@ -202,6 +203,9 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
   const [cur, setCur] = useState(ayah)
   const [slide, setSlide] = useState<'' | 'l' | 'r'>('')
   const bodyRef = useRef<HTMLDivElement>(null)
+  const [learnMenu, setLearnMenu] = useState(false)
+  const learnPress = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const learnLong = useRef(false)
   useEffect(() => {
     loadSurah(surah.id).then(setAyahs)
     loadTafsir(surah.id).then(setTf).catch(() => setTf(null))
@@ -312,7 +316,12 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
             <div className="as-actions">
               <button onClick={() => onPlay(surah.id, cur)}><Icon id="play" />Слушать</button>
               <button className={marked ? 'on' : ''} onClick={() => { haptic.tap(); st.toggleBookmark(key) }}><Icon id="bookmark" />{marked ? 'В закладках' : 'В закладки'}</button>
-              <button onClick={() => { haptic.tap(); nav(`/hifz/quran/learn?s=${surah.id}&a=${cur}`) }}><Icon id="brain" />Учить</button>
+              {/* нажатие — учить с этого аята; долгое — выбрать: учить сейчас или добавить в «Мой набор» */}
+              <button
+                onPointerDown={() => { learnLong.current = false; clearTimeout(learnPress.current); learnPress.current = setTimeout(() => { learnLong.current = true; haptic.tap(); setLearnMenu(true) }, 450) }}
+                onPointerUp={() => clearTimeout(learnPress.current)} onPointerLeave={() => clearTimeout(learnPress.current)} onPointerCancel={() => clearTimeout(learnPress.current)}
+                onContextMenu={(e) => { e.preventDefault(); setLearnMenu(true) }}
+                onClick={() => { if (learnLong.current) return; haptic.tap(); nav(`/hifz/quran/learn?s=${surah.id}&a=${cur}`) }}><Icon id="brain" />Учить</button>
             </div>
             <div className="as-label">Перевод · {TRANSLATIONS[st.translation]}</div>
             <div className="as-tr">{st.translation === 'aa' ? a.aa : a.ku}</div>
@@ -327,6 +336,45 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
           </div>
         )}
       </div>
+      {learnMenu && <LearnMenu surah={surah} ayah={cur} onClose={() => setLearnMenu(false)} />}
+    </Sheet>
+  )
+}
+
+/** Долгое нажатие «Учить»: учить сейчас или добавить в «Мой набор» */
+function LearnMenu({ surah, ayah, onClose }: { surah: Surah; ayah: number; onClose: () => void }) {
+  const nav = useNavigate()
+  const my = useStore((s) => s.qhMy)
+  const set = useStore((s) => s.set)
+  const [done, setDone] = useState('')
+  const add = (e: string, text: string) => {
+    haptic.success()
+    if (!my.includes(e)) set({ qhMy: [...my, e] })
+    setDone(text)
+  }
+  const opt = (icon: string, t: string, sub: string, on: () => void) => (
+    <button className="list-item" onClick={on}>
+      <div className="ib"><Icon id={icon} /></div>
+      <div className="t"><b>{t}</b><span>{sub}</span></div>
+    </button>
+  )
+  return (
+    <Sheet onClose={onClose}>
+      <SheetHead title={`${surah.name}, аят ${ayah}`} sub="Заучивание Корана" onClose={onClose} />
+      {done ? (
+        <div className="hz-sheet-btns">
+          <p className="hz-how" style={{ margin: 0 }}>{done}</p>
+          <button className="bigbtn" onClick={() => { set({ qhSet: 'my', qhPos: null }); nav('/hifz/quran') }}><Icon id="brain" />Открыть заучивание</button>
+          <button className="hz-again" onClick={onClose}>Готово</button>
+        </div>
+      ) : (
+        <div className="body">
+          {opt('brain', 'Учить сейчас', 'С этого аята, по плану на день', () => { onClose(); nav(`/hifz/quran/learn?s=${surah.id}&a=${ayah}`) })}
+          {opt('plus', 'Добавить аят в «Мой набор»', `${surah.name}, аят ${ayah}`, () => add(myEntry(surah.id, ayah), 'Аят добавлен в «Мой набор».'))}
+          {ayah < surah.ayahs && opt('plus', 'С этого аята до конца суры', `${surah.name}, ${ayah}–${surah.ayahs}`, () => add(myEntry(surah.id, ayah, surah.ayahs), 'Аяты добавлены в «Мой набор».'))}
+          {opt('plus', 'Всю суру в «Мой набор»', `${surah.name} · ${surah.ayahs} аятов`, () => add(myEntry(surah.id), 'Сура добавлена в «Мой набор».'))}
+        </div>
+      )}
     </Sheet>
   )
 }

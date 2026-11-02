@@ -4,7 +4,7 @@ import { Icon } from '../../components/Icon'
 import { plural, Sheet, SheetHead, useQuranMeta } from '../../components/ui'
 import { loadSurah, surahGlyph, type Surah } from '../../lib/data'
 import { dayNum, inDays } from '../../lib/hifz'
-import { linesOf, MAX_AYAHS, nextStart, pagesText, parseQKey, passageFrom, QSETS, qSet, remainingWords, setProgress, surahProgress, type QSet } from '../../lib/hifzQuran'
+import { linesOf, MAX_AYAHS, myEntry, nextStart, pagesText, parseMyEntry, parseQKey, passageFrom, QSETS, qSet, remainingWords, setProgress, surahProgress, type QSet } from '../../lib/hifzQuran'
 import { haptic } from '../../lib/telegram'
 import { dayStr, useStore } from '../../store/settings'
 import { HifzTabs, StageDots } from './parts'
@@ -26,8 +26,9 @@ export function useNextPassage(surahs: Surah[] | undefined, n: number) {
   const cards = useStore((s) => s.qhifz)
   const pos = useStore((s) => s.qhPos)
   const setId = useStore((s) => s.qhSet)
+  const my = useStore((s) => s.qhMy)
   const [p, setP] = useState<{ s: number; a: number; b: number; words: number } | null>(null)
-  const start = surahs ? nextStart(cards, pos, (s) => surahs[s - 1].ayahs, qSet(setId)) : null
+  const start = surahs ? nextStart(cards, pos, (s) => surahs[s - 1].ayahs, qSet(setId, my)) : null
   useEffect(() => {
     if (!start) { setP(null); return }
     let alive = true
@@ -47,6 +48,8 @@ export default function QuranHifz() {
   const [pick, setPick] = useState(false)
   const [gear, setGear] = useState(false)
   const [goal, setGoal] = useState(false)
+  const [myEdit, setMyEdit] = useState(false)
+  const [myAdd, setMyAdd] = useState(false)
   const [open, setOpen] = useState<Surah | null>(null)
   const name = (s: number) => surahs?.[s - 1]?.name ?? ''
 
@@ -55,7 +58,7 @@ export default function QuranHifz() {
   const inWork = Object.keys(st.qhifz).reduce((a, k) => { const m = k.match(/:(\d+)-(\d+)$/)!; return a + +m[2] - +m[1] + 1 }, 0)
   // суры: сначала начатые и выбранная, потом остальные из 30-го джуза
   const mine = [...new Set([...(st.qhPos ? [st.qhPos.s] : []), ...Object.keys(st.qhifz).map((k) => +k.split(':')[0])])]
-  const set = qSet(st.qhSet)
+  const set = qSet(st.qhSet, st.qhMy)
   const inSet = [...new Set(set.ranges.map((r) => r.s))]
   const list = [...mine.filter((s) => !inSet.includes(s)).sort((a, b) => a - b), ...inSet]
   // что учим сейчас: выбранная сура (пока в ней есть невыученное) или подборка
@@ -129,14 +132,22 @@ export default function QuranHifz() {
       )}
 
       <div className="group-t">Что учить</div>
-      <div className="hz-sets">
-        {QSETS.map((q) => (
-          <button key={q.id} className={!bySurah && st.qhSet === q.id ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ qhSet: q.id, qhPos: null }) }}>
-            <span className="hz-sets-ar">{q.ar}</span>
-            <b>{q.short}</b>
-            <small>{surahs ? setSize(q, surahs) : ' '}</small>
-          </button>
-        ))}
+      <div className="hz-sets qh-sets">
+        {[qSet('my', st.qhMy), ...QSETS].map((q) => {
+          const mine = q.id === 'my'
+          return (
+            <button key={q.id} className={!bySurah && st.qhSet === q.id ? 'on' : ''} onClick={() => {
+              haptic.tick()
+              const sel = !bySurah && st.qhSet === q.id
+              if (!sel) st.set({ qhSet: q.id, qhPos: null })
+              if (mine && (sel || !st.qhMy.length)) setMyEdit(true) // «Мой набор»: повторное нажатие или пустой набор — правка
+            }}>
+              <span className="hz-sets-ar">{q.ar}</span>
+              <b>{q.short}</b>
+              <small>{surahs ? (mine && !st.qhMy.length ? 'пока пусто' : setSize(q, surahs)) : ' '}</small>
+            </button>
+          )
+        })}
         <button className={bySurah ? 'on' : ''} onClick={() => { haptic.tick(); setPick(true) }}>
           <span className="hz-sets-ar">سورة</span>
           <b>{bySurah ? name(st.qhPos!.s) : 'Другая сура'}</b>
@@ -144,9 +155,10 @@ export default function QuranHifz() {
         </button>
       </div>
       <p className="hz-how">
-        {next ? `Дальше: ${name(next.s)}, ${next.a === next.b ? `аят ${next.a}` : `аяты ${next.a}–${next.b}`}. ` : 'Всё выбранное уже в заучивании — выберите другое. '}
+        {next ? `Дальше: ${name(next.s)}, ${next.a === next.b ? `аят ${next.a}` : `аяты ${next.a}–${next.b}`}. ` : set.id === 'my' && !st.qhMy.length ? 'Соберите свой набор: добавьте суры или аяты. ' : 'Всё выбранное уже в заучивании — выберите другое. '}
         {!bySurah && set.why}
       </p>
+      {!bySurah && set.id === 'my' && <button className="hz-again" style={{ margin: '0 0 8px' }} onClick={() => setMyEdit(true)}><Icon id="gear" />Изменить набор</button>}
       {surahs && <Goal surahs={surahs} onEdit={() => setGoal(true)} />}
 
       <div className="group-t">План</div>
@@ -187,6 +199,8 @@ export default function QuranHifz() {
       <div style={{ height: 24 }} />
 
       {pick && surahs && <PickSheet surahs={surahs} onClose={() => setPick(false)} />}
+      {myEdit && surahs && <MySetSheet surahs={surahs} onClose={() => setMyEdit(false)} onAdd={() => setMyAdd(true)} />}
+      {myAdd && surahs && <PickSheet surahs={surahs} title="Добавить суру в набор" onClose={() => setMyAdd(false)} onPick={(n) => { const e = myEntry(n); if (!st.qhMy.includes(e)) st.set({ qhMy: [...st.qhMy, e] }) }} />}
       {gear && <GearSheet onClose={() => setGear(false)} />}
       {goal && surahs && <GoalSheet surahs={surahs} onClose={() => setGoal(false)} />}
       {open && <SurahSheet sr={open} onClose={() => setOpen(null)} />}
@@ -220,8 +234,8 @@ const drillText = (d: number) => (d === 3 ? 'видно слово через д
 function useTarget(surahs: Surah[]) {
   const st = useStore()
   const count = (s: number) => surahs[s - 1].ayahs
-  const t = st.qhGoal?.t ?? (st.qhPos && !qSet(st.qhSet).ranges.some((r) => r.s === st.qhPos!.s) ? 's:' + st.qhPos.s : 'set:' + st.qhSet)
-  const set: QSet = t.startsWith('s:') ? { id: t, name: 'Сура ' + surahs[+t.slice(2) - 1].name, ar: '', short: '', sub: '', ranges: [{ s: +t.slice(2) }] } : qSet(t.slice(4))
+  const t = st.qhGoal?.t ?? (st.qhPos && !qSet(st.qhSet, st.qhMy).ranges.some((r) => r.s === st.qhPos!.s) ? 's:' + st.qhPos.s : 'set:' + st.qhSet)
+  const set: QSet = t.startsWith('s:') ? { id: t, name: 'Сура ' + surahs[+t.slice(2) - 1].name, ar: '', short: '', sub: '', ranges: [{ s: +t.slice(2) }] } : qSet(t.slice(4), st.qhMy)
   const wordsOf = useWordsOf([...new Set(set.ranges.map((r) => r.s))])
   return { t, set, ...setProgress(st.qhifz, set, count), rem: remainingWords(st.qhifz, set, wordsOf) }
 }
@@ -282,6 +296,47 @@ function GoalSheet({ surahs, onClose }: { surahs: Surah[]; onClose: () => void }
   )
 }
 
+/** «Мой набор»: список сур и аятов — порядок, удаление, добавление */
+function MySetSheet({ surahs, onClose, onAdd }: { surahs: Surah[]; onClose: () => void; onAdd: () => void }) {
+  const my = useStore((s) => s.qhMy)
+  const set = useStore((s) => s.set)
+  const move = (i: number, d: number) => {
+    const j = i + d
+    if (j < 0 || j >= my.length) return
+    haptic.tick()
+    const l = [...my];
+    [l[i], l[j]] = [l[j], l[i]]
+    set({ qhMy: l })
+  }
+  const label = (e: string) => {
+    const r = parseMyEntry(e)
+    if (!r) return { t: e, sub: '' }
+    const sr = surahs[r.s - 1]
+    if (!r.a) return { t: sr.name, sub: `Сура целиком · ${sr.ayahs} ${plural(sr.ayahs, 'аят', 'аята', 'аятов')}` }
+    return { t: sr.name, sub: r.a === r.b ? `Аят ${r.a}` : `Аяты ${r.a}–${r.b}` }
+  }
+  return (
+    <Sheet onClose={onClose} tall>
+      <SheetHead title="Мой набор" sub="Учится по порядку сверху вниз" onClose={onClose} />
+      <div className="body">
+        {my.length === 0 && <p className="hz-how">Пока пусто. Добавьте суру кнопкой ниже, а отдельные аяты — в чтении: зажмите кнопку «Учить» в окне аята.</p>}
+        {my.map((e, i) => {
+          const l = label(e)
+          return (
+            <div key={e} className="qh-my">
+              <div className="t"><b>{l.t}</b><span>{l.sub}</span></div>
+              <button onClick={() => move(i, -1)} disabled={i === 0} aria-label="Выше"><Icon id="up" /></button>
+              <button onClick={() => move(i, 1)} disabled={i === my.length - 1} aria-label="Ниже"><Icon id="up" className="icon flip" /></button>
+              <button onClick={() => { haptic.tick(); set({ qhMy: my.filter((x) => x !== e) }) }} aria-label="Убрать"><Icon id="close" /></button>
+            </div>
+          )
+        })}
+        <div className="hz-sheet-btns"><button className="bigbtn" onClick={onAdd}><Icon id="plus" />Добавить суру</button></div>
+      </div>
+    </Sheet>
+  )
+}
+
 function rowText(pr: ReturnType<typeof surahProgress>, total: number) {
   if (!pr.started) return `Не начата · ${total} ${plural(total, 'аят', 'аята', 'аятов')}`
   const head = pr.learned >= total ? 'Выучена' : `${pr.started} из ${total} ${plural(total, 'аята', 'аятов', 'аятов')}`
@@ -289,12 +344,12 @@ function rowText(pr: ReturnType<typeof surahProgress>, total: number) {
 }
 
 /** Выбор, откуда учить: 30-й джуз с конца или любая сура */
-function PickSheet({ surahs, onClose }: { surahs: Surah[]; onClose: () => void }) {
+function PickSheet({ surahs, onClose, onPick, title }: { surahs: Surah[]; onClose: () => void; onPick?: (s: number) => void; title?: string }) {
   const set = useStore((s) => s.set)
-  const choose = (pos: { s: number; a: number } | null) => { haptic.tick(); set({ qhPos: pos }); onClose() }
+  const choose = (pos: { s: number; a: number } | null) => { haptic.tick(); if (onPick && pos) onPick(pos.s); else set({ qhPos: pos }); onClose() }
   return (
     <Sheet onClose={onClose} tall>
-      <SheetHead title="Выберите суру" sub="Новые аяты будут браться отсюда, с первого аята" onClose={onClose} />
+      <SheetHead title={title ?? 'Выберите суру'} sub={onPick ? 'Сура добавится целиком' : 'Новые аяты будут браться отсюда, с первого аята'} onClose={onClose} />
       <div className="body qh-pick">
         {surahs.map((s) => (
           <button key={s.id} className="srow" onClick={() => choose({ s: s.id, a: 1 })}>
