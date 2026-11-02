@@ -418,6 +418,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
   const [mp, setMp] = useState<MushafPage | null>(null)
   const [ready, setReady] = useState(false)
   const [pressed, setPressed] = useState<string | null>(null)
+  const [tall, setTall] = useState(false) // страница не помещается по высоте — листается вниз
   const box = useRef<HTMLDivElement>(null)
   const hold = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null)
   const tap = useRef<{ t: number; el: HTMLElement } | null>(null)
@@ -453,7 +454,27 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
       // строки растягиваются по ширине (space-between), так что запас почти не нужен
       const byWidth = maxW ? (20 * lines.clientWidth) / maxW * (page <= 2 ? 0.86 : 0.995) : 20
       const byHeight = lines.clientHeight / 15 / 1.45
-      m.style.fontSize = Math.min(byWidth, page <= 2 || scroll ? byWidth : byHeight).toFixed(2) + 'px'
+      m.style.fontSize = Math.min(byWidth, page <= 2 || scroll || tall ? byWidth : byHeight).toFixed(2) + 'px'
+      // Заголовки сур по высоте зависят от ширины страницы, а не от шрифта. На широком и невысоком окне (браузер) страница
+      // не помещается целиком — тогда не уменьшаем текст, а даём прокрутку страницы вниз (как в альбомной ориентации)
+      if (page > 2 && !scroll) {
+        const mus = m.parentElement as HTMLElement
+        const cs = getComputedStyle(mus)
+        const pf = m.querySelector<HTMLElement>('.pfoot')
+        const avail = mus.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 12 - (pf?.offsetHeight ?? 24)
+        // сколько места нужно странице при ширинном шрифте — считаем по замерам (не зависит от того, листается страница или нет)
+        const fs0 = parseFloat(m.style.fontSize)
+        const hOf = (sel: string) => (lines.querySelector<HTMLElement>(sel)?.offsetHeight ?? 0) / fs0
+        const kw = hOf('.ln.w') || 1.55
+        const kb = hOf('.ln.bism') || kw
+        let need = 0
+        lines.querySelectorAll<HTMLElement>(':scope > .ln').forEach((c) => {
+          need += c.classList.contains('head') ? c.offsetHeight : c.classList.contains('w') ? kw * byWidth : c.classList.contains('bism') ? kb * byWidth : 0
+        })
+        // из прокрутки возвращаемся в целую страницу только с запасом — чтобы не «мигало» на границе
+        const over = need > avail - (tall ? 12 : 0)
+        setTall((t) => (t === over ? t : over))
+      }
       // короткие строки (конец суры) не растягиваем на всю ширину — иначе между словами огромные пробелы
       lines.querySelectorAll<HTMLElement>('.ln.w').forEach((ln) => {
         let w = 0
@@ -464,8 +485,9 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
     fit()
     const ro = new ResizeObserver(fit)
     ro.observe(m)
+    if (m.parentElement) ro.observe(m.parentElement) // окно браузера изменилось по высоте
     return () => ro.disconnect()
-  }, [ready, mp, page, scroll])
+  }, [ready, mp, page, scroll, tall])
 
   // страница сменилась — подсказка со словом больше не нужна; сама пропадает через 5 секунд
   useEffect(() => { setTip(null) }, [page])
@@ -519,7 +541,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
   if (!mp || !ready) return <div className="mus"><div className="loading">Загрузка страницы…</div></div>
   const family = pageFont(page, tajweed, theme)
   return (
-    <div className={'mus' + (scroll ? ' scroll' : '')}>
+    <div className={'mus' + (scroll || tall ? ' scroll' : '')}>
       <div className={'mushaf' + (page <= 2 ? ' short' : '')} ref={box}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancelHold} onContextMenu={(e) => e.preventDefault()}>
         <div className="lines">
