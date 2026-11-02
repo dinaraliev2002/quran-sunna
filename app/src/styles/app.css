@@ -1349,7 +1349,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .qw-wbw .w.gap { box-shadow: inset 0 -2px 0 var(--gold-soft, rgba(201,138,43,.45)); }
 .qw-wbw .w.gap .wa { visibility: hidden; }
 .qh-ayah.playing .qw-wbw { background: var(--highlight); border-radius: 12px; }
-.qh-set { display: flex; flex-direction: column; gap: 14px; padding: 4px 16px 20px; }
+.qh-set { display: flex; flex-direction: column; gap: 14px; padding: 4px 0 20px; }
 .qh-set-l { font-size: 13px; font-weight: 700; color: var(--text-2); margin-bottom: 6px; }
 .qh-set-l small { display: block; font-weight: 500; margin-top: 2px; }
 .qh-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1370,8 +1370,6 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .qh-goal .bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin: 8px 0 6px; }
 .qh-goal .bar i { display: block; height: 100%; background: var(--emerald); border-radius: 3px; }
 .qh-goal p { margin: 0; font-size: 13px; color: var(--text-2); }
-.sl-hifz { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 8px; padding: 10px 14px; border-radius: 18px; background: var(--surface); text-align: left; }
-.sl-hifz .ib { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--emerald); color: #fff; flex: 0 0 auto; }
-.sl-hifz .t { flex: 1; display: flex; flex-direction: column; }
-.sl-hifz .t b { font-size: 15px; }
-.sl-hifz .t span { font-size: 12.5px; color: var(--text-2); }
+.sl-right { display: flex; align-items: center; gap: 8px; }
+.sl-learn { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px 0 12px; border-radius: 22px; background: var(--emerald); color: #fff; font-weight: 800; font-size: 15px; }
+.sl-learn .icon { width: 20px; height: 20px; }

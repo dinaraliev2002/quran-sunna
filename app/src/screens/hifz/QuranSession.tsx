@@ -228,12 +228,6 @@ function Listen({ item }: { item: QItem }) {
         <span>Скорость</span>
         {RATES.map((r) => <button key={r} className={rate === r ? 'on' : ''} onClick={() => { haptic.tick(); set({ qhRate: r }) }}>{String(r).replace('.', ',')}</button>)}
       </div>
-      {item.ayahs.length > 1 && (
-        <button className="qh-sw" style={{ marginTop: 12 }} onClick={() => { haptic.tick(); set({ qhChain: !chain }) }}>
-          <span className="t">Цепочкой<small>Аят 1 → 1–2 → 1–3: каждый новый аят сразу связывается с предыдущими</small></span>
-          <span className={'switch' + (chain ? ' on' : '')} />
-        </button>
-      )}
       {error && <p className="hz-tip">{error}</p>}
     </div>
   )
@@ -252,9 +246,9 @@ export function GearSheet({ onClose }: { onClose: () => void }) {
     </button>
   )
   return (
-    <Sheet onClose={onClose}>
+    <Sheet onClose={onClose} tall>
       <SheetHead title="Настройки заучивания" onClose={onClose} />
-      <div className="qh-set">
+      <div className="body qh-set">
         <div>
           <div className="qh-set-l">Упражнение<small>Сколько слов видно перед чтением по памяти</small></div>
           <div className="qh-chips">
@@ -280,7 +274,7 @@ export function GearSheet({ onClose }: { onClose: () => void }) {
           <div className="qh-set-l">Каждый аят при прослушивании</div>
           <div className="qh-chips">{[1, 3, 5].map((n) => chip(n, st.qhRepeat, n + '×', (v) => st.set({ qhRepeat: v })))}</div>
         </div>
-        {sw(st.qhChain, 'Слушать цепочкой', 'Аят 1 → 1–2 → 1–3', () => st.set({ qhChain: !st.qhChain }))}
+        {sw(st.qhChain, 'Слушать цепочкой', 'Аят 1 → 1–2 → 1–3: каждый новый аят сразу связывается с предыдущими. Пригодится, когда в отрывке несколько аятов', () => st.set({ qhChain: !st.qhChain }))}
       </div>
     </Sheet>
   )

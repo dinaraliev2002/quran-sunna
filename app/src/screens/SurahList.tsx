@@ -10,7 +10,6 @@ import { setStoryMode, useStoryMode, type StoryMode } from '../lib/storyMode'
 import { useKulievIndex } from './reader/Kuliev'
 import { MODE_LABEL, modeSurahs } from './Stories'
 import { useStore } from '../store/settings'
-import { useQhToday } from './hifz/Quran'
 
 type Place = 'all' | 'mk' | 'md'
 
@@ -127,9 +126,12 @@ export default function SurahList() {
             <input autoFocus placeholder="Сура или номер страницы" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
         )}
-        <button className="icon-btn" onClick={() => setQuery(query === null ? '' : null)} aria-label="Поиск">
-          <Icon id={query === null ? 'search' : 'close'} />
-        </button>
+        <div className="sl-right">
+          {query === null && <button className="sl-learn" onClick={() => { haptic.tap(); nav('/hifz/quran') }} aria-label="Заучивание"><Icon id="brain" />Учить</button>}
+          <button className="icon-btn" onClick={() => setQuery(query === null ? '' : null)} aria-label="Поиск">
+            <Icon id={query === null ? 'search' : 'close'} />
+          </button>
+        </div>
       </div>
 
       {/* блок под заголовком «прилипает» и при прокрутке вниз уезжает под заголовок (без скачков списка) */}
@@ -154,7 +156,6 @@ export default function SurahList() {
                 <div className="go"><Icon id="play" /></div>
               </button>
             )}
-            {sort !== 'stories' && <HifzButton />}
             <div className="sortseg">
               <button className={sort === 'mushaf' ? 'on' : ''} onClick={() => setSort('mushaf')}>По порядку</button>
               <button className={sort === 'rev' ? 'on' : ''} onClick={() => setSort('rev')}>По ниспосланию</button>
@@ -234,18 +235,3 @@ export default function SurahList() {
   )
 }
 
-/** Под «Продолжить чтение»: вход в заучивание Корана — что на сегодня */
-function HifzButton() {
-  const nav = useNavigate()
-  const { due, newLeft, started } = useQhToday()
-  const sub = !started ? 'С 30-го джуза или любой суры — по несколько аятов в день'
-    : due.length ? `${due.length} на повтор${newLeft ? ` · ${newLeft} ${plural(newLeft, 'новый аят', 'новых аята', 'новых аятов')}` : ''}`
-      : newLeft ? `Сегодня ${newLeft} ${plural(newLeft, 'новый аят', 'новых аята', 'новых аятов')}` : 'На сегодня всё — машаАллах!'
-  return (
-    <button className="sl-hifz" onClick={() => { haptic.tap(); nav('/hifz/quran') }}>
-      <span className="ib"><Icon id="brain" /></span>
-      <span className="t"><b>{started ? 'Заучивание' : 'Начать заучивание'}</b><span>{sub}</span></span>
-      <Icon id="right" />
-    </button>
-  )
-}

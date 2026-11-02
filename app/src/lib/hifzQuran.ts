@@ -18,6 +18,24 @@ export const MAX_WORDS = 60
 /** Слов в строке мусхафа — в среднем, для подсказки «≈ N строк» */
 const WORDS_PER_LINE = 9
 export const linesOf = (words: number) => Math.max(1, Math.round(words / WORDS_PER_LINE))
+/** Слов на странице мусхафа — в среднем (15 строк) */
+export const WORDS_PER_PAGE = WORDS_PER_LINE * 15
+/** Объём словами по-русски: «≈ 3 страницы», «треть страницы», «полстраницы» */
+export function pagesText(words: number) {
+  const p = words / WORDS_PER_PAGE
+  if (p < 0.2) return 'меньше четверти страницы'
+  if (p < 0.3) return 'четверть страницы'
+  if (p < 0.42) return 'треть страницы'
+  if (p < 0.58) return 'полстраницы'
+  if (p < 0.72) return 'две трети страницы'
+  if (p < 0.88) return 'три четверти страницы'
+  if (p < 1.25) return 'страница'
+  const n = Math.round(p * 2) / 2
+  const t = String(n).replace('.', ',')
+  const last = Math.floor(n) % 10, teen = Math.floor(n) % 100 >= 11 && Math.floor(n) % 100 <= 14
+  const w = n % 1 ? 'страницы' : teen ? 'страниц' : last === 1 ? 'страница' : last >= 2 && last <= 4 ? 'страницы' : 'страниц'
+  return `${t} ${w}`
+}
 /** Больше стольких аятов в день — предупреждение */
 export const MAX_AYAHS = 10
 
@@ -34,18 +52,18 @@ export function coveredAyahs(cards: Record<string, HifzCard>, s: number) {
 /** Отрезок для заучивания: сура, с аята a по b (b не задан — до конца суры) */
 export interface QRange { s: number; a?: number; b?: number }
 /** Подборка: что учить по порядку */
-export interface QSet { id: string; name: string; sub: string; why?: string; ranges: QRange[] }
+export interface QSet { id: string; name: string; /** название на арабском и короткое — для карточки */ ar: string; short: string; sub: string; why?: string; ranges: QRange[] }
 const whole = (...ids: number[]) => ids.map((s) => ({ s }))
 export const QSETS: QSet[] = [
-  { id: 'juz30', name: '30-й джуз · с конца', sub: 'ан-Нас, аль-Фаляк, аль-Ихлас … ан-Наба', why: 'Короткие суры — с них обычно начинают', ranges: whole(...JUZ30) },
-  { id: 'salah', name: 'Для намаза', sub: 'аль-Фатиха и 10 коротких сур', why: 'Аль-Фатиха читается в каждом ракаате', ranges: whole(1, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 103) },
-  { id: 'kursi', name: 'Аят аль-Курси', sub: 'Аль-Бакара, 255', why: 'Величайший аят Корана (Муслим)', ranges: [{ s: 2, a: 255, b: 255 }] },
-  { id: 'baqara-end', name: 'Конец суры аль-Бакара', sub: 'Аль-Бакара, 285–286', why: 'Кто прочтёт их ночью, тому их будет достаточно (аль-Бухари, Муслим)', ranges: [{ s: 2, a: 285, b: 286 }] },
-  { id: 'kahf10', name: 'Начало суры аль-Кахф', sub: 'Аль-Кахф, 1–10', why: 'Кто выучит первые десять аятов, будет защищён от Даджаля (Муслим)', ranges: [{ s: 18, a: 1, b: 10 }] },
-  { id: 'mulk', name: 'Аль-Мульк', sub: '30 аятов', why: 'Сура заступится за читавшего её, пока ему не простят (ат-Тирмизи)', ranges: whole(67) },
-  { id: 'juz29', name: '29-й джуз', sub: 'аль-Мульк … аль-Мурсалят', ranges: whole(67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77) },
-  { id: 'popular', name: 'Известные суры', sub: 'Йа Син, ар-Рахман, аль-Ваки‘а, ас-Саджда', ranges: whole(36, 55, 56, 32) },
-  { id: 'kahf', name: 'Аль-Кахф', sub: '110 аятов', why: 'Сура, которую читают в пятницу', ranges: whole(18) },
+  { id: 'juz30', name: '30-й джуз · с конца', ar: 'جزء عمّ', short: '30-й джуз', sub: 'ан-Нас, аль-Фаляк, аль-Ихлас … ан-Наба', why: 'Короткие суры — с них обычно начинают', ranges: whole(...JUZ30) },
+  { id: 'salah', name: 'Для намаза', ar: 'للصلاة', short: 'Для намаза', sub: 'аль-Фатиха и 10 коротких сур', why: 'Аль-Фатиха читается в каждом ракаате', ranges: whole(1, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 103) },
+  { id: 'kursi', name: 'Аят аль-Курси', ar: 'آية الكرسي', short: 'Аят аль-Курси', sub: 'Аль-Бакара, 255', why: 'Величайший аят Корана (Муслим)', ranges: [{ s: 2, a: 255, b: 255 }] },
+  { id: 'baqara-end', name: 'Конец суры аль-Бакара', ar: 'خواتيم البقرة', short: 'Конец аль-Бакары', sub: 'Аль-Бакара, 285–286', why: 'Кто прочтёт их ночью, тому их будет достаточно (аль-Бухари, Муслим)', ranges: [{ s: 2, a: 285, b: 286 }] },
+  { id: 'kahf10', name: 'Начало суры аль-Кахф', ar: 'أوائل الكهف', short: 'Начало аль-Кахф', sub: 'Аль-Кахф, 1–10', why: 'Кто выучит первые десять аятов, будет защищён от Даджаля (Муслим)', ranges: [{ s: 18, a: 1, b: 10 }] },
+  { id: 'mulk', name: 'Аль-Мульк', ar: 'الملك', short: 'Аль-Мульк', sub: '30 аятов', why: 'Сура заступится за читавшего её, пока ему не простят (ат-Тирмизи)', ranges: whole(67) },
+  { id: 'juz29', name: '29-й джуз', ar: 'جزء تبارك', short: '29-й джуз', sub: 'аль-Мульк … аль-Мурсалят', ranges: whole(67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77) },
+  { id: 'popular', name: 'Известные суры', ar: 'سور مشهورة', short: 'Известные суры', sub: 'Йа Син, ар-Рахман, аль-Ваки‘а, ас-Саджда', ranges: whole(36, 55, 56, 32) },
+  { id: 'kahf', name: 'Аль-Кахф', ar: 'الكهف', short: 'Аль-Кахф', sub: '110 аятов', why: 'Сура, которую читают в пятницу', ranges: whole(18) },
 ]
 export const qSet = (id: string) => QSETS.find((x) => x.id === id) ?? QSETS[0]
 
@@ -74,6 +92,18 @@ export function setProgress(cards: Record<string, HifzCard>, set: QSet, ayahCoun
     for (let a = r.a ?? 1; a <= end; a++) { total++; if (cov.has(a)) done++ }
   }
   return { done, total }
+}
+
+/** Сколько слов ещё не в заучивании в подборке (words — число слов по аятам суры: нужны данные сур) */
+export function remainingWords(cards: Record<string, HifzCard>, set: QSet, wordsOf: (s: number) => number[] | undefined) {
+  let words = 0, ayahs = 0
+  for (const r of set.ranges) {
+    const w = wordsOf(r.s)
+    if (!w) return null
+    const cov = coveredAyahs(cards, r.s)
+    for (let a = r.a ?? 1; a <= (r.b ?? w.length); a++) if (!cov.has(a)) { words += w[a - 1]; ayahs++ }
+  }
+  return { words, ayahs }
 }
 
 /** Отрывок с аята a: до n аятов подряд (не дальше end, конца суры и уже выученных), не длиннее MAX_WORDS слов */
