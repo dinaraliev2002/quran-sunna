@@ -4,7 +4,7 @@ import { Icon } from '../../components/Icon'
 import { plural, Sheet, SheetHead, useQuranMeta } from '../../components/ui'
 import { loadSurah, surahGlyph, type Surah } from '../../lib/data'
 import { dayNum, inDays } from '../../lib/hifz'
-import { linesOf, MAX_AYAHS, myEntry, nextStart, pagesText, parseMyEntry, parseQKey, passageFrom, QSETS, qSet, remainingWords, setProgress, surahProgress, type QSet } from '../../lib/hifzQuran'
+import { linesOf, MAX_AYAHS, myEntry, nextStart, orderedSets, pagesText, parseMyEntry, parseQKey, passageFrom, qSet, remainingWords, setProgress, surahProgress, type QSet } from '../../lib/hifzQuran'
 import { haptic } from '../../lib/telegram'
 import { dayStr, useStore } from '../../store/settings'
 import { HifzTabs, StageDots } from './parts'
@@ -50,6 +50,7 @@ export default function QuranHifz() {
   const [goal, setGoal] = useState(false)
   const [myEdit, setMyEdit] = useState(false)
   const [myAdd, setMyAdd] = useState(false)
+  const [tune, setTune] = useState(false)
   const [open, setOpen] = useState<Surah | null>(null)
   const name = (s: number) => surahs?.[s - 1]?.name ?? ''
 
@@ -133,7 +134,7 @@ export default function QuranHifz() {
 
       <div className="group-t">Что учить</div>
       <div className="hz-sets qh-sets">
-        {[qSet('my', st.qhMy), ...QSETS].map((q) => {
+        {[qSet('my', st.qhMy), ...orderedSets(st.qhOrder, st.qhHide)].map((q) => {
           const mine = q.id === 'my'
           return (
             <button key={q.id} className={!bySurah && st.qhSet === q.id ? 'on' : ''} onClick={() => {
@@ -153,12 +154,16 @@ export default function QuranHifz() {
           <b>{bySurah ? name(st.qhPos!.s) : 'Другая сура'}</b>
           <small>{bySurah ? 'выбрана' : 'любая из 114'}</small>
         </button>
+        <button onClick={() => { haptic.tick(); setTune(true) }}>
+          <span className="hz-sets-ar">إعدادات</span>
+          <b>Настроить наборы</b>
+          <small>убрать, вернуть, порядок</small>
+        </button>
       </div>
       <p className="hz-how">
         {next ? `Дальше: ${name(next.s)}, ${next.a === next.b ? `аят ${next.a}` : `аяты ${next.a}–${next.b}`}. ` : set.id === 'my' && !st.qhMy.length ? 'Соберите свой набор: добавьте суры или аяты. ' : 'Всё выбранное уже в заучивании — выберите другое. '}
         {!bySurah && set.why}
       </p>
-      {!bySurah && set.id === 'my' && <button className="hz-again" style={{ margin: '0 0 8px' }} onClick={() => setMyEdit(true)}><Icon id="gear" />Изменить набор</button>}
       {surahs && <Goal surahs={surahs} onEdit={() => setGoal(true)} />}
 
       <div className="group-t">План</div>
@@ -199,6 +204,7 @@ export default function QuranHifz() {
       <div style={{ height: 24 }} />
 
       {pick && surahs && <PickSheet surahs={surahs} onClose={() => setPick(false)} />}
+      {tune && <TuneSets onClose={() => setTune(false)} onMy={() => { setTune(false); setMyEdit(true) }} />}
       {myEdit && surahs && <MySetSheet surahs={surahs} onClose={() => setMyEdit(false)} onAdd={() => setMyAdd(true)} />}
       {myAdd && surahs && <PickSheet surahs={surahs} title="Добавить суру в набор" onClose={() => setMyAdd(false)} onPick={(n) => { const e = myEntry(n); if (!st.qhMy.includes(e)) st.set({ qhMy: [...st.qhMy, e] }) }} />}
       {gear && <GearSheet onClose={() => setGear(false)} />}
@@ -291,6 +297,52 @@ function GoalSheet({ surahs, onClose }: { surahs: Surah[]; onClose: () => void }
         {!rem && <div className="loading">Считаем…</div>}
         {opts.map((o) => <button key={o.w} className="hz-again" onClick={() => choose(o.w)}>{label(o.w)} · {o.text} в день</button>)}
         {g && <button className="hz-warn-go" onClick={() => { set({ qhGoal: null }); onClose() }}>Убрать цель</button>}
+      </div>
+    </Sheet>
+  )
+}
+
+/** Настроить наборы: убрать ненужные подборки из ряда, вернуть, поменять порядок */
+function TuneSets({ onClose, onMy }: { onClose: () => void; onMy: () => void }) {
+  const st = useStore()
+  const all = orderedSets(st.qhOrder, st.qhHide, true)
+  const toggle = (id: string) => {
+    haptic.tick()
+    const hidden = st.qhHide.includes(id)
+    const hide = hidden ? st.qhHide.filter((x) => x !== id) : [...st.qhHide, id]
+    // убрали ту, что сейчас выбрана, — переключаемся на первую оставшуюся
+    const next = !hidden && st.qhSet === id ? orderedSets(st.qhOrder, hide)[0]?.id ?? 'my' : st.qhSet
+    st.set({ qhHide: hide, qhSet: next, ...(next !== st.qhSet ? { qhPos: null } : {}) })
+  }
+  const move = (i: number, d: number) => {
+    const j = i + d
+    if (j < 0 || j >= all.length) return
+    haptic.tick()
+    const ids = all.map((q) => q.id);
+    [ids[i], ids[j]] = [ids[j], ids[i]]
+    st.set({ qhOrder: ids })
+  }
+  const changed = st.qhHide.length > 0 || st.qhOrder.length > 0
+  return (
+    <Sheet onClose={onClose} tall>
+      <SheetHead title="Наборы" sub="Что показывать в «Что учить»" onClose={onClose} />
+      <div className="body">
+        <button className="qh-my" style={{ width: '100%', textAlign: 'left' }} onClick={onMy}>
+          <div className="t"><b>Мой набор</b><span>{st.qhMy.length ? `${st.qhMy.length} ${plural(st.qhMy.length, 'запись', 'записи', 'записей')} · открыть и изменить` : 'Пока пусто · собрать свой набор'}</span></div>
+          <Icon id="right" />
+        </button>
+        {all.map((q, i) => {
+          const off = st.qhHide.includes(q.id)
+          return (
+            <div key={q.id} className="qh-my" style={off ? { opacity: .55 } : undefined}>
+              <div className="t"><b>{q.name}</b><span>{q.sub}</span></div>
+              <button onClick={() => move(i, -1)} disabled={i === 0} aria-label="Выше"><Icon id="up" /></button>
+              <button onClick={() => move(i, 1)} disabled={i === all.length - 1} aria-label="Ниже"><Icon id="up" className="icon flip" /></button>
+              <button className="qh-tg" onClick={() => toggle(q.id)} aria-label={off ? 'Показать' : 'Убрать'}><span className={'switch' + (off ? '' : ' on')} /></button>
+            </div>
+          )
+        })}
+        {changed && <div className="hz-sheet-btns"><button className="hz-again" onClick={() => { haptic.tick(); st.set({ qhHide: [], qhOrder: [] }) }}>Вернуть как было</button></div>}
       </div>
     </Sheet>
   )

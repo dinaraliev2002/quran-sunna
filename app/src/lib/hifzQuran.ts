@@ -64,6 +64,12 @@ export const QSETS: QSet[] = [
   { id: 'popular', name: 'Известные суры', ar: 'سور مشهورة', short: 'Известные суры', sub: 'Йа Син, ар-Рахман, аль-Ваки‘а, ас-Саджда', ranges: whole(36, 55, 56, 32) },
   { id: 'kahf', name: 'Аль-Кахф', ar: 'الكهف', short: 'Аль-Кахф', sub: '110 аятов', why: 'Сура, которую читают в пятницу. Кто выучит её первые десять аятов, будет защищён от Даджаля (Муслим)', ranges: whole(18) },
 ]
+/** Подборки в порядке человека, без убранных (hide: true — вернуть и убранные, с пометкой) */
+export function orderedSets(order: string[], hide: string[], all = false) {
+  const rank = (id: string) => { const i = order.indexOf(id); return i < 0 ? 1000 + QSETS.findIndex((q) => q.id === id) : i }
+  return [...QSETS].sort((a, b) => rank(a.id) - rank(b.id)).filter((q) => all || !hide.includes(q.id))
+}
+
 /** Запись «моего набора»: «67» — сура целиком, «2:255-255» — аяты */
 export const myEntry = (s: number, a?: number, b?: number) => (a ? `${s}:${a}-${b ?? a}` : String(s))
 export function parseMyEntry(e: string): QRange | null {
