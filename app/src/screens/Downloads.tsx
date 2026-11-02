@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Sheet, SheetHead, TabBar, useQuranMeta } from '../components/ui'
+import { Tour } from '../components/Tour'
 import { appleWebKit, fontVariant } from '../lib/fonts'
 import { TOTAL_PAGES, type Surah } from '../lib/data'
 import { idbSizes, storageUsage } from '../lib/idb'
@@ -189,6 +190,10 @@ export default function Downloads() {
         </Sheet>
       )}
       <TabBar />
+      <Tour id="downloads" ready={!!status} steps={[
+        { el: '.dl-card', title: 'Скачайте заранее', text: 'Текст, страницы мусхафа и аудио можно скачать — тогда всё работает без интернета.' },
+        { title: 'Что занимает место', text: 'Внизу списка видно, сколько места занимает аудио каждого чтеца и шрифты страниц. Лишнее можно удалить: всё сразу или по отдельным сурам.' },
+      ]} />
     </div>
   )
 }

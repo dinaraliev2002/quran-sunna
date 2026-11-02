@@ -5,7 +5,10 @@ import { useStore } from '../store/settings'
 
 /** Шаг экскурса: el — что подсветить (CSS-селектор; нет на экране — шаг пропускается),
  *  без el — пояснение по центру экрана (жест, общий смысл раздела) */
-export interface TourStep { el?: string; title: string; text: string }
+export interface TourStep { el?: string; title: string; text: string
+  /** с какого обновления шаг: 0/нет — основной (его уже видели все прошедшие экскурс); 1, 2 … — новые шаги.
+   *  Новичок видит все шаги, а тот, кто экскурс уже проходил, — только новые */
+  v?: number }
 
 // первый подходящий элемент на экране по горизонтали (соседние страницы листалки лежат за краем — их не берём);
 // по вертикали он может быть ниже — тогда прокрутим к нему (если экскурсу можно прокручивать экран)
@@ -24,7 +27,10 @@ const visible = (sel: string, scroll: boolean) => {
  * scroll — можно прокрутить экран к элементу; в читалке нельзя: собьётся место «Продолжить чтение».
  */
 export function Tour({ id, steps, ready = true, scroll = true }: { id: string; steps: TourStep[]; ready?: boolean; scroll?: boolean }) {
-  const seen = useStore((s) => s.tours.includes(id))
+  const tours = useStore((s) => s.tours)
+  // что ещё не показано: у новичка — всё, у прошедшего экскурс — только шаги новых версий
+  const pending = steps.filter((s) => (s.v ? !tours.includes(`${id}#${s.v}:${s.title}`) : !tours.includes(id)))
+  const seen = pending.length === 0
   const [list, setList] = useState<TourStep[] | null>(null)
   const [i, setI] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
@@ -32,7 +38,7 @@ export function Tour({ id, steps, ready = true, scroll = true }: { id: string; s
   // начать чуть позже — пока экран дорисуется; шаги без своего элемента на экране отбрасываем
   useEffect(() => {
     if (seen || !ready) return
-    const t = setTimeout(() => setList(steps.filter((s) => !s.el || visible(s.el, scroll))), 700)
+    const t = setTimeout(() => setList(pending.filter((s) => !s.el || visible(s.el, scroll))), 700)
     return () => clearTimeout(t)
   }, [seen, ready]) // steps пересоздаются на каждой отрисовке — берём те, что были на момент старта
 
@@ -53,7 +59,9 @@ export function Tour({ id, steps, ready = true, scroll = true }: { id: string; s
   if (seen || !list || !step) return null
   const finish = () => {
     const st = useStore.getState()
-    st.set({ tours: [...st.tours.filter((x) => x !== id), id] })
+    // отмечаем и основной экскурс, и все версии, что были в этом списке шагов
+    const mark = [id, ...steps.filter((s) => s.v).map((s) => `${id}#${s.v}:${s.title}`)]
+    st.set({ tours: [...st.tours.filter((x) => !mark.includes(x)), ...mark.filter((x) => x === id || list?.some((s) => x.endsWith(':' + s.title)))] })
     setList(null)
   }
   const next = () => { haptic.tap(); if (i + 1 < list.length) setI(i + 1); else finish() }

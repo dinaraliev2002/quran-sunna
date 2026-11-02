@@ -7,6 +7,7 @@ import { dayNum, inDays } from '../../lib/hifz'
 import { linesOf, MAX_AYAHS, myEntry, nextStart, orderedSets, pagesText, parseMyEntry, parseQKey, passageFrom, qSet, remainingWords, setProgress, surahProgress, type QSet } from '../../lib/hifzQuran'
 import { haptic } from '../../lib/telegram'
 import { dayStr, useStore } from '../../store/settings'
+import { Tour } from '../../components/Tour'
 import { HifzTabs, StageDots } from './parts'
 import { GearSheet } from './QuranSession'
 
@@ -204,6 +205,12 @@ export default function QuranHifz() {
       <div style={{ height: 24 }} />
 
       {pick && surahs && <PickSheet surahs={surahs} onClose={() => setPick(false)} />}
+      <Tour id="hifz-quran" ready={!!surahs} steps={[
+        { el: '.hz-hero', title: 'Сегодня', text: 'Сколько отрывков ждёт повторения и сколько новых аятов по плану. Сначала повторите выученное, потом учите новое.' },
+        { title: 'Как проходит заучивание', text: 'Послушайте отрывок, прочитайте его, затем читайте с частично скрытыми словами и в конце — по памяти: виден только перевод. Оцените себя: «Плохо», «Средне» или «Хорошо» — от этого зависит, когда отрывок вернётся на повтор.' },
+        { el: '.qh-sets', title: 'Что учить', text: 'Листайте карточки вбок: подборки, «Мой набор» (свои суры и аяты) или любая сура. Последняя карточка — «Настроить наборы»: убрать ненужные и поменять порядок.' },
+        { el: '.hz-step', title: 'План', text: 'Сколько новых аятов в день. Рядом написано, сколько это строк мусхафа. Цель («выучить за месяц») посчитает норму сама.' },
+      ]} />
       {tune && <TuneSets onClose={() => setTune(false)} onMy={() => { setTune(false); setMyEdit(true) }} />}
       {myEdit && surahs && <MySetSheet surahs={surahs} onClose={() => setMyEdit(false)} onAdd={() => setMyAdd(true)} />}
       {myAdd && surahs && <PickSheet surahs={surahs} title="Добавить суру в набор" onClose={() => setMyAdd(false)} onPick={(n) => { const e = myEntry(n); if (!st.qhMy.includes(e)) st.set({ qhMy: [...st.qhMy, e] }) }} />}

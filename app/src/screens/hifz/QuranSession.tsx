@@ -9,6 +9,7 @@ import { haptic } from '../../lib/telegram'
 import { setBitrates, setRate, setReciter, usePlayer } from '../../store/player'
 import { useStore, type Settings } from '../../store/settings'
 import { AyahWords, useWbw } from '../reader/views'
+import { Tour } from '../../components/Tour'
 import { useQhToday } from './Quran'
 
 type Step = 'read' | 'show2' | 'show3' | 'next' | 'tell'
@@ -112,6 +113,10 @@ function LearnItem({ item, onDone }: { item: QItem; onDone: () => void }) {
 
   return (
     <div className="nml-body">
+      <Tour id="hifz-quran-lesson" steps={[
+        { el: '.hz-steps', title: 'Этапы урока', text: 'Слушать и читать → слова скрываются → по памяти. Можно вернуться назад кнопкой «Прочитать ещё».' },
+        { el: '.icon-btn[aria-label="Настройки"]', title: 'Настройки урока', text: 'Сколько слов скрывать, пословный перевод, скорость чтеца от 0,5× до 1,5×, повтор каждого аята и прослушивание цепочкой.' },
+      ]} />
       <div className="hz-steps">{steps.map((s, k) => <i key={s} className={k < i ? 'done' : k === i ? 'on' : ''} />)}</div>
       <div className="hz-step-name">{STEP_NAME[step]}</div>
 
