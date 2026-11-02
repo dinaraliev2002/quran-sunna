@@ -1395,3 +1395,4 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .mw-tip b { font-size: 14.5px; font-weight: 700; line-height: 1.3; }
 @keyframes mwtip { from { opacity: 0; } }
 .qh-my button.qh-tg { width: 52px; background: none; }
+.hz-card + .hz-card { margin-top: 12px; }
