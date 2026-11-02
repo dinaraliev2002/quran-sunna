@@ -62,6 +62,8 @@ let mirror = 0
 let waitTimer: ReturnType<typeof setTimeout> | undefined
 
 export const setReciter = (r: string) => { reciter = r }
+/** Скорость чтеца (заучивание: 0.5–1.5); при смене файла браузер берёт defaultPlaybackRate */
+export const setRate = (r: number) => { audio.defaultPlaybackRate = r; audio.playbackRate = r }
 
 export const usePlayer = create<PlayerState>((set, get) => {
   let objectUrl: string | null = null

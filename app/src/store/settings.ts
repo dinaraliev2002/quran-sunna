@@ -13,7 +13,7 @@ export interface LastRead { s: number; a: number; p: number }
 export type TaskId = 'read' | 'morning' | 'evening' | 'memo'
 interface Today { d: string; done: TaskId[]; pages: number[]; /** азкары: «глава:азкар» → сколько раз прочитан сегодня */ az?: Record<string, number>; /** заучивание: хадисы, выученные сегодня впервые */ hz?: string[]; /** заучивание Корана: сколько аятов выучено сегодня впервые */ qa?: number }
 
-interface Settings {
+export interface Settings {
   /** пройденные экскурсы по разделам (подсказки показываются один раз) */
   tours: string[]
   mode: ReadMode
@@ -47,7 +47,13 @@ interface Settings {
   hzAr: boolean // показывать арабский текст при чтении
   hzSet: SetId // набор, из которого берутся новые хадисы
   qhPerDay: number // заучивание Корана: новых аятов в день
-  qhDrills: boolean // упражнения: видно слово через одно, через два
+  qhDrill: 0 | 2 | 3 | 23 // упражнение: 2 — видно слово через одно, 3 — через два, 23 — оба по очереди, 0 — без упражнений
+  qhNext: boolean // упражнение «Продолжи аят»: видно только начало каждого аята
+  qhRate: number // скорость чтеца при заучивании, 0.5–1.5
+  qhWbw: boolean // пословный перевод в уроке (иначе обычный перевод под аятом)
+  qhChain: boolean // слушать цепочкой: 1 → 1–2 → 1–3
+  qhSet: string // подборка, из которой берутся новые аяты (lib/hifzQuran QSETS)
+  qhGoal: { t: string; by: number } | null // цель: «set:juz30» или «s:18» — выучить к дню by (dayNum)
   qhRepeat: number // сколько раз чтец повторяет каждый аят при прослушивании
   qhPos: { s: number; a: number } | null // откуда учить дальше (выбранная сура); null — 30-й джуз с конца
   hzRate: number // скорость озвучки хадисов
@@ -67,6 +73,9 @@ interface Progress {
   since: number // день первого входа (номер дня, lib/hifz dayNum)
   totalPages: number // сколько раз за всё время засчитана прочитанная страница (по одной в день на страницу)
   bestStreak: number
+  // заучивание Корана
+  qhRecent: string[] // последние отрывки, которые учили или повторяли (новые — первыми)
+  qhWeak: string[] // слабые места: отрывки, где в последний раз было «Плохо» или «Средне»
 }
 
 /** Активность по дням: номер дня → [страниц прочитано, хадисов выучено, повторов сделано] */
@@ -142,16 +151,24 @@ const DEFAULT_SETTINGS: Settings = {
   hzAr: false,
   hzSet: 'nawawi',
   qhPerDay: 3,
-  qhDrills: true,
+  qhDrill: 3,
+  qhNext: false,
+  qhRate: 1,
+  qhWbw: true,
+  qhChain: false,
+  qhSet: 'juz30',
+  qhGoal: null,
   qhRepeat: 3,
   qhPos: null,
   hzRate: 1,
   hdAr: false, // арабский текст хадисов — по умолчанию выключен (новое имя, чтобы не взять старое сохранённое «вкл»)
 }
+/** Последние отрывки Корана: этот — первым, без повторов, не больше 6 */
+const addRecent = (l: string[], key: string) => [key, ...l.filter((k) => k !== key)].slice(0, 6)
 // YYYY-MM-DD в местном времени (вручную — не зависим от языковых форматов браузера)
 export const dayStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const emptyToday = (): Today => ({ d: dayStr(), done: [], pages: [] })
-const DEFAULT_PROGRESS: Progress = { lastRead: null, recent: [], streak: 0, lastDay: '', today: emptyToday(), hadithLast: null, storyLast: null, since: 0, totalPages: 0, bestStreak: 0 }
+const DEFAULT_PROGRESS: Progress = { lastRead: null, recent: [], streak: 0, lastDay: '', today: emptyToday(), hadithLast: null, storyLast: null, since: 0, totalPages: 0, bestStreak: 0, qhRecent: [], qhWeak: [] }
 
 // Отдельные ключи: у CloudStorage Telegram лимит 4096 символов на значение
 const SETTINGS_KEY = 'settings_v1'
@@ -349,18 +366,26 @@ export const useStore = create<Store>((set, get) => ({
       qhifz: { ...get().qhifz, [key]: schedule(undefined, 'good') },
       today: { ...today, qa: (today.qa ?? 0) + (+m[3] - +m[2] + 1) },
       qhPos: { s: +m[1], a: +m[3] + 1 },
+      qhRecent: addRecent(get().qhRecent, key),
       act: bumpAct(get().act, 1),
     })
     persist(get())
   },
   qhGrade: (key, grade) => {
-    set({ qhifz: { ...get().qhifz, [key]: schedule(get().qhifz[key], grade, dayNum()) }, act: bumpAct(get().act, 2) })
+    const weak = get().qhWeak.filter((k) => k !== key)
+    set({
+      qhifz: { ...get().qhifz, [key]: schedule(get().qhifz[key], grade, dayNum()) },
+      qhRecent: addRecent(get().qhRecent, key),
+      qhWeak: grade === 'good' ? weak : [key, ...weak].slice(0, 40),
+      act: bumpAct(get().act, 2),
+    })
     persist(get())
   },
   qhReset: (s, key) => {
     const h = { ...get().qhifz }
     for (const k of Object.keys(h)) if (key ? k === key : k.startsWith(s + ':')) delete h[k]
-    set({ qhifz: h })
+    const keep = (k: string) => k in h
+    set({ qhifz: h, qhRecent: get().qhRecent.filter(keep), qhWeak: get().qhWeak.filter(keep) })
     persist(get())
   },
   hifzGrade: (key, grade) => {

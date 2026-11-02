@@ -31,26 +31,56 @@ export function coveredAyahs(cards: Record<string, HifzCard>, s: number) {
   return out
 }
 
-/** Откуда начать новый отрывок: выбранное место (если ещё не учено), иначе первый неначатый аят 30-го джуза с конца */
-export function nextStart(cards: Record<string, HifzCard>, pos: { s: number; a: number } | null, ayahCount: (s: number) => number) {
+/** Отрезок для заучивания: сура, с аята a по b (b не задан — до конца суры) */
+export interface QRange { s: number; a?: number; b?: number }
+/** Подборка: что учить по порядку */
+export interface QSet { id: string; name: string; sub: string; why?: string; ranges: QRange[] }
+const whole = (...ids: number[]) => ids.map((s) => ({ s }))
+export const QSETS: QSet[] = [
+  { id: 'juz30', name: '30-й джуз · с конца', sub: 'ан-Нас, аль-Фаляк, аль-Ихлас … ан-Наба', why: 'Короткие суры — с них обычно начинают', ranges: whole(...JUZ30) },
+  { id: 'salah', name: 'Для намаза', sub: 'аль-Фатиха и 10 коротких сур', why: 'Аль-Фатиха читается в каждом ракаате', ranges: whole(1, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 103) },
+  { id: 'kursi', name: 'Аят аль-Курси', sub: 'Аль-Бакара, 255', why: 'Величайший аят Корана (Муслим)', ranges: [{ s: 2, a: 255, b: 255 }] },
+  { id: 'baqara-end', name: 'Конец суры аль-Бакара', sub: 'Аль-Бакара, 285–286', why: 'Кто прочтёт их ночью, тому их будет достаточно (аль-Бухари, Муслим)', ranges: [{ s: 2, a: 285, b: 286 }] },
+  { id: 'kahf10', name: 'Начало суры аль-Кахф', sub: 'Аль-Кахф, 1–10', why: 'Кто выучит первые десять аятов, будет защищён от Даджаля (Муслим)', ranges: [{ s: 18, a: 1, b: 10 }] },
+  { id: 'mulk', name: 'Аль-Мульк', sub: '30 аятов', why: 'Сура заступится за читавшего её, пока ему не простят (ат-Тирмизи)', ranges: whole(67) },
+  { id: 'juz29', name: '29-й джуз', sub: 'аль-Мульк … аль-Мурсалят', ranges: whole(67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77) },
+  { id: 'popular', name: 'Известные суры', sub: 'Йа Син, ар-Рахман, аль-Ваки‘а, ас-Саджда', ranges: whole(36, 55, 56, 32) },
+  { id: 'kahf', name: 'Аль-Кахф', sub: '110 аятов', why: 'Сура, которую читают в пятницу', ranges: whole(18) },
+]
+export const qSet = (id: string) => QSETS.find((x) => x.id === id) ?? QSETS[0]
+
+/** Откуда начать новый отрывок: выбранное место (если ещё не учено), иначе первый неначатый аят подборки. end — последний аят отрезка */
+export function nextStart(cards: Record<string, HifzCard>, pos: { s: number; a: number } | null, ayahCount: (s: number) => number, set: QSet = QSETS[0]) {
   if (pos && pos.a <= ayahCount(pos.s)) {
     const cov = coveredAyahs(cards, pos.s)
     let a = pos.a
     while (a <= ayahCount(pos.s) && cov.has(a)) a++
-    if (a <= ayahCount(pos.s)) return { s: pos.s, a }
+    if (a <= ayahCount(pos.s)) return { s: pos.s, a, end: ayahCount(pos.s) }
   }
-  for (const s of JUZ30) {
-    const cov = coveredAyahs(cards, s)
-    for (let a = 1; a <= ayahCount(s); a++) if (!cov.has(a)) return { s, a }
+  for (const r of set.ranges) {
+    const cov = coveredAyahs(cards, r.s)
+    const end = r.b ?? ayahCount(r.s)
+    for (let a = r.a ?? 1; a <= end; a++) if (!cov.has(a)) return { s: r.s, a, end }
   }
   return null
 }
 
-/** Отрывок с аята a: до n аятов подряд (не дальше конца суры и уже выученных), не длиннее MAX_WORDS слов */
-export function passageFrom(ayahs: Ayah[], cards: Record<string, HifzCard>, s: number, a: number, n: number) {
+/** Сколько аятов подборки уже в заучивании и сколько всего */
+export function setProgress(cards: Record<string, HifzCard>, set: QSet, ayahCount: (s: number) => number) {
+  let done = 0, total = 0
+  for (const r of set.ranges) {
+    const cov = coveredAyahs(cards, r.s)
+    const end = r.b ?? ayahCount(r.s)
+    for (let a = r.a ?? 1; a <= end; a++) { total++; if (cov.has(a)) done++ }
+  }
+  return { done, total }
+}
+
+/** Отрывок с аята a: до n аятов подряд (не дальше end, конца суры и уже выученных), не длиннее MAX_WORDS слов */
+export function passageFrom(ayahs: Ayah[], cards: Record<string, HifzCard>, s: number, a: number, n: number, end = ayahs.length) {
   const cov = coveredAyahs(cards, s)
   let b = a, words = ayahs[a - 1]?.w.length ?? 0
-  while (b - a + 1 < n && b < ayahs.length && !cov.has(b + 1) && words + ayahs[b].w.length <= MAX_WORDS) { words += ayahs[b].w.length; b++ }
+  while (b - a + 1 < n && b < Math.min(end, ayahs.length) && !cov.has(b + 1) && words + ayahs[b].w.length <= MAX_WORDS) { words += ayahs[b].w.length; b++ }
   return { s, a, b, words }
 }
 
