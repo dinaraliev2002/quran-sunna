@@ -454,12 +454,6 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
       const byWidth = maxW ? (20 * lines.clientWidth) / maxW * (page <= 2 ? 0.86 : 0.995) : 20
       const byHeight = lines.clientHeight / 15 / 1.45
       m.style.fontSize = Math.min(byWidth, page <= 2 || scroll ? byWidth : byHeight).toFixed(2) + 'px'
-      // страховка: строки не должны вылезать за высоту (иначе номер страницы налезает на текст)
-      let fs = parseFloat(m.style.fontSize)
-      for (let k = 0; k < 4 && lines.scrollHeight > lines.clientHeight + 1; k++) {
-        fs *= (lines.clientHeight / lines.scrollHeight) * 0.99
-        m.style.fontSize = fs.toFixed(2) + 'px'
-      }
       // короткие строки (конец суры) не растягиваем на всю ширину — иначе между словами огромные пробелы
       lines.querySelectorAll<HTMLElement>('.ln.w').forEach((ln) => {
         let w = 0

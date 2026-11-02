@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPE, type UIEvent as RUE } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPE, type UIEvent as RUE } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Tour } from '../../components/Tour'
@@ -252,21 +252,6 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const renderMushaf = useCallback((p: number) => <MushafView page={p} tajweed={st.tajweed} playing={player.current} onAyahHold={onAyahHold} />, [st.tajweed, player.current, onAyahHold])
 
   // тап по тексту — показать/спрятать панели; прокрутка пальцем — спрятать
-  // мусхаф: страница занимает место между верхней и нижней панелями — по их настоящей высоте, а не «на глаз»
-  const readerEl = useRef<HTMLDivElement>(null)
-  useLayoutEffect(() => {
-    const r = readerEl.current
-    if (!r) return
-    const measure = () => {
-      const top = r.querySelector<HTMLElement>('.rtop'), bar = r.querySelector<HTMLElement>('.rbar')
-      if (top) r.style.setProperty('--mus-top', top.offsetTop + top.offsetHeight + 8 + 'px')
-      if (bar) r.style.setProperty('--mus-bot', Math.max(0, r.clientHeight - bar.offsetTop) + 8 + 'px')
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(r)
-    return () => ro.disconnect()
-  }, [])
   const onViewDown = (e: RPE) => {
     gesture.current = { ...gesture.current, x: e.clientX, y: e.clientY, t: e.timeStamp, lastTouch: Date.now() }
   }
@@ -334,7 +319,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const playing = player.status === 'playing' || player.status === 'loading'
 
   return (
-    <div ref={readerEl} className={'reader' + (bare ? ' bare' : '') + (mode === 'mushaf' ? ' m-mushaf' : '')} style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
+    <div className={'reader' + (bare ? ' bare' : '') + (mode === 'mushaf' ? ' m-mushaf' : '')} style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
       <div className="view" onPointerDown={onViewDown} onPointerUp={onViewUp} onScrollCapture={onViewScroll}
         onWheel={() => { gesture.current.lastTouch = Date.now() }}>
         {mode === 'sura' && (
