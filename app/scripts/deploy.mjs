@@ -31,17 +31,22 @@ function copyDir(from, to) {
 
 const dir = mkdtempSync(join(tmpdir(), 'deploy-'))
 try {
-  run(`git clone -q --depth 1 --branch gh-pages --single-branch "${remote}" .`, dir)
   if (target === 'test') {
-    rmSync(join(dir, 'test'), { recursive: true, force: true })
+    // тестовая: скачиваем только список файлов, без содержимого (на медленном интернете полный сайт качается долго)
+    // и заменяем в нём одну папку test/ — остальное в коммите остаётся как было
+    run(`git clone -q --depth 1 --filter=blob:none --no-checkout --branch gh-pages --single-branch "${remote}" .`, dir)
+    run('git read-tree HEAD', dir)
+    run('git rm -r -q --cached --ignore-unmatch test', dir)
     copyDir(dist, join(dir, 'test'))
+    run('git add test', dir)
   } else {
+    run(`git clone -q --depth 1 --branch gh-pages --single-branch "${remote}" .`, dir)
     for (const f of readdirSync(dir)) if (f !== '.git' && f !== 'test') rmSync(join(dir, f), { recursive: true, force: true })
     copyDir(dist, dir)
   }
   writeFileSync(join(dir, '.nojekyll'), '')
-  run('git add -A', dir)
-  const changed = execSync('git status --porcelain', { cwd: dir }).toString().trim()
+  run(target === 'test' ? 'git add .nojekyll' : 'git add -A', dir)
+  const changed = execSync('git diff --cached --name-only', { cwd: dir }).toString().trim()
   if (!changed) console.log('Изменений нет')
   else {
     run(`git ${who} commit -q -m "${target === 'test' ? 'Тестовая версия' : 'Публикация приложения'}"`, dir)
