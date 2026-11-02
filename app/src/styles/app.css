@@ -1358,7 +1358,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .qh-sw { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
 .qh-sw .t { flex: 1; display: flex; flex-direction: column; font-weight: 700; font-size: 15px; }
 .qh-sw .t small { font-weight: 500; font-size: 13px; color: var(--text-2); margin-top: 2px; }
-.qh-recent { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px 4px; padding: 0 16px 4px; scrollbar-width: none; }
+.qh-recent { display: flex; gap: 8px; overflow-x: auto; margin: 0 -18px 4px; padding: 0 18px 4px; scroll-padding-inline: 18px; scrollbar-width: none; }
 .qh-recent::-webkit-scrollbar { display: none; }
 .qh-recent button { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 14px; border-radius: 16px; background: var(--surface); text-align: left; min-width: 128px; }
 .qh-recent b { font-size: 14px; }
@@ -1378,7 +1378,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .qh-dot { width: 34px; height: 34px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--gold); color: #fff; flex: none; margin-inline-end: 6px; }
 .qh-dot .icon { width: 16px; height: 16px; }
 .qh-dot.on { background: var(--emerald); }
-.hz-sets.qh-sets { display: flex; overflow-x: auto; margin: 0 -18px; padding: 2px 18px 6px; gap: 8px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.hz-sets.qh-sets { display: flex; overflow-x: auto; margin: 0 -18px; padding: 2px 18px 6px; gap: 8px; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 18px; }
 .hz-sets.qh-sets::-webkit-scrollbar { display: none; }
 .hz-sets.qh-sets button { flex: none; width: 128px; scroll-snap-align: start; }
 .qh-my { display: flex; align-items: center; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line, rgba(127,127,127,.15)); }
