@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPE, type UIEvent as RUE } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPE, type UIEvent as RUE } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Tour } from '../../components/Tour'
@@ -252,6 +252,21 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const renderMushaf = useCallback((p: number) => <MushafView page={p} tajweed={st.tajweed} playing={player.current} onAyahHold={onAyahHold} />, [st.tajweed, player.current, onAyahHold])
 
   // тап по тексту — показать/спрятать панели; прокрутка пальцем — спрятать
+  // мусхаф: страница занимает место между верхней и нижней панелями — по их настоящей высоте, а не «на глаз»
+  const readerEl = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const r = readerEl.current
+    if (!r) return
+    const measure = () => {
+      const top = r.querySelector<HTMLElement>('.rtop'), bar = r.querySelector<HTMLElement>('.rbar')
+      if (top) r.style.setProperty('--mus-top', top.offsetTop + top.offsetHeight + 8 + 'px')
+      if (bar) r.style.setProperty('--mus-bot', Math.max(0, r.clientHeight - bar.offsetTop) + 8 + 'px')
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(r)
+    return () => ro.disconnect()
+  }, [])
   const onViewDown = (e: RPE) => {
     gesture.current = { ...gesture.current, x: e.clientX, y: e.clientY, t: e.timeStamp, lastTouch: Date.now() }
   }
@@ -260,8 +275,15 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     const moved = Math.hypot(e.clientX - g.x, e.clientY - g.y)
     if (moved > 8 || e.timeStamp - g.t > 350) return
     if ((e.target as HTMLElement).closest('button, a, input, .a-act')) return
+    // мусхаф: на слове панели переключаются с небольшой задержкой — двойное нажатие (перевод слова) их не дёргает
+    if (mode === 'mushaf' && (e.target as HTMLElement).closest('.mushaf .ln.w span[data-k]:not([data-e])')) {
+      if (tapTimer.current) { clearTimeout(tapTimer.current); tapTimer.current = undefined; return }
+      tapTimer.current = setTimeout(() => { tapTimer.current = undefined; setBare((b) => !b) }, 320)
+      return
+    }
     setBare((b) => !b)
   }
+  const tapTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const pageTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const onViewScroll = (e: RUE) => {
     const el = e.target as Element
@@ -312,7 +334,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const playing = player.status === 'playing' || player.status === 'loading'
 
   return (
-    <div className={'reader' + (bare ? ' bare' : '') + (mode === 'mushaf' ? ' m-mushaf' : '')} style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
+    <div ref={readerEl} className={'reader' + (bare ? ' bare' : '') + (mode === 'mushaf' ? ' m-mushaf' : '')} style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
       <div className="view" onPointerDown={onViewDown} onPointerUp={onViewUp} onScrollCapture={onViewScroll}
         onWheel={() => { gesture.current.lastTouch = Date.now() }}>
         {mode === 'sura' && (
