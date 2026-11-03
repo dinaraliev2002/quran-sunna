@@ -7,6 +7,7 @@ import { haptic } from '../../../lib/telegram'
 import { useStore } from '../../../store/settings'
 import { QpcText } from '../views'
 import { TafsirText } from '../TafsirText'
+import { TafsirAudio } from '../../../components/TafsirAudio'
 import { AsbabBlock } from '../Asbab'
 import { KulievBlock, SajdaBlock } from '../Kuliev'
 import { LearnMenu } from './LearnMenu'
@@ -114,6 +115,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
             <div className="as-label">Тафсир ас-Саади{range ? ` · ${range}` : ''}</div>
             {tf === undefined && <div className="loading" style={{ height: 80 }}>Загрузка…</div>}
             {tf !== undefined && !t && <div className="empty">Для этого аята тафсир не найден</div>}
+            <TafsirAudio key={'ta' + key} surah={surah.id} ayah={cur} total={surah.ayahs} />
             {t && <TafsirText text={t.text} />}
             <div className="tafsir-hint">Свайп влево — следующий аят, вправо — предыдущий</div>
           </div>
