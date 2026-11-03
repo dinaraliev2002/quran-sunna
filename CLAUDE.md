@@ -8,19 +8,20 @@
 
 | Папка | Что там | Правило |
 |---|---|---|
-| `types/` | Модели данных (Surah, Ayah, Hadith, настройки…), один файл — одна тема | Только `type`/`interface`, без логики |
-| `lib/` | Логика без интерфейса: загрузка данных, кэш, офлайн, заучивание, поиск | Не импортирует ничего из `screens/` и `components/` |
+| `types/` | Модели данных: `quran`, `hadith`, `azkar`, `names`, `hifz`, `hifzQuran`, `asbab`, `kuliev`, `narrators`, `news`, `player`, `settings` | Только `type`/`interface`, без логики. Старые файлы (`lib/data`, `store/settings`…) пересылают типы — новые импорты брать прямо из `types/` |
+| `lib/` | Логика без интерфейса: загрузка данных, кэш, офлайн, заучивание, поиск, передатчики (`narrators`), новости (`news`), раскладка мусхафа (`mushafLayout`), `plural` | Не импортирует ничего из `screens/` и `components/` |
+| `hooks/` | Связка логики с экраном (то, что в SwiftUI называют ViewModel): `useQuranMeta`, `useWbw`, `useQuranHifz`, `useLastRead`, `usePageReadTimer`, `useFlashAyah`, `useNarratorLink`, жесты (`useSideSwipe`, `useSwipeToClose`, `useScrollThumb`, `useLandscape`) | Хук не рисует, только данные и поведение |
 | `store/` | Общее состояние (zustand): `settings` (сохраняемые настройки), `player` (Коран-плеер), `azkarAudio`, `ui` | Логика состояния здесь, а не в экранах |
-| `components/` | Общие куски интерфейса: `ui.tsx` (TabBar, Sheet, SurahRow), MiniPlayer, Icon, WhatsNew, Tour | Используются в нескольких разделах |
-| `screens/` | Экраны по разделам | Экран показывает; вычисления и загрузку берёт из `lib/` и `store/` |
+| `components/` | Общие куски интерфейса: `ui/` (TabBar, SurahRow, Sheet, SheetHead — по файлу), MiniPlayer, Icon, WhatsNew, Tour | Используются в нескольких разделах |
+| `screens/` | Экраны по разделам | Экран показывает; вычисления и загрузку берёт из `lib/`, `hooks/` и `store/` |
 | `styles/` | `tokens.css` (цвета, отступы, темы), `app.css` (все стили) | Цвета только через токены |
 
 ### Разделы (`screens/`)
 - `Home.tsx` — главная (аят дня, ежедневные дела); `SurahList.tsx` — список сур; `Settings.tsx`, `Profile.tsx`, `Downloads.tsx`, `Reference.tsx`
-- `reader/` — чтение Корана: `Reader.tsx` (экран), `Pager.tsx` (листание мусхафа), `views.tsx` (сура, аят, пословный), `sheets.tsx` (нижние окна: меню, выбор суры, аят, закладки), `Asbab.tsx` (истории ниспослания), `Kuliev.tsx` + `KvFormat.tsx` (комментарии Кулиева), `TafsirText.tsx`, `Dial.tsx`
+- `reader/` — чтение Корана: `Reader.tsx` (экран), `Pager.tsx` (листание), `views/` (QpcText, AyahBlock, SuraView, PageAyahs, MushafView, AyahWords… — по файлу), `sheets/` (нижние окна: ModePop, MenuPanel, PickerSheet, MemoSheet, AyahSheet, LearnMenu, BookmarksSheet, ReaderSettingsSheet — по файлу), `MemoBar.tsx`, `tour.ts`, `Asbab.tsx` (истории ниспослания), `Kuliev.tsx` + `KvFormat.tsx` (комментарии Кулиева), `TafsirText.tsx`, `Dial.tsx`. Папки `views/` и `sheets/` импортируются через свой `index.ts`
 - `hadith/` — сборники → книги → хадисы, «Энциклопедия хадисов» (`Topic`, `EncHadith`), передатчики (`Narrators`), термины (`terms.ts`)
 - `azkar/` — «Крепость мусульманина»: категории → главы → азкары
-- `hifz/` — заучивание хадисов (`Hifz`, `Session`, `parts`) и Корана (`Quran`, `QuranSession`, `SplitEditor`)
+- `hifz/` — заучивание хадисов (`Hifz`, `Session`, `parts`, `SplitEditor`) и Корана: `Quran.tsx` + окна в `quran/` (цель, наборы, «Мой набор», выбор суры), `QuranSession.tsx` + части урока в `session/` (новое, повторение, прослушивание, по памяти, настройки, итог)
 - `names/` — 99 имён Аллаха и их заучивание
 - `Stories.tsx`, `StoryMenu.tsx` — вкладка «Истории» (асбаб + Кулиев подряд)
 
