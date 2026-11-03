@@ -55,12 +55,21 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   // (p = 0 — страница ещё не известна)
   const pinned = useRef<{ s: number; a: number; p: number } | null>(initAyah > 1 ? { s: initSurah, a: initAyah, p: Number(search.get('p')) || 0 } : null)
 
+  const { saveLast, fromLink } = useLastRead(search.get('from') === 'link')
+
   // точная страница стартового аята
   useEffect(() => {
     if (search.get('p')) return
     loadSurah(initSurah).then((ayahs) => {
       const a = ayahs.find((x) => x.n === initAyah)
-      if (a) { if (pinned.current) pinned.current.p = a.p; setPage(a.p) }
+      if (!a) return
+      if (pinned.current) {
+        pinned.current.p = a.p
+        // аят на той же странице, что открылась сначала (первая страница суры) — страница не сменится,
+        // и запоминание ниже не сработает; запоминаем сразу. В «Суре» место запоминает сама прокрутка
+        if (st.mode !== 'sura') saveLast(initSurah, initAyah, a.p)
+      }
+      setPage(a.p)
     })
   }, [])
 
@@ -75,8 +84,6 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const opened = surahs[surahId - 1]
   const pageSurah = opened.pages[0] <= page && page <= opened.pages[1] ? opened : surahByPage(surahs, page)
   const surah = mode === 'sura' ? surahs[surahId - 1] : pageSurah
-
-  const { saveLast, fromLink } = useLastRead(search.get('from') === 'link')
 
   useEffect(() => {
     if (mode === 'sura') return
