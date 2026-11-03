@@ -2,18 +2,8 @@
 // Источник: Са‘ид аль-Кахтани, «Толкование прекрасных имён Аллаха в свете Корана и Сунны» (пер. Э. Кулиева)
 import { DATA_BASE } from './data'
 import { cachedJson, dataKey } from './net'
-
-export interface AllahName {
-  n: number
-  ar: string // с огласовками
-  tr: string // транскрипция
-  st: number // позиция ударной буквы в tr (-1 — нет)
-  ru: string // значение
-  g: number // номер толкования в groups
-}
-/** Толкование — одно на несколько близких по смыслу имён */
-export interface NameGroup { title: string; text: string[]; ayahs: [number, number][]; url: string }
-export interface NamesData { names: AllahName[]; groups: NameGroup[]; source: string }
+import type { AllahName, NameGroup, NamesData } from '../types/names'
+export type { AllahName, NameGroup, NamesData }
 
 const NAMES_VERSION = 1
 let cache: Promise<NamesData> | null = null

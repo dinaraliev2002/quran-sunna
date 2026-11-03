@@ -3,6 +3,8 @@
 //  • длинные аяты: отрывок не длиннее MAX_WORDS слов (но хотя бы один аят).
 import { loadSurah, type Ayah } from './data'
 import { dayNum, LEARNED_STAGE, type HifzCard } from './hifz'
+import type { QRange, QSet, QItem } from '../types/hifzQuran'
+export type { QRange, QSet, QItem }
 
 /** Ключ отрывка: «сура:с-по» */
 export const qKey = (s: number, a: number, b: number) => `${s}:${a}-${b}`
@@ -49,10 +51,6 @@ export function coveredAyahs(cards: Record<string, HifzCard>, s: number) {
   return out
 }
 
-/** Отрезок для заучивания: сура, с аята a по b (b не задан — до конца суры) */
-export interface QRange { s: number; a?: number; b?: number }
-/** Подборка: что учить по порядку */
-export interface QSet { id: string; name: string; /** название на арабском и короткое — для карточки */ ar: string; short: string; sub: string; why?: string; ranges: QRange[] }
 const whole = (...ids: number[]) => ids.map((s) => ({ s }))
 export const QSETS: QSet[] = [
   { id: 'juz30', name: '30-й джуз · с конца', ar: 'جزء عمّ', short: '30-й джуз', sub: 'ан-Нас, аль-Фаляк, аль-Ихлас … ан-Наба', why: 'Короткие суры — с них обычно начинают', ranges: whole(...JUZ30) },
@@ -125,8 +123,6 @@ export function passageFrom(ayahs: Ayah[], cards: Record<string, HifzCard>, s: n
   while (b - a + 1 < n && b < Math.min(end, ayahs.length) && !cov.has(b + 1) && words + ayahs[b].w.length <= MAX_WORDS) { words += ayahs[b].w.length; b++ }
   return { s, a, b, words }
 }
-
-export interface QItem { key: string; s: number; a: number; b: number; ayahs: Ayah[] }
 
 /** Отрывок по ключу — с текстом аятов */
 export async function loadQItem(key: string): Promise<QItem | null> {

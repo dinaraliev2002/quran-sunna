@@ -1,39 +1,11 @@
 // Загрузка подготовленных данных из public/data (см. scripts/fetch-data.mjs)
 import { cachedJson, dataKey } from './net'
-
-export interface Surah {
-  id: number
-  name: string // русская транслитерация
-  meaning: string
-  ar: string
-  ayahs: number
-  mk: boolean // мекканская
-  rev: number // порядок ниспослания
-  pages: [number, number]
-  bism: boolean
-}
-
-export interface Ayah {
-  n: number
-  p: number // страница мусхафа
-  j: number // джуз
-  r: number // четверть хизба 1–240 (хизб = ⌈r/4⌉)
-  rs?: 1 // с этого аята начинается четверть хизба
-  t: string // текст Усмани
-  tj: string // текст с разметкой таджвида
-  ku: string // перевод Кулиева
-  aa: string // перевод Абу Аделя
-  w: string[] // слова
-  g: string // глифы слов для шрифта страницы QPC (через пробел, в конце — знак конца аята)
-}
-
-/** Строка страницы мусхафа: [глиф QPC, "сура:аят", 1 если это знак конца аята] */
-export type MushafWord = [string, string, 0 | 1]
-export interface MushafPage {
-  p: number
-  lines: Record<string, MushafWord[]>
-  starts: [number, number][] // [сура, строка первого аята]
-}
+import type { Surah, Ayah, MushafWord, MushafPage, GlossaryItem, SajdaData } from '../types/quran'
+export type { Surah, Ayah, MushafWord, MushafPage, GlossaryItem, SajdaData }
+import type { AsbabPart, AsbabOpinion, AsbabStory, AsbabBook, AsbabIndex } from '../types/asbab'
+export type { AsbabPart, AsbabOpinion, AsbabStory, AsbabBook, AsbabIndex }
+import type { KulievIndex, KulievSurah } from '../types/kuliev'
+export type { KulievIndex, KulievSurah }
 
 export const TOTAL_PAGES = 604
 export const DATA_BASE = import.meta.env.BASE_URL + 'data/'
@@ -58,31 +30,6 @@ export const loadMushafPage = (p: number) => load<MushafPage>(`mushaf/${pad(p)}.
 /** Пословный перевод: по аятам — подписи к словам (пустая — слово переведено вместе с соседним) */
 export const loadWbw = (id: number) => load<string[][]>(`wbw/${pad(id)}.json`)
 export const loadMeta = () => load<{ juzPages: number[] }>('meta.json')
-
-/** История аята (причина ниспослания) — запись из книги по асбаб ан-нузуль */
-export interface AsbabPart { k: 'src' | 'isnad' | 'text' | 'note' | 'result' | 'foot'; t: string }
-/** Запись одной книги об истории: оценка автора и его текст */
-export interface AsbabOpinion {
-  id: string; book: string; page?: string; title: string; verdict?: string
-  /** вывод автора: yes — это причина ниспослания, no — нет, other — причина другая, weak — слабое */
-  sabab?: 'yes' | 'no' | 'other' | 'weak'
-  parts: AsbabPart[]
-}
-/** Карточка истории: текст из главной книги + мнения остальных книг о той же истории */
-export interface AsbabStory {
-  id: string; from: number; to: number; main: AsbabOpinion; opinions: AsbabOpinion[]
-  /** история обо всей суре (где и когда ниспослана) — «История суры» у заголовка, а не у аятов */
-  whole?: boolean
-}
-export interface AsbabBook { author: string; short: string; title: string; about: string; edition: string }
-/** Оглавление историй: книги и для каждой суры — диапазоны аятов [от, до], у которых есть истории */
-export interface AsbabIndex {
-  v: string; books: Record<string, AsbabBook>; s: Record<string, [number, number][]>
-  /** сколько историй у суры целиком (нет у старых файлов) */
-  w?: Record<string, number>
-  /** сколько историй у аятов суры */
-  n?: Record<string, number>
-}
 
 // Пока перевод пополняется, файлы не кэшируем на телефоне. Нет файлов (публикация без них) — раздела просто нет.
 // Оглавление берём всегда свежим, а файлы сур — с его версией, чтобы после обновления не показать старое.
@@ -115,21 +62,6 @@ export function loadAsbabSurah(id: number) {
 export const hasAsbab = (ix: AsbabIndex | null, surah: number, ayah: number) =>
   !!ix?.s[surah]?.some(([a, b]) => a <= ayah && ayah <= b)
 
-/** Комментарии к переводу Кулиева (издание Комплекса короля Фахда): вступления к сурам, пояснения к аятам, словарь, места поклонов.
- *  Авторский текст — файлов нет в публичной сборке, тогда раздела просто нет. */
-export interface KulievIndex {
-  v: string
-  /** по сурам: аяты, у которых есть пояснения, и есть ли вступление */
-  s: Record<string, { n: number[]; intro: boolean }>
-  /** места земных поклонов [сура, аят] */
-  sajda: [number, number][]
-}
-export interface KulievSurah { s: number; intro: string[]; notes: Record<string, string[][]> }
-export interface GlossaryItem { ar: string; tr: string; mean: string }
-export interface SajdaData {
-  places: { n: number; juz: number; surah: number; name: string; ayah: number; disputed: boolean }[]
-  note: string; dua_ar: string; dua_ru: string; dua_src: string
-}
 let kulievIndex: Promise<KulievIndex | null> | null = null
 export const loadKulievIndex = () => {
   if (!kulievIndex) {

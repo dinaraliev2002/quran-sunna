@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 import { cachedBlob } from '../lib/net'
+import type { Reciter, PauseMode, MemoOptions, Sleep } from '../types/player'
+export type { Reciter, PauseMode, MemoOptions, Sleep }
 
 // Чтецы: аудио по аятам (everyayah.com) + зеркало (quranicaudio). Если источник не отвечает — берём следующий.
 // У большинства чтецов на everyayah есть несколько вариантов качества (кбит/с) — 64 вдвое легче 128, на слух для речи почти то же.
-export interface Reciter { name: string; /** папка на everyayah по качеству, кбит/с */ folders: Record<number, string>; def: number }
+
 export const RECITERS: Record<string, Reciter> = {
   alafasy: { name: 'Мишари аль-Афаси', folders: { 64: 'Alafasy_64kbps', 128: 'Alafasy_128kbps' }, def: 128 },
   husary_m: { name: 'аль-Хусари (муаллим)', folders: { 128: 'Husary_Muallim_128kbps' }, def: 128 },
@@ -35,12 +37,8 @@ export const audioUrls = (reciter: string, key: string) => MIRRORS.map((m) => m 
 export const audioKey = (reciter: string, key: string) => `audio:${reciter}:${audioFile(key).slice(0, 6)}`
 const urls = audioUrls
 
-export type PauseMode = 0 | 2000 | 5000 | 'len'
-export interface MemoOptions { repeatEach: number; repeatRange: number; pause: PauseMode; hideText: boolean }
-
 /** Настройки плеера (из «Настройки плеера»); обновляются из lib/listen.ts */
 export const playerCfg = { gap: 0, next: 'stop' as 'stop' | 'next' | 'repeat', rate: 1, surahCount: (_s: number): number => 0 }
-export type Sleep = { mode: 'time'; until: number } | { mode: 'suras'; left: number }
 
 interface PlayerState {
   sleep: Sleep | null

@@ -5,45 +5,10 @@
 import { DATA_BASE } from './data'
 import { isSourcePara, loadBook, loadEnc, loadHadithIndex } from './hadith'
 import { cachedJson, dataKey } from './net'
+import type { HifzItem, HifzCard, Grade, MyHifz, SetId, Split } from '../types/hifz'
+export type { HifzItem, HifzCard, Grade, MyHifz, SetId, Split }
 
-export interface HifzItem {
-  /** ключ карточки повторения: префикс набора + номер («n1», «r13», «u3») */
-  key: string
-  /** номер для показа (в сборнике) */
-  id: number
-  /** заголовок в сборнике */
-  t: string
-  /** подсказка для повторения: «Расскажи хадис …» */
-  q: string
-  /** передатчик-сподвижник (может быть пустым — у своих хадисов) */
-  by: string
-  /** где приводится */
-  src: string
-  /** вводные слова перевода («Сообщается, что ‘Умар … сказал:») */
-  intro: string
-  /** что заучивается — абзацы перевода */
-  ru: string[]
-  /** [абзац, слово], с которого начинаются сами слова Пророка ﷺ */
-  start: [number, number]
-  /** подсказка «начало хадиса» */
-  hint: string
-  ar: string[]
-  /** озвучка (есть у готовых подборок) */
-  audio?: string
-  /** часть длинного хадиса: [номер части, всего частей] (ключ тогда «n2.1») */
-  part?: [number, number]
-  /** слова части среди всех слов хадиса (вводные + перевод): [с, до) — для озвучки части */
-  range?: [number, number]
-  /** у части — целый хадис, из которого она вырезана (чтобы переразбить) */
-  whole?: HifzItem
-}
 interface SetFile { id: string; name: string; items: Omit<HifzItem, 'key' | 'audio'>[] }
-
-/** Карточка в повторении: s — ступень (номер интервала), d — день следующего повтора */
-export interface HifzCard { s: number; d: number }
-export type Grade = 'bad' | 'mid' | 'good'
-/** Хадис в «Моём наборе»: номер, откуда (как в избранном: «c:сборник:книга:номер» или «e:id»), подсказка */
-export interface MyHifz { id: number; r: string; q: string }
 
 export const INTERVALS = [1, 3, 7, 14, 30, 60]
 /** С этой ступени хадис считается выученным (прошёл повтор через 2 недели) */
@@ -51,7 +16,6 @@ export const LEARNED_STAGE = 4
 /** Больше стольких новых хадисов в день — предупреждение */
 export const MAX_NEW = 5
 
-export type SetId = 'nawawi' | 'riyad' | 'my'
 export const SETS: { id: SetId; prefix: string; name: string; short: string; ar: string; size?: number }[] = [
   { id: 'nawawi', prefix: 'n', name: '40 хадисов ан-Навави', short: 'ан-Навави', ar: 'الأربعون النووية', size: 42 },
   { id: 'riyad', prefix: 'r', name: 'Рияд ас-Салихин: главное', short: 'Рияд ас-Салихин', ar: 'رياض الصالحين', size: 44 },
@@ -99,8 +63,6 @@ export const LONG3_WORDS = 110
 /** Слова самого хадиса (без «Я слышал, как Посланник Аллаха ﷺ сказал:») */
 export const bodyWords = (it: HifzItem) => it.ru.slice(it.start[0]).join(' ').split(/\s+/).filter(Boolean).length - it.start[1]
 
-/** Как разбит хадис: число частей (поровну, автоматически) или свои места разрезов — номера слов перевода, с которых начинаются части 2, 3, … */
-export type Split = number | number[]
 export const partsOf = (v: Split | undefined) => (Array.isArray(v) ? v.length + 1 : v ?? 1)
 
 /** Хадисы → то, что учится по отдельности: целый хадис или его части */
