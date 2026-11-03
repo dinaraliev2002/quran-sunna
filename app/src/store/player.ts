@@ -38,7 +38,13 @@ const urls = audioUrls
 export type PauseMode = 0 | 2000 | 5000 | 'len'
 export interface MemoOptions { repeatEach: number; repeatRange: number; pause: PauseMode; hideText: boolean }
 
+/** Настройки плеера (из «Настройки плеера»); обновляются из lib/listen.ts */
+export const playerCfg = { gap: 0, next: 'stop' as 'stop' | 'next' | 'repeat', rate: 1, surahCount: (_s: number): number => 0 }
+export type Sleep = { mode: 'time'; until: number } | { mode: 'suras'; left: number }
+
 interface PlayerState {
+  sleep: Sleep | null
+  setSleep: (s: Sleep | null) => void
   status: 'idle' | 'loading' | 'playing' | 'paused'
   queue: string[]
   index: number
@@ -111,14 +117,38 @@ function stopWA() {
 }
 
 export const usePlayer = create<PlayerState>((set, get) => {
+  let sleepTimer: ReturnType<typeof setTimeout> | undefined
+  /** Конец суры: продолжать ли дальше (следующая сура / повтор) с учётом таймера сна */
+  function surahEnd(): boolean {
+    const s = get()
+    if (s.memo || !s.queue.length) return false
+    if (s.sleep?.mode === 'suras') {
+      const left = s.sleep.left - 1
+      if (left <= 0) { set({ sleep: null }); return false }
+      set({ sleep: { mode: 'suras', left } })
+    }
+    const sid = +s.queue[s.queue.length - 1].split(':')[0]
+    if (playerCfg.next === 'stop') return false
+    const nsid = playerCfg.next === 'repeat' ? sid : sid + 1
+    const n = playerCfg.surahCount(nsid)
+    if (!n) return false
+    set({ queue: [...s.queue, ...Array.from({ length: n }, (_, i) => `${nsid}:${i + 1}`)] })
+    return true
+  }
+  const gapMs = (dur: number) => (playerCfg.gap < 0 ? dur * 1000 : playerCfg.gap)
+
   async function waRun(start: number) {
     const g = gen
-    const queue = get().queue
     const r = reciter
     let when = 0
     let n = 0
     try {
-      for (let i = start; i < queue.length; i++) {
+      for (let i = start; ; i++) {
+        let queue = get().queue
+        if (i >= queue.length) {
+          if (!surahEnd()) break
+          queue = get().queue
+        }
         const key = queue[i]
         const c = await clipOf(r, key)
         if (g !== gen) return
@@ -134,7 +164,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         src.start(t, c.off, c.dur)
         sources.push(src)
         src.onended = () => { sources = sources.filter((x) => x !== src) }
-        when = t + c.dur / rate
+        when = t + c.dur / rate + gapMs(c.dur / rate) / 1000
         const first = n++ === 0
         const show = () => { if (g !== gen) return; set({ index: i, current: key, status: ctx!.state === 'running' ? 'playing' : 'paused' }); mediaSession(key) }
         if (first) show(); else setTimeout(show, Math.max(0, (t - ctx!.currentTime) * 1000))
@@ -143,7 +173,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         if (old) clips.delete(r + old)
       }
       while (g === gen && ctx!.currentTime < when) await new Promise((ok) => setTimeout(ok, 150))
-      if (g === gen) { waOn = false; set({ status: 'idle', current: null, memo: null }) }
+      if (g === gen) { waOn = false; clearTimeout(sleepTimer); set({ status: 'idle', current: null, memo: null, sleep: null }) }
     } catch {
       if (g === gen) set({ status: 'paused', error: 'Не удалось загрузить аудио. Проверьте интернет.' })
     }
@@ -211,7 +241,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (endless || m.round < m.repeatRange) { set({ memo: { ...m, each: 1, round: m.round + 1 } }); return load(0) }
       return finish()
     }
-    if (s.index < s.queue.length - 1) load(s.index + 1)
+    if (s.index < s.queue.length - 1 || surahEnd()) load(s.index + 1)
     else finish()
   }
 
@@ -221,7 +251,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
   }
 
   function finish() {
-    set({ status: 'idle', current: null, memo: null })
+    clearTimeout(sleepTimer)
+    set({ status: 'idle', current: null, memo: null, sleep: null })
   }
 
   for (const el of els) {
@@ -239,13 +270,19 @@ export const usePlayer = create<PlayerState>((set, get) => {
     el.onended = () => {
       if (el !== audio || isSilent()) return
       const m = get().memo
-      const pause = m?.pause ?? 0
-      const ms = pause === 'len' ? audio.duration * 1000 : pause
+      const pause = m ? m.pause : 0
+      const ms = m ? (pause === 'len' ? audio.duration * 1000 : pause) : gapMs(audio.duration / (audio.playbackRate || 1))
       if (ms > 0) { set({ status: 'loading' }); waitTimer = setTimeout(advance, ms) } else advance()
     }
   }
 
   return {
+    sleep: null,
+    setSleep: (sl) => {
+      clearTimeout(sleepTimer)
+      set({ sleep: sl })
+      if (sl?.mode === 'time') sleepTimer = setTimeout(() => { usePlayer.getState().stop() }, Math.max(0, sl.until - Date.now()))
+    },
     status: 'idle',
     queue: [],
     index: 0,
@@ -255,7 +292,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
     play: (queue, start = 0, memo = null) => {
       clearTimeout(waitTimer)
       stopWA()
-      if (!memo && AC) {
+      if (!memo) setRate(playerCfg.rate)
+      if (!memo && AC && playerCfg.rate === 1) {
         // без повторов — встык через Web Audio
         for (const el of els) { el.pause(); el.removeAttribute('src') }
         ready = null
@@ -282,7 +320,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (s.status === 'playing' || s.status === 'loading') { clearTimeout(waitTimer); audio.pause(); set({ status: 'paused' }) }
       else if (s.current) { set({ status: 'loading' }); audio.play().catch(() => {}) }
     },
-    stop: () => { clearTimeout(waitTimer); stopWA(); ctx?.resume().catch(() => {}); ready = null; for (const el of els) { el.pause(); el.removeAttribute('src') }; set({ status: 'idle', current: null, memo: null, queue: [] }) },
+    stop: () => { clearTimeout(waitTimer); clearTimeout(sleepTimer); stopWA(); ctx?.resume().catch(() => {}); ready = null; for (const el of els) { el.pause(); el.removeAttribute('src') }; set({ status: 'idle', current: null, memo: null, queue: [], sleep: null }) },
   }
 })
 

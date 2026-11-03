@@ -1414,3 +1414,14 @@ div.srow { cursor: pointer; }
 .miniplayer .mp-next { transform: scaleX(-1); }
 .miniplayer .mp-btn:disabled { opacity: .3; }
 .miniplayer .mp-btn:not(.mp-x) { order: 1; }
+
+.miniplayer { flex-wrap: wrap; row-gap: 4px; padding-right: 6px; }
+.miniplayer .mp-info { flex: 1 1 100%; }
+.miniplayer .mp-rate { position: relative; margin-right: auto; }
+.miniplayer .mp-chip { height: 34px; min-width: 46px; padding: 0 10px; border-radius: 17px; border: 1px solid var(--line); font-size: 13px; font-weight: 800; color: var(--text); background: transparent; }
+.miniplayer .mp-pop { position: absolute; bottom: 42px; left: 0; display: flex; gap: 4px; padding: 6px; border-radius: 16px; box-shadow: 0 8px 22px rgba(0, 0, 0, .2); z-index: 3; }
+.miniplayer .mp-pop button { height: 34px; padding: 0 10px; border-radius: 12px; font-size: 13px; font-weight: 800; color: var(--text); }
+.miniplayer .mp-pop button.on { background: var(--gold); color: var(--on-gold); }
+.miniplayer .mp-sleep.on { color: var(--gold); background: color-mix(in srgb, var(--gold) 18%, transparent); }
+.pills + .pills { margin-top: 8px; }
+.hint { display: block; margin-top: 6px; font-size: 12px; color: var(--text-2); }

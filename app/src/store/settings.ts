@@ -49,6 +49,15 @@ export interface Settings {
   qhPerDay: number // заучивание Корана: новых аятов в день
   qhDrill: 0 | 2 | 3 | 23 // упражнение: 2 — видно слово через одно, 3 — через два, 23 — оба по очереди, 0 — без упражнений
   qhNext: boolean // упражнение «Продолжи аят»: видно только начало каждого аята
+  plRate: number // плеер: скорость 0.75–1.5
+  plGap: number // плеер: пауза между аятами, мс; -1 — «как длина аята»
+  plNext: 'stop' | 'next' | 'repeat' // что после конца суры
+  plSleepMode: 'time' | 'suras' // таймер сна: по времени или по числу сур
+  plSleepMin: number
+  plSleepSuras: number
+  plFollow: boolean // листать страницы вслед за звуком
+  plResume: boolean // продолжать суру с места остановки
+  plPos: Record<number, number> // место остановки по сурам
   qhRate: number // скорость чтеца при заучивании, 0.5–1.5
   qhWbw: boolean // пословный перевод в уроке (иначе обычный перевод под аятом)
   qhChain: boolean // слушать цепочкой: 1 → 1–2 → 1–3
@@ -157,6 +166,15 @@ const DEFAULT_SETTINGS: Settings = {
   qhDrill: 3,
   qhNext: false,
   qhRate: 1,
+  plRate: 1,
+  plGap: 0,
+  plNext: 'stop',
+  plSleepMode: 'time',
+  plSleepMin: 30,
+  plSleepSuras: 1,
+  plFollow: true,
+  plResume: true,
+  plPos: {},
   qhWbw: true,
   qhChain: false,
   qhHide: [],

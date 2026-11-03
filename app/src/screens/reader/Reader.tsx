@@ -5,6 +5,7 @@ import { Tour } from '../../components/Tour'
 import { useQuranMeta } from '../../components/ui'
 import { juzByPage, loadMushafPage, loadSurah, surahByPage, surahGlyph, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
+import { setSurahCounts } from '../../lib/listen'
 import { RECITERS, setBitrates, setMediaTitle, setReciter, usePlayer, type MemoOptions } from '../../store/player'
 import { useStore, type ReadMode } from '../../store/settings'
 import { Dial } from './Dial'
@@ -59,6 +60,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   }, [])
 
   useEffect(() => { setBitrates(st.bitrates); setReciter(st.reciter) }, [st.reciter, st.bitrates])
+  useEffect(() => { setSurahCounts(surahs) }, [surahs])
   useEffect(() => { setMediaTitle((k) => { const [s, a] = k.split(':'); return `${surahs[+s - 1].name}, аят ${a}` }) }, [surahs])
 
   const mode = st.mode
@@ -223,7 +225,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
 
   // в постраничных режимах — перелистывать вслед за чтецом
   useEffect(() => {
-    if (!player.current || mode === 'sura') return
+    if (!player.current || mode === 'sura' || !st.plFollow) return
     const [s, a] = player.current.split(':').map(Number)
     loadSurah(s).then((ayahs) => { const p = ayahs.find((x) => x.n === a)?.p; if (p && p !== page) setPage(p) })
   }, [player.current, mode])

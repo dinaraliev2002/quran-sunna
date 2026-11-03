@@ -60,12 +60,13 @@ function TelegramBack() {
   return null
 }
 
+import { initPlayerSettings } from './lib/listen'
 import { MiniPlayer } from './components/MiniPlayer'
 
 export default function App() {
   const hydrated = useStore((s) => s.hydrated)
   useTheme()
-  useEffect(() => { hydrateStore(); cleanupOldData() }, [])
+  useEffect(() => { hydrateStore(); cleanupOldData(); initPlayerSettings() }, [])
 
   return (
     <HashRouter>

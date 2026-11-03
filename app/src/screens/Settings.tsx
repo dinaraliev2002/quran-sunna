@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { haptic } from '../lib/telegram'
 import { Icon } from '../components/Icon'
+import { PlayerSettings } from '../components/PlayerSettings'
 import { Sheet, SheetHead, TabBar } from '../components/ui'
 import { openBot, openSupport, tgUser } from '../lib/telegram'
 import { RECITERS, bitrateOf } from '../store/player'
@@ -19,6 +20,7 @@ export default function Settings() {
   const nav = useNavigate()
   const user = tgUser()
   const [open, setOpen] = useState<Picker>(null)
+  const [playerOpen, setPlayerOpen] = useState(false)
   const close = () => setOpen(null)
 
   const Choice = <T extends string>({ title, items, value, onPick }: { title: string; items: Record<T, string>; value: T; onPick: (v: T) => void }) => (
@@ -54,6 +56,7 @@ export default function Settings() {
       <div className="group-t">Аудио</div>
       <div className="group">
         <button className="sitem" onClick={() => setOpen('rec')}><span className="si" style={{ background: '#C08A2E' }}><Icon id="sound" /></span><span className="t">Чтец</span><span className="v">{(RECITERS[st.reciter] ?? RECITERS.alafasy).name} · {bitrateOf(st.reciter, st.bitrates)}</span><Icon id="right" className="icon chev" /></button>
+        <button className="sitem" onClick={() => setPlayerOpen(true)}><span className="si" style={{ background: '#2F7D6B' }}><Icon id="play" /></span><span className="t">Плеер</span><span className="v">Скорость, таймер сна, пауза</span><Icon id="right" className="icon chev" /></button>
       </div>
 
       <div className="group-t">Без интернета</div>
@@ -81,6 +84,7 @@ export default function Settings() {
       <div className="ver">Коран и Сунна · версия 0.1</div>
 
       {open === 'tr' && <Choice title="Перевод смыслов" items={TRANSLATIONS} value={st.translation} onPick={(v) => st.set({ translation: v })} />}
+      {playerOpen && <PlayerSettings onClose={() => setPlayerOpen(false)} />}
       {open === 'rec' && (
         <Sheet onClose={close}>
           <SheetHead title="Чтец" sub="Цифры справа — качество звука в кбит/с: 64 занимает вдвое меньше места" onClose={close} />
