@@ -50,37 +50,73 @@ interface PlayerState {
   stop: () => void
 }
 
-const audio = new Audio()
+// два плеера: пока играет один, второй уже загрузил следующий аят — на стыке нет паузы
+const els = [new Audio(), new Audio()]
+let audio = els[0]
 // короткая тишина: «разблокирует» звук на iPhone в момент нажатия, пока ищем файл аята
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='
 const isSilent = () => audio.src.startsWith('data:')
-audio.preload = 'auto'
-const preloader = new Audio()
-preloader.preload = 'auto'
+els.forEach((e) => { e.preload = 'auto' })
+const blobOf = new Map<HTMLAudioElement, string | null>() // blob-адрес, занятый плеером (чтобы освободить)
+let ready: { key: string; el: HTMLAudioElement } | null = null
 let reciter = 'alafasy'
 let mirror = 0
 let waitTimer: ReturnType<typeof setTimeout> | undefined
 
 export const setReciter = (r: string) => { reciter = r }
 /** Скорость чтеца (заучивание: 0.5–1.5); при смене файла браузер берёт defaultPlaybackRate */
-export const setRate = (r: number) => { audio.defaultPlaybackRate = r; audio.playbackRate = r }
+export const setRate = (r: number) => els.forEach((e) => { e.defaultPlaybackRate = r; e.playbackRate = r })
 
 export const usePlayer = create<PlayerState>((set, get) => {
-  let objectUrl: string | null = null
   async function load(i: number) {
     const { queue } = get()
     const key = queue[i]
     mirror = 0
     set({ index: i, current: key, status: 'loading', error: null })
+    // следующий аят уже подготовлен вторым плеером — включаем его без паузы
+    if (ready && ready.key === key && ready.el !== audio) {
+      const old = audio
+      audio = ready.el
+      ready = null
+      audio.currentTime = 0
+      audio.play().catch(() => { /* ошибка обработается в onerror */ })
+      old.pause()
+      prepare(i)
+      mediaSession(key)
+      return
+    }
+    ready = null
     // скачанный аят берём с телефона — мгновенно и без интернета
     const blob = await cachedBlob(audioKey(reciter, key))
     if (get().current !== key) return // пока искали, уже переключили
-    if (objectUrl) URL.revokeObjectURL(objectUrl)
-    objectUrl = blob ? URL.createObjectURL(blob) : null
-    audio.src = objectUrl ?? urls(reciter, key)[0]
+    release(audio)
+    const obj = blob ? URL.createObjectURL(blob) : null
+    blobOf.set(audio, obj)
+    audio.src = obj ?? urls(reciter, key)[0]
     audio.play().catch(() => { /* ошибка обработается в onerror */ })
-    if (queue[i + 1]) cachedBlob(audioKey(reciter, queue[i + 1])).then((b) => { if (!b) preloader.src = urls(reciter, queue[i + 1])[0] })
+    prepare(i)
     mediaSession(key)
+  }
+
+  function release(el: HTMLAudioElement) {
+    const u = blobOf.get(el)
+    if (u) URL.revokeObjectURL(u)
+    blobOf.set(el, null)
+  }
+
+  /** Загрузить следующий аят во втором плеере, пока играет текущий */
+  async function prepare(i: number) {
+    const next = get().queue[i + 1]
+    if (!next) return
+    const el = els.find((e) => e !== audio)!
+    const blob = await cachedBlob(audioKey(reciter, next))
+    if (get().queue[i] !== get().current || audio === el) return
+    release(el)
+    const obj = blob ? URL.createObjectURL(blob) : null
+    blobOf.set(el, obj)
+    el.src = obj ?? urls(reciter, next)[0]
+    el.load()
+    ready = { key: next, el }
   }
 
   function advance() {
@@ -107,22 +143,25 @@ export const usePlayer = create<PlayerState>((set, get) => {
     set({ status: 'idle', current: null, memo: null })
   }
 
-  audio.onplaying = () => { if (!isSilent()) set({ status: 'playing' }) }
-  audio.onpause = () => { if (get().status === 'playing') set({ status: 'paused' }) }
-  audio.onerror = () => {
-    const key = get().current
-    if (!key || isSilent()) return
-    const list = urls(reciter, key)
-    if (audio.src.startsWith('blob:')) { audio.src = list[0]; audio.play().catch(() => {}); return }
-    if (++mirror < list.length) { audio.src = list[mirror]; audio.play().catch(() => {}); return }
-    set({ status: 'paused', error: 'Не удалось загрузить аудио. Проверьте интернет.' })
-  }
-  audio.onended = () => {
-    if (isSilent()) return
-    const m = get().memo
-    const pause = m?.pause ?? 0
-    const ms = pause === 'len' ? audio.duration * 1000 : pause
-    if (ms > 0) { set({ status: 'loading' }); waitTimer = setTimeout(advance, ms) } else advance()
+  for (const el of els) {
+    el.onplaying = () => { if (el === audio && !isSilent()) set({ status: 'playing' }) }
+    el.onpause = () => { if (el === audio && get().status === 'playing') set({ status: 'paused' }) }
+    el.onerror = () => {
+      if (el !== audio) return
+      const key = get().current
+      if (!key || isSilent()) return
+      const list = urls(reciter, key)
+      if (audio.src.startsWith('blob:')) { audio.src = list[0]; audio.play().catch(() => {}); return }
+      if (++mirror < list.length) { audio.src = list[mirror]; audio.play().catch(() => {}); return }
+      set({ status: 'paused', error: 'Не удалось загрузить аудио. Проверьте интернет.' })
+    }
+    el.onended = () => {
+      if (el !== audio || isSilent()) return
+      const m = get().memo
+      const pause = m?.pause ?? 0
+      const ms = pause === 'len' ? audio.duration * 1000 : pause
+      if (ms > 0) { set({ status: 'loading' }); waitTimer = setTimeout(advance, ms) } else advance()
+    }
   }
 
   return {
@@ -136,8 +175,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
       clearTimeout(waitTimer)
       set({ queue, memo: memo ? { ...memo, each: 1, round: 1 } : null })
       window.dispatchEvent(new Event('quran-play')) // остановить аудио азкара, если играет
-      audio.src = SILENT
-      audio.play().catch(() => {})
+      ready = null
+      for (const el of els) { el.src = SILENT; el.play().catch(() => {}) }
       load(start)
     },
     toggle: () => {
@@ -145,7 +184,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (s.status === 'playing' || s.status === 'loading') { clearTimeout(waitTimer); audio.pause(); set({ status: 'paused' }) }
       else if (s.current) { set({ status: 'loading' }); audio.play().catch(() => {}) }
     },
-    stop: () => { clearTimeout(waitTimer); audio.pause(); audio.removeAttribute('src'); set({ status: 'idle', current: null, memo: null, queue: [] }) },
+    stop: () => { clearTimeout(waitTimer); ready = null; for (const el of els) { el.pause(); el.removeAttribute('src') }; set({ status: 'idle', current: null, memo: null, queue: [] }) },
   }
 })
 

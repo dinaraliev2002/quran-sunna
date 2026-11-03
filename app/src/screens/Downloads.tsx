@@ -172,16 +172,18 @@ export default function Downloads() {
         <Sheet onClose={() => setPickSurahs(false)} tall>
           <SheetHead title="Аудио по сурам" sub={recName} onClose={() => setPickSurahs(false)} />
           {job?.kind === 'audio' && <Progress id={job.id} />}
+          <p className="hz-how" style={{ margin: '0 16px 8px' }}>Нажимайте «Скачать» у любого числа сур подряд — они встанут в очередь и скачаются одна за другой.</p>
           <div className="body">
             {meta.surahs.map((s) => {
               const have = status.audio.perSurah.get(s.id) ?? 0
               const full = have >= s.ayahs
+              const queued = job?.id === 'audio:' + reciter && !!job.queued?.includes(s.id)
               return (
                 <div key={s.id} className="opt-row">
                   <div className="num-badge"><span>{s.id}</span></div>
                   <span>{s.name}<small>{s.ayahs} аятов{have && !full ? ` · скачано ${have}` : ''}</small></span>
-                  {full ? <Icon id="check" /> : (
-                    <button className="dl-link" disabled={busy} onClick={() => downloadAudio(reciter, [s], s.name)}>Скачать</button>
+                  {full ? <Icon id="check" /> : queued ? <small>В очереди…</small> : (
+                    <button className="dl-link" onClick={() => downloadAudio(reciter, [s], s.name)}>Скачать</button>
                   )}
                 </div>
               )

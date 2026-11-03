@@ -351,9 +351,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
           <button onClick={player.stop} aria-label="Стоп"><Icon id="close" /></button>
         </div>
       ) : (
-        mode !== 'mushaf' || player.status !== 'idle' ? (
-          <button className="fab" onClick={onFab} aria-label="Слушать"><Icon id={playing ? 'pause' : 'play'} /></button>
-        ) : null
+        <button className="fab" onClick={onFab} aria-label="Слушать"><Icon id={playing ? 'pause' : 'play'} /></button>
       )}
       {player.error && <div className="memobar glass" style={{ bottom: 'calc(var(--safe-bottom) + 170px)' }}><div className="t"><span>{player.error}</span></div></div>}
 

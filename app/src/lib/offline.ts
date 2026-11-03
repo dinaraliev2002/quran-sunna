@@ -7,10 +7,12 @@ import { cachedBuffer, cachedJson, dataKey, DATA_VERSION, downloadBlob } from '.
 import { audioKey, audioUrls } from '../store/player'
 
 export type JobKind = 'data' | 'fonts' | 'audio'
-interface Job { id: string; kind: JobKind; title: string; done: number; total: number; failed: number }
+interface Job { id: string; kind: JobKind; title: string; done: number; total: number; failed: number; /** суры, поставленные на скачивание (аудио) */ queued?: number[] }
 
 export const useDownloads = create<{ job: Job | null; version: number }>(() => ({ job: null, version: 0 }))
 let abort: AbortController | null = null
+// текущая очередь: пока идёт загрузка, в неё можно добавлять ещё (аудио нескольких сур подряд)
+let live: { id: string; tasks: (() => Promise<unknown>)[]; job: Job; next: () => number; spawn: () => void } | null = null
 
 const pad = (n: number) => String(n).padStart(3, '0')
 
@@ -22,22 +24,44 @@ export function dataFiles(): string[] {
   return f
 }
 
-async function run(id: string, kind: JobKind, title: string, tasks: (() => Promise<unknown>)[]) {
+async function run(id: string, kind: JobKind, title: string, tasks: (() => Promise<unknown>)[], surahIds?: number[]) {
+  const cur = live
+  if (cur) {
+    // уже качается аудио этого чтеца — дописываем в очередь, не блокируя кнопки
+    if (cur.id !== id || kind !== 'audio') return
+    cur.tasks.push(...tasks)
+    cur.job.total += tasks.length
+    cur.job.queued = [...new Set([...(cur.job.queued ?? []), ...(surahIds ?? [])])]
+    cur.job.title = 'Несколько сур'
+    useDownloads.setState({ job: { ...cur.job } })
+    cur.spawn()
+    return
+  }
   if (useDownloads.getState().job) return
   requestPersistence()
   abort = new AbortController()
-  const job: Job = { id, kind, title, done: 0, total: tasks.length, failed: 0 }
+  const max = kind === 'audio' ? 4 : 6
+  const job: Job = { id, kind, title, done: 0, total: tasks.length, failed: 0, queued: surahIds }
   useDownloads.setState({ job: { ...job } })
   let i = 0
+  let workers = 0
+  const running: Promise<void>[] = []
   const worker = async () => {
+    workers++
     while (i < tasks.length && !abort!.signal.aborted) {
       const t = tasks[i++]
       try { await t() } catch { if (!abort!.signal.aborted) job.failed++ }
       job.done++
       if (job.done % 5 === 0 || job.done === job.total) useDownloads.setState({ job: { ...job } })
     }
+    workers--
   }
-  await Promise.all(Array.from({ length: kind === 'audio' ? 4 : 6 }, worker))
+  const spawn = () => { while (workers < max && i < tasks.length) running.push(worker()) }
+  live = { id, tasks, job, next: () => i, spawn }
+  spawn()
+  // ждём, пока не разберут всю очередь (в неё могли дописать новое)
+  while (running.length) await running.shift()
+  live = null
   abort = null
   useDownloads.setState((s) => ({ job: null, version: s.version + 1 }))
 }
@@ -58,6 +82,8 @@ export async function downloadFonts(variant: string) {
 
 export async function downloadAudio(reciter: string, surahs: Surah[], title: string) {
   const have = new Set(await idbKeys(`audio:${reciter}:`))
+  const queued = new Set(useDownloads.getState().job?.queued ?? [])
+  surahs = surahs.filter((s) => !queued.has(s.id))
   const tasks: (() => Promise<unknown>)[] = []
   for (const s of surahs) for (let a = 1; a <= s.ayahs; a++) {
     const key = `${s.id}:${a}`
@@ -70,7 +96,7 @@ export async function downloadAudio(reciter: string, surahs: Surah[], title: str
       }
     })
   }
-  return run('audio:' + reciter, 'audio', title, tasks)
+  return run('audio:' + reciter, 'audio', title, tasks, surahs.map((s) => s.id))
 }
 
 // ---------- состояние «что уже скачано» ----------
