@@ -10,7 +10,7 @@ import { linesOf, MAX_AYAHS, myEntry, orderedSets, parseQKey, qSet, surahProgres
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import { HifzTabs, StageDots } from './parts'
-import { GearSheet } from './QuranSession'
+import { GearSheet } from './session/GearSheet'
 import { useQhToday, useNextPassage } from '../../hooks/useQuranHifz'
 import { setSize, drillText, rowText } from './quran/text'
 import { Goal } from './quran/Goal'
