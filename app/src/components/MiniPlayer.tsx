@@ -23,6 +23,14 @@ export function MiniPlayer() {
   const [speed, setSpeed] = useState(false)
   const [mini, setMini] = useState(false)
   const [, tick] = useState(0)
+  // над нижним меню — только на экранах, где оно есть; на остальных (главная) плеер прижат к низу
+  const [hasTab, setHasTab] = useState(false)
+  useEffect(() => {
+    const look = () => setHasTab(!!document.querySelector('.tabbar'))
+    look()
+    const ts = [60, 300, 900].map((ms) => setTimeout(look, ms))
+    return () => ts.forEach(clearTimeout)
+  }, [loc.pathname])
   useEffect(() => {
     if (p.sleep?.mode !== 'time') return
     const t = setInterval(() => tick((n) => n + 1), 15000)
@@ -63,7 +71,7 @@ export function MiniPlayer() {
   if (mini) {
     return (
       <>
-        <div className={'miniplayer glass mp-small' + (inReader ? ' in-reader' : '')}>
+        <div className={'miniplayer glass mp-small' + (inReader ? ' in-reader' : hasTab ? ' has-tab' : '')}>
           <button className="mp-btn mp-x" onClick={() => { haptic.tap(); setMini(false) }} aria-label="Развернуть плеер"><Icon id="up" /></button>
           {prevS}{prevA}{main}{nextA}{nextS}
           {closeBtn}
@@ -75,7 +83,7 @@ export function MiniPlayer() {
 
   return (
     <>
-      <div className={'miniplayer glass' + (inReader ? ' in-reader' : '')}>
+      <div className={'miniplayer glass' + (inReader ? ' in-reader' : hasTab ? ' has-tab' : '')}>
         <div className="mp-top">
           <button className="mp-info" onClick={() => { haptic.tap(); nav(`/read/${s}?a=${a}`) }}>
             <b>{sr?.name ?? `Сура ${s}`}</b>

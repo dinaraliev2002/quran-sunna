@@ -1450,3 +1450,8 @@ div.srow { cursor: pointer; }
 .miniplayer.mp-small .mp-side { width: 36px; height: 36px; }
 .miniplayer.mp-small .mp-surah { width: 32px; height: 32px; }
 .miniplayer.mp-small .mp-x { width: 34px; height: 34px; }
+
+/* плеер: без нижнего меню (главная) — у самого низа, над меню — только где оно есть */
+.miniplayer { bottom: calc(var(--safe-bottom) + 14px); }
+.miniplayer.has-tab { bottom: calc(var(--safe-bottom) + 96px); }
+.miniplayer.mp-small > .mp-x:last-child { order: 2; }
