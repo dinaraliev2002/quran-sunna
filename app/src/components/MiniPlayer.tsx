@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '../lib/telegram'
 import { usePlayer } from '../store/player'
@@ -50,26 +51,35 @@ export function MiniPlayer() {
   return (
     <>
       <div className={'miniplayer glass' + (inReader ? ' in-reader' : '')}>
-        <button className="mp-info" onClick={() => { haptic.tap(); nav(`/read/${s}?a=${a}`) }}>
-          <b>{sr?.name ?? `Сура ${s}`}</b>
-          <span>Аят {a} из {sr?.ayahs ?? ''}{sl ? ` · сон ${sl.mode === 'time' ? `${left} мин` : `${sl.left} ${sl.left === 1 ? 'сура' : 'суры'}`}` : ''}</span>
-        </button>
+        <div className="mp-top">
+          <button className="mp-info" onClick={() => { haptic.tap(); nav(`/read/${s}?a=${a}`) }}>
+            <b>{sr?.name ?? `Сура ${s}`}</b>
+            <span>Аят {a} из {sr?.ayahs ?? ''}{sl ? ` · сон ${sl.mode === 'time' ? `${left} мин` : `${sl.left} ${sl.left === 1 ? 'сура' : 'суры'}`}` : ''}</span>
+          </button>
+          <button className="mp-btn mp-x" onClick={() => { haptic.tap(); p.stop() }} aria-label="Закрыть плеер"><Icon id="close" /></button>
+        </div>
+        <div className="mp-mid">
+          <button className="mp-btn mp-side" disabled={p.index <= 0} onClick={() => { haptic.tap(); p.play(p.queue, p.index - 1, p.memo) }} aria-label="Предыдущий аят"><Icon id="back" /></button>
+          <button className="mp-btn mp-main" onClick={() => { haptic.tap(); p.toggle() }} aria-label={playing ? 'Пауза' : 'Слушать'}><Icon id={playing ? 'pause' : 'play'} /></button>
+          <button className="mp-btn mp-side" disabled={p.index >= p.queue.length - 1} onClick={() => { haptic.tap(); p.play(p.queue, p.index + 1, p.memo) }} aria-label="Следующий аят"><Icon id="back" className="icon mp-next" /></button>
+        </div>
         {!p.memo && (
-          <div className="mp-rate">
-            <button className="mp-chip" onClick={() => setSpeed(!speed)} aria-label="Скорость">{fmtRate(st.plRate)}</button>
-            {speed && (
-              <div className="mp-pop glass">
-                {RATES.map((r) => <button key={r} className={r === st.plRate ? 'on' : ''} onClick={() => setRate(r)}>{fmtRate(r)}</button>)}
-              </div>
-            )}
+          <div className="mp-bot">
+            <div className="mp-rate">
+              <button className="mp-chip" onClick={() => setSpeed(!speed)} aria-label="Скорость">{fmtRate(st.plRate)}</button>
+              {speed && (
+                <>
+                  {createPortal(<div className="mp-away" onClick={() => setSpeed(false)} />, document.body)}
+                  <div className="mp-pop glass">
+                    {RATES.map((r) => <button key={r} className={r === st.plRate ? 'on' : ''} onClick={() => setRate(r)}>{fmtRate(r)}</button>)}
+                  </div>
+                </>
+              )}
+            </div>
+            <button className={'mp-btn mp-x mp-sleep' + (sl ? ' on' : '')} onClick={toggleSleep} aria-label="Таймер сна"><Icon id="moon" /></button>
+            <button className="mp-btn mp-x" onClick={() => { haptic.tap(); setGear(true) }} aria-label="Настройки плеера"><Icon id="gear" /></button>
           </div>
         )}
-        {!p.memo && <button className={'mp-btn mp-x mp-sleep' + (sl ? ' on' : '')} onClick={toggleSleep} aria-label="Таймер сна"><Icon id="moon" /></button>}
-        <button className="mp-btn mp-x" disabled={p.index <= 0} onClick={() => { haptic.tap(); p.play(p.queue, p.index - 1, p.memo) }} aria-label="Предыдущий аят"><Icon id="back" /></button>
-        <button className="mp-btn" onClick={() => { haptic.tap(); p.toggle() }} aria-label={playing ? 'Пауза' : 'Слушать'}><Icon id={playing ? 'pause' : 'play'} /></button>
-        <button className="mp-btn mp-x" disabled={p.index >= p.queue.length - 1} onClick={() => { haptic.tap(); p.play(p.queue, p.index + 1, p.memo) }} aria-label="Следующий аят"><Icon id="back" className="icon mp-next" /></button>
-        {!p.memo && <button className="mp-btn mp-x" onClick={() => { haptic.tap(); setGear(true) }} aria-label="Настройки плеера"><Icon id="gear" /></button>}
-        <button className="mp-btn mp-x" onClick={() => { haptic.tap(); p.stop() }} aria-label="Закрыть плеер"><Icon id="close" /></button>
       </div>
       {gear && <PlayerSettings onClose={() => setGear(false)} />}
     </>

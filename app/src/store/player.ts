@@ -11,7 +11,7 @@ export const RECITERS: Record<string, Reciter> = {
   shuraym: { name: 'Сауд аш-Шурайм', folders: { 64: 'Saood_ash-Shuraym_64kbps', 128: 'Saood_ash-Shuraym_128kbps' }, def: 128 },
   shatri: { name: 'Абу Бакр аш-Шатри', folders: { 64: 'Abu_Bakr_Ash-Shaatree_64kbps', 128: 'Abu_Bakr_Ash-Shaatree_128kbps' }, def: 128 },
   dosari: { name: 'Ясир ад-Даусари', folders: { 128: 'Yasser_Ad-Dussary_128kbps' }, def: 128 },
-  muaiqly: { name: 'Махир аль-Муайкли', folders: { 128: 'MaherAlMuaiqly128kbps' }, def: 128 },
+  muaiqly: { name: 'Махир аль-Муайкли', folders: { 64: 'Maher_AlMuaiqly_64kbps', 128: 'MaherAlMuaiqly128kbps' }, def: 128 },
   juhani: { name: 'Абдуллах аль-Джухани', folders: { 128: 'Abdullaah_3awwaad_Al-Juhaynee_128kbps' }, def: 128 },
   qatami: { name: 'Насир аль-Катами', folders: { 128: 'Nasser_Alqatami_128kbps' }, def: 128 },
   ayman: { name: 'Аймен Сувейд', folders: { 64: 'Ayman_Sowaid_64kbps' }, def: 64 },

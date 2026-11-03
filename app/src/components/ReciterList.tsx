@@ -19,6 +19,7 @@ export function ReciterList({ onDone }: { onDone?: () => void }) {
         return (
           <div key={id} className="opt-row rec-row" role="button" tabIndex={0} onClick={() => pick(id)}>
             <span>{r.name}</span>
+            {opts.length === 1 && <small className="rec-only">только {opts[0]} кбит/с</small>}
             {opts.length > 1 && (
               <div className="rec-q" onClick={(e) => e.stopPropagation()}>
                 {opts.map((k) => (
