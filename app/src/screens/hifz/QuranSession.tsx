@@ -8,7 +8,8 @@ import { coveredAyahs, loadQItem, nextStart, passageFrom, qKey, qSet, type QItem
 import { haptic } from '../../lib/telegram'
 import { setBitrates, setRate, setReciter, usePlayer } from '../../store/player'
 import { useStore, type Settings } from '../../store/settings'
-import { AyahWords, useWbw } from '../reader/views'
+import { AyahWords } from '../reader/views'
+import { useWbw } from '../../hooks/useWbw'
 import { Tour } from '../../components/Tour'
 import { useQhToday } from './Quran'
 

@@ -11,7 +11,8 @@ import { Story, useAsbabIndex } from './reader/Asbab'
 import { KvNote } from './reader/KvFormat'
 import { StoryMarks, StoryMenu, StoryOutline, StorySearch, type OutlineItem, type StoryOverlay } from './StoryMenu'
 import { useKulievIndex } from './reader/Kuliev'
-import { QpcText, useSideSwipe } from './reader/views'
+import { QpcText } from './reader/views'
+import { useSideSwipe } from '../hooks/useSideSwipe'
 
 /** Суры, у которых есть истории (у аятов или у суры целиком), по порядку */
 export const storySurahs = (ix: AsbabIndex | null) =>
