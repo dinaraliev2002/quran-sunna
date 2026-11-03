@@ -11,7 +11,8 @@ import { shareCardImage } from '../lib/shareImage'
 import { APP_LINK, haptic, shareText, tgUser } from '../lib/telegram'
 import { useUi } from '../store/ui'
 import { useStore, type TaskId } from '../store/settings'
-import { setBitrates, setMediaTitle, setReciter, usePlayer } from '../store/player'
+import { listenSurah } from '../lib/listen'
+import { usePlayer } from '../store/player'
 import { useChapterProgress } from './azkar/Azkar'
 import { useHifzToday } from './hifz/parts'
 import { useQhToday } from './hifz/Quran'
@@ -112,14 +113,7 @@ export default function Home() {
     e.stopPropagation()
     haptic.tap()
     if (playingHere) return player.toggle()
-    const sr = meta?.surahs[s0 - 1]
-    if (!sr) return
-    const st = useStore.getState()
-    setBitrates(st.bitrates); setReciter(st.reciter)
-    const names = meta!.surahs
-    setMediaTitle((k) => { const [a, b] = k.split(':'); return `${names[+a - 1].name}, аят ${b}` })
-    const from = lastRead?.a ?? 1
-    usePlayer.getState().play(Array.from({ length: sr.ayahs - from + 1 }, (_, i) => `${s0}:${from + i}`), 0)
+    if (meta) listenSurah(meta.surahs, s0, lastRead?.a ?? 1)
   }
   const continueReading = () => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}&hl=1`) : nav('/read/1'))
   const pagesToday = today.pages.length

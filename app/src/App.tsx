@@ -60,6 +60,8 @@ function TelegramBack() {
   return null
 }
 
+import { MiniPlayer } from './components/MiniPlayer'
+
 export default function App() {
   const hydrated = useStore((s) => s.hydrated)
   useTheme()
@@ -69,6 +71,7 @@ export default function App() {
     <HashRouter>
       <IconSprite />
       <TelegramBack />
+      <MiniPlayer />
       <div className="app">
         {hydrated && (
           <Routes>

@@ -1399,3 +1399,15 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 /* мусхаф: короткие строки (конец суры) стоят по центру, а не растягиваются */
 .mushaf .ln.loose { justify-content: center; gap: .32em; }
 .h-continue { cursor: pointer; } button.h-play { border: 0; padding: 0; }
+/* мини-плеер */
+.miniplayer { position: fixed; left: calc(var(--safe-left) + 14px); right: calc(var(--safe-right) + 14px); bottom: calc(var(--safe-bottom) + 96px); max-width: 520px; margin: 0 auto; z-index: 21; border-radius: 22px; padding: 8px 8px 8px 16px; display: flex; align-items: center; gap: 6px; box-shadow: 0 10px 28px rgba(0, 0, 0, .18); }
+.miniplayer.in-reader { bottom: calc(var(--safe-bottom) + 84px); z-index: 8; }
+.miniplayer .mp-info { flex: 1; min-width: 0; text-align: left; }
+.miniplayer .mp-info b { display: block; font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.miniplayer .mp-info span { display: block; font-size: 12px; color: var(--text-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.miniplayer .mp-btn { width: 42px; height: 42px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--gold); color: var(--on-gold); border: 0; padding: 0; }
+.miniplayer .mp-btn .icon { width: 18px; height: 18px; }
+.miniplayer .mp-x { background: transparent; color: var(--text-2); }
+.srow .srow-play { width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center; background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold-deep, var(--gold)); border: 0; padding: 0; margin-left: 4px; }
+.srow .srow-play .icon { width: 15px; height: 15px; }
+div.srow { cursor: pointer; }

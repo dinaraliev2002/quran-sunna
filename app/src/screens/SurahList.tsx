@@ -3,6 +3,7 @@ import { haptic } from '../lib/telegram'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Tour } from '../components/Tour'
+import { listenSurah } from '../lib/listen'
 import { plural, SurahRow, TabBar, useQuranMeta } from '../components/ui'
 import { loadSurah, surahByPage, surahGlyph, TOTAL_PAGES } from '../lib/data'
 import { useAsbabIndex } from './reader/Asbab'
@@ -198,7 +199,7 @@ export default function SurahList() {
       )}
       {meta && list.length === 0 && !page && <div className="empty">Ничего не найдено</div>}
       {sort !== 'stories' && list.map((s) => (
-        <SurahRow key={s.id} s={s} sort={sort} current={lastRead?.s === s.id} onClick={() => nav(`/read/${s.id}`)} />
+        <SurahRow key={s.id} s={s} sort={sort} current={lastRead?.s === s.id} onClick={() => nav(`/read/${s.id}`)} onPlay={() => { haptic.tap(); listenSurah(meta!.surahs, s.id) }} />
       ))}
       {/* «Истории»: только суры, у которых есть истории ниспослания, — читать их подряд */}
       {sort === 'stories' && list.map((s) => {

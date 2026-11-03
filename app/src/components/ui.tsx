@@ -22,9 +22,9 @@ export function TabBar() {
   )
 }
 
-export function SurahRow({ s, sort, current, onClick }: { s: Surah; sort?: 'mushaf' | 'rev'; current?: boolean; onClick: () => void }) {
+export function SurahRow({ s, sort, current, onClick, onPlay }: { s: Surah; sort?: 'mushaf' | 'rev'; current?: boolean; onClick: () => void; onPlay?: () => void }) {
   return (
-    <button className={'srow' + (current ? ' cur' : '')} onClick={onClick}>
+    <div className={'srow' + (current ? ' cur' : '')} role="button" tabIndex={0} onClick={onClick} onKeyDown={(e) => { if (e.key === 'Enter') onClick() }}>
       <div className="num-badge"><span>{s.id}</span></div>
       <div className="t">
         <b>{s.name}</b>
@@ -34,7 +34,8 @@ export function SurahRow({ s, sort, current, onClick }: { s: Surah; sort?: 'mush
         <span className="sname">{surahGlyph(s.id)}</span>
         <span className={'tag ' + (s.mk ? 'mk' : 'md')}>{s.mk ? 'Мекканская' : 'Мединская'}</span>
       </div>
-    </button>
+      {onPlay && <button className="srow-play" onClick={(e) => { e.stopPropagation(); onPlay() }} aria-label={`Слушать суру ${s.name}`}><Icon id="play" /></button>}
+    </div>
   )
 }
 
