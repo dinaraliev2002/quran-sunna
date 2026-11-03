@@ -10,15 +10,28 @@
     "preview": "vite preview",
     "data": "node scripts/fetch-data.mjs",
     "deploy:test": "npm run build && node scripts/deploy.mjs test",
-    "release": "npm run build && node scripts/deploy.mjs release"
+    "release": "npm run build && node scripts/deploy.mjs release",
+    "sync": "npm run build && cap sync",
+    "icons": "capacitor-assets generate --iconBackgroundColor \"#0E4A31\" --iconBackgroundColorDark \"#0E4A31\" --splashBackgroundColor \"#0E1110\" --splashBackgroundColorDark \"#0E1110\""
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/screen-orientation": "^8.0.2",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

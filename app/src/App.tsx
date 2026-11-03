@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { IconSprite } from './components/Icon'
 import { cleanupOldData } from './lib/net'
-import { backButton, initTelegram, paintChrome, registerVisit, telegramScheme } from './lib/telegram'
+import { allowRotation, backButton, initTelegram, paintChrome, registerVisit, telegramScheme } from './lib/telegram'
 import Azkar from './screens/azkar/Azkar'
 import AzkarCategory from './screens/azkar/Category'
 import AzkarChapter from './screens/azkar/Chapter'
@@ -30,6 +30,8 @@ import { Glossary, SajdaList } from './screens/Reference'
 import { hydrateStore, useStore } from './store/settings'
 import { useUi } from './store/ui'
 
+// разделы, где на телефоне можно читать в горизонтальном положении
+const ROTATE = /^\/(read|stories|hadith\/|azkar\/(ch|cat)|glossary|sajda)/
 const ROOTS = ['/', '/quran', '/azkar', '/hadith', '/names', '/settings']
 
 function useTheme() {
@@ -57,6 +59,7 @@ function TelegramBack() {
   const loc = useLocation()
   const nav = useNavigate()
   useEffect(() => backButton(!ROOTS.includes(loc.pathname), () => nav(-1)), [loc.pathname, nav])
+  useEffect(() => allowRotation(ROTATE.test(loc.pathname)), [loc.pathname])
   return null
 }
 

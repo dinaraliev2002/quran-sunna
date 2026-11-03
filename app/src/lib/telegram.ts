@@ -1,6 +1,19 @@
 // Тонкая обёртка над Telegram WebApp API (скрипт telegram-web-app.js подключён в index.html).
 // В обычном браузере (без Telegram) всё работает через заглушки и localStorage.
 
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core'
+import { App as CapApp } from '@capacitor/app'
+import { Browser } from '@capacitor/browser'
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
+import { ScreenOrientation } from '@capacitor/screen-orientation'
+import { Share } from '@capacitor/share'
+import { SplashScreen } from '@capacitor/splash-screen'
+
+/** Запущено как установленное приложение (App Store / Google Play), а не в браузере или Telegram */
+export const isNative = Capacitor.isNativePlatform()
+const isIos = Capacitor.getPlatform() === 'ios'
+const impact = (style: ImpactStyle) => isNative && Haptics.impact({ style }).catch(() => {})
+
 type HapticStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'
 
 interface TgUser { id: number; first_name: string; last_name?: string; username?: string; photo_url?: string }
@@ -41,6 +54,7 @@ export const inTelegram = !!wa && !!wa.initData
 const at = (v: string) => inTelegram && wa!.isVersionAtLeast(v)
 
 export function initTelegram(onTheme: (scheme: 'light' | 'dark') => void) {
+  if (isNative) SplashScreen.hide().catch(() => {})
   if (!inTelegram) return
   wa!.ready()
   wa!.expand()
@@ -54,6 +68,11 @@ export function initTelegram(onTheme: (scheme: 'light' | 'dark') => void) {
 }
 
 export function paintChrome(bg: string) {
+  if (isNative) {
+    // значки в строке состояния: светлые на тёмной теме, тёмные на светлой
+    const dark = document.documentElement.dataset.theme !== 'light'
+    SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(() => {})
+  }
   if (!inTelegram) return
   if (at('6.1')) {
     wa!.setHeaderColor?.(bg)
@@ -67,18 +86,23 @@ export const telegramScheme = (): 'light' | 'dark' | null => (inTelegram ? wa!.c
 export const tgUser = (): TgUser | undefined => (inTelegram ? wa!.initDataUnsafe.user : undefined)
 
 export const haptic = {
-  tap: () => inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('light'),
-  tick: () => inTelegram && at('6.1') && wa!.HapticFeedback.selectionChanged(),
+  tap: () => (isNative ? impact(ImpactStyle.Light) : inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('light')),
+  tick: () => {
+    if (!isNative) return inTelegram && at('6.1') && wa!.HapticFeedback.selectionChanged()
+    Haptics.selectionStart().then(() => Haptics.selectionChanged()).then(() => Haptics.selectionEnd()).catch(() => {})
+  },
   /** перешли на другую страницу Корана — ощутимее, чем обычное листание */
-  page: () => inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('medium'),
-  success: () => inTelegram && at('6.1') && wa!.HapticFeedback.notificationOccurred('success'),
+  page: () => (isNative ? impact(ImpactStyle.Medium) : inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('medium')),
+  success: () => (isNative ? Haptics.notification({ type: NotificationType.Success }).catch(() => {}) : inTelegram && at('6.1') && wa!.HapticFeedback.notificationOccurred('success')),
 }
 
 export const APP_LINK ='https://t.me/quran_sunna_app_bot?startapp'
 
 /** Поделиться текстом: в Telegram — выбор чата, в браузере — системное меню или буфер обмена */
 export function shareText(text: string) {
-  if (inTelegram && at('6.1') && wa!.openTelegramLink) {
+  if (isNative) {
+    Share.share({ text: `${text}\n\n${APP_LINK}` }).catch(() => {})
+  } else if (inTelegram && at('6.1') && wa!.openTelegramLink) {
     wa!.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(APP_LINK)}&text=${encodeURIComponent(text)}`)
   } else if (navigator.share) {
     navigator.share({ text: `${text}\n\n${APP_LINK}` }).catch(() => {})
@@ -90,14 +114,17 @@ export function shareText(text: string) {
 /** Открыть бота приложения с командой (feedback — написать автору, support — поддержать проект) */
 export function openBot(start: 'feedback' | 'support') {
   const url = `https://t.me/quran_sunna_app_bot?start=${start}`
-  if (inTelegram && at('6.1') && wa!.openTelegramLink) wa!.openTelegramLink(url)
+  if (isNative) Browser.open({ url }).catch(() => {})
+  else if (inTelegram && at('6.1') && wa!.openTelegramLink) wa!.openTelegramLink(url)
   else window.open(url, '_blank')
 }
 
 const TRIBUTE_URL = 'https://t.me/tribute/app?startapp=dSRl'
 /** Открыть страницу поддержки проекта (Tribute) */
 export function openSupport() {
-  if (inTelegram && at('6.1') && wa!.openTelegramLink) wa!.openTelegramLink(TRIBUTE_URL)
+  // в магазинах платёжные ссылки не открываем: поддержка — через бота (там же можно написать автору)
+  if (isNative) openBot('support')
+  else if (inTelegram && at('6.1') && wa!.openTelegramLink) wa!.openTelegramLink(TRIBUTE_URL)
   else window.open(TRIBUTE_URL, '_blank')
 }
 
@@ -113,7 +140,43 @@ export function registerVisit() {
   } catch { /* не критично */ }
 }
 
+const isTablet = Math.min(screen.width, screen.height) >= 600
+
+/** Телефон из магазина: портрет везде, кроме разделов для чтения (там можно повернуть). Планшет: любой поворот. */
+export function allowRotation(free: boolean) {
+  if (!isNative) return
+  if (free || isTablet) ScreenOrientation.unlock().catch(() => {})
+  else ScreenOrientation.lock({ orientation: 'portrait' }).catch(() => {})
+}
+
+// Приложение из магазина: кнопка «Назад» на Android и свайп от левого края на iPhone — как в системных приложениях
+let nativeBack: (() => void) | null = null
+if (isNative) {
+  CapApp.addListener('backButton', () => {
+    if (nativeBack) nativeBack()
+    else CapApp.exitApp().catch(() => {})
+  })
+  if (isIos) {
+    let sx = 0, sy = 0, edge = false
+    document.addEventListener('touchstart', (e) => {
+      const t = e.touches[0]
+      sx = t.clientX; sy = t.clientY
+      edge = !!nativeBack && sx < 24
+    }, { passive: true })
+    document.addEventListener('touchend', (e) => {
+      if (!edge) return
+      edge = false
+      const t = e.changedTouches[0]
+      if (t.clientX - sx > 70 && Math.abs(t.clientY - sy) < 60) nativeBack?.()
+    }, { passive: true })
+  }
+}
+
 export function backButton(visible: boolean, onClick: () => void) {
+  if (isNative) {
+    nativeBack = visible ? onClick : null
+    return () => { if (nativeBack === onClick) nativeBack = null }
+  }
   if (!inTelegram || !at('6.1')) return () => {}
   if (visible) {
     wa!.BackButton.show()

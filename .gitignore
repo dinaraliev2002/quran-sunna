@@ -16,3 +16,8 @@ tools/
 # «Истории аятов»: книги и перевод — только локально, пока нет разрешения правообладателей
 app/asbab-src/
 app/public/data/asbab/
+
+# мусор и личное
+__pycache__/
+/*.ogg
+.claude/settings.local.json

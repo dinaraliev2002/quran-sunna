@@ -1,0 +1,66 @@
+# Облачная сборка приложения для магазинов (Codemagic, https://codemagic.io — для личных проектов есть бесплатные минуты).
+# Подробная инструкция: docs/04-stores.md
+#
+# Перед первым запуском в Codemagic (Teams → Integrations → App Store Connect) создаётся ключ доступа
+# с именем «codemagic» (см. инструкцию). Дальше сборка запускается кнопкой «Start new build».
+
+workflows:
+  ios-app-store:
+    name: iPhone — App Store (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      node: 22
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.quransunna.reader
+    scripts:
+      - name: Собрать сайт и перенести его в iOS-проект
+        script: |
+          cd app
+          npm ci
+          npm run build
+          npx cap sync ios
+      - name: Номер сборки
+        script: |
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/" app/ios/App/App.xcodeproj/project.pbxproj
+      - name: Подпись приложения
+        script: xcode-project use-profiles --project app/ios/App/App.xcodeproj
+      - name: Собрать .ipa
+        script: xcode-project build-ipa --project app/ios/App/App.xcodeproj --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-google-play:
+    name: Android — Google Play (.aab)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      node: 22
+      java: 21
+      android_signing:
+        - quran_sunna_keystore   # хранилище ключей, загруженное в Codemagic (Code signing identities → Android)
+    scripts:
+      - name: Собрать сайт и перенести его в Android-проект
+        script: |
+          cd app
+          npm ci
+          npm run build
+          npx cap sync android
+      - name: Номер сборки
+        script: |
+          sed -i "s/versionCode [0-9]*/versionCode $BUILD_NUMBER/" app/android/app/build.gradle
+      - name: Собрать .aab
+        script: |
+          cd app/android
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$CM_KEYSTORE_PATH" "$CM_KEYSTORE_PASSWORD" "$CM_KEY_ALIAS" "$CM_KEY_PASSWORD" > keystore.properties
+          ./gradlew bundleRelease
+    artifacts:
+      - app/android/app/build/outputs/bundle/release/*.aab
