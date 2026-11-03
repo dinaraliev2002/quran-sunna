@@ -56,5 +56,5 @@ export function useSwipeToClose(ref: RefObject<HTMLDivElement | null>, dimRef: R
       sheet.removeEventListener('touchend', onEnd)
       sheet.removeEventListener('touchcancel', onEnd)
     }
-  }, [])
+  }, [ref, dimRef])
 }

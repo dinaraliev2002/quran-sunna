@@ -55,7 +55,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   // (p = 0 — страница ещё не известна)
   const pinned = useRef<{ s: number; a: number; p: number } | null>(initAyah > 1 ? { s: initSurah, a: initAyah, p: Number(search.get('p')) || 0 } : null)
 
-  const { saveLast, fromLink } = useLastRead(search.get('from') === 'link')
+  const { saveLast, ownReading } = useLastRead(search.get('from') === 'link')
 
   // точная страница стартового аята
   useEffect(() => {
@@ -122,7 +122,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   // ----- навигация -----
   const goPage = useCallback(async (p: number) => {
     setOverlay(null)
-    fromLink.current = false
+    ownReading()
     if (mode !== 'sura') { setPage(p); return }
     const s = surahByPage(surahs, p)
     const ayahs = await loadSurah(s.id)
@@ -130,18 +130,18 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     setSurahId(s.id)
     setTarget((t) => ({ ayah: a.n, nonce: t.nonce + 1 }))
     setPage(p)
-  }, [mode, surahs])
+  }, [mode, surahs, ownReading])
 
   const goSurah = useCallback((s: Surah, ayah = 1) => {
     setOverlay(null)
-    fromLink.current = false
+    ownReading()
     if (mode === 'sura') { setSurahId(s.id); setTarget((t) => ({ ayah, nonce: t.nonce + 1 })); setPage(s.pages[0]) }
     else {
       setSurahId(s.id)
       if (ayah === 1) setPage(s.pages[0])
       else loadSurah(s.id).then((ayahs) => setPage(ayahs.find((x) => x.n === ayah)?.p ?? s.pages[0]))
     }
-  }, [mode])
+  }, [mode, ownReading])
 
   function switchMode(m: ReadMode) {
     setOverlay(null)

@@ -3,7 +3,7 @@ import { useStore } from '../store/settings'
 
 // ----- последнее место чтения -----
 // открыли по ссылке (из азкаров, 99 имён, «Аят дня») — это не «своё» чтение: «Продолжить чтение» не трогаем,
-// пока человек сам не перейдёт к другой суре или странице через выбор суры/колесо (тогда fromLink.current = false)
+// пока человек сам не перейдёт к другой суре или странице через выбор суры/колесо (тогда — ownReading())
 export function useLastRead(openedByLink: boolean) {
   const fromLink = useRef(openedByLink)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -27,5 +27,7 @@ export function useLastRead(openedByLink: boolean) {
     window.addEventListener('pagehide', flushLast)
     return () => { document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', flushLast); flushLast() }
   }, [flushLast])
-  return { saveLast, fromLink }
+  /** Человек сам выбрал суру или страницу — дальше это его чтение, место запоминаем */
+  const ownReading = useCallback(() => { fromLink.current = false }, [])
+  return { saveLast, ownReading }
 }
