@@ -11,6 +11,7 @@ import { AsbabBlock } from '../Asbab'
 import { KulievBlock, SajdaBlock } from '../Kuliev'
 import { LearnMenu } from './LearnMenu'
 import { TRANSLATIONS } from './translations'
+import { useScrollThumb } from '../../../hooks/useScrollThumb'
 
 /** Окно аята: арабский текст, перевод, тафсир ас-Саади. Листается свайпом влево/вправо по аятам. */
 export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
@@ -73,47 +74,8 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
 
   const range = t ? (t.from === t.to ? `аят ${t.from}` : `аяты ${t.from}–${t.to}`) : ''
 
-  // полоска прокрутки справа: где мы в тексте — в начале, в середине или у конца.
-  // Размер полоски — через состояние (меняется редко), а положение бегунка — напрямую на каждом кадре экрана:
-  // так он идёт ровно за пальцем, без перерисовки окна и без запаздывания.
-  const [bar, setBar] = useState<{ h: number; areaTop: number; areaH: number } | null>(null)
-  const thumbRef = useRef<HTMLElement>(null)
-  const frame = useRef(0)
-  const place = () => {
-    const el = bodyRef.current, th = thumbRef.current
-    if (!el || !th) return
-    const max = el.scrollHeight - el.clientHeight
-    const pos = max > 0 ? Math.min(1, Math.max(0, el.scrollTop / max)) : 0
-    th.style.transform = `translate3d(0, ${pos * (el.clientHeight - 16 - th.offsetHeight)}px, 0)`
-  }
-  // полоска видна только пока листают, через секунду после остановки гаснет
-  const barRef = useRef<HTMLDivElement>(null)
-  const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const onBodyScroll = () => {
-    cancelAnimationFrame(frame.current)
-    frame.current = requestAnimationFrame(place)
-    barRef.current?.classList.add('on')
-    clearTimeout(hideTimer.current)
-    hideTimer.current = setTimeout(() => barRef.current?.classList.remove('on'), 900)
-  }
-  const measure = () => {
-    const el = bodyRef.current
-    if (!el || el.scrollHeight <= el.clientHeight + 4) { setBar(null); return }
-    const areaH = el.clientHeight - 16
-    const next = { h: Math.round(Math.max(28, areaH * (el.clientHeight / el.scrollHeight))), areaTop: el.offsetTop + 8, areaH }
-    setBar((b) => (b && b.h === next.h && b.areaTop === next.areaTop && b.areaH === next.areaH ? b : next))
-    requestAnimationFrame(place)
-  }
-  useEffect(() => {
-    measure()
-    const el = bodyRef.current
-    if (!el) return
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    if (el.firstElementChild) ro.observe(el.firstElementChild)
-    return () => { ro.disconnect(); cancelAnimationFrame(frame.current); clearTimeout(hideTimer.current) }
-  }, [a, tf, cur]) // t пересоздаётся на каждой отрисовке — его в зависимости не берём
-  useEffect(() => { place() }, [bar])
+  // полоска прокрутки справа (t пересоздаётся на каждой отрисовке — его в зависимости не берём)
+  const { bar, barRef, thumbRef, onScroll: onBodyScroll } = useScrollThumb(bodyRef, [a, tf, cur])
   return (
     <Sheet onClose={onClose} tall>
       <div className="sh">
