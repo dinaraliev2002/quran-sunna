@@ -17,7 +17,7 @@ import { listenSurah } from '../lib/listen'
 import { usePlayer } from '../store/player'
 import { useChapterProgress } from './azkar/Azkar'
 import { useHifzToday } from './hifz/parts'
-import { useQhToday } from './hifz/Quran'
+import { useQhToday } from '../hooks/useQuranHifz'
 import { QpcText } from './reader/views'
 
 function hijriToday() {

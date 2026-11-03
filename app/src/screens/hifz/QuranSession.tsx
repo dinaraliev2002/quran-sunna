@@ -13,7 +13,7 @@ import { useStore, type Settings } from '../../store/settings'
 import { AyahWords } from '../reader/views'
 import { useWbw } from '../../hooks/useWbw'
 import { Tour } from '../../components/Tour'
-import { useQhToday } from './Quran'
+import { useQhToday } from '../../hooks/useQuranHifz'
 
 type Step = 'read' | 'show2' | 'show3' | 'next' | 'tell'
 const STEP_NAME: Record<Step, string> = {
