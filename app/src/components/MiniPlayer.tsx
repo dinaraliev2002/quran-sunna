@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '../lib/telegram'
+import { listenSurah } from '../lib/listen'
 import { usePlayer } from '../store/player'
 import { useStore } from '../store/settings'
 import { Icon } from './Icon'
@@ -20,6 +21,7 @@ export function MiniPlayer() {
   const loc = useLocation()
   const [gear, setGear] = useState(false)
   const [speed, setSpeed] = useState(false)
+  const [mini, setMini] = useState(false)
   const [, tick] = useState(0)
   useEffect(() => {
     if (p.sleep?.mode !== 'time') return
@@ -48,6 +50,29 @@ export function MiniPlayer() {
     setTimeout(() => usePlayer.getState().play(p.queue, p.index, p.memo), 0)
   }
 
+  const goSurah = (n: number) => { haptic.tap(); if (meta) listenSurah(meta.surahs, n, 1) }
+  const total = meta?.surahs.length ?? 114
+  const surahBtns = !p.memo
+  const prevS = surahBtns && <button className="mp-btn mp-side mp-surah" disabled={s <= 1} onClick={() => goSurah(s - 1)} aria-label="Предыдущая сура"><Icon id="skip" className="icon mp-next" /></button>
+  const nextS = surahBtns && <button className="mp-btn mp-side mp-surah" disabled={s >= total} onClick={() => goSurah(s + 1)} aria-label="Следующая сура"><Icon id="skip" /></button>
+  const prevA = <button className="mp-btn mp-side" disabled={p.index <= 0} onClick={() => { haptic.tap(); p.play(p.queue, p.index - 1, p.memo) }} aria-label="Предыдущий аят"><Icon id="back" /></button>
+  const nextA = <button className="mp-btn mp-side" disabled={p.index >= p.queue.length - 1} onClick={() => { haptic.tap(); p.play(p.queue, p.index + 1, p.memo) }} aria-label="Следующий аят"><Icon id="back" className="icon mp-next" /></button>
+  const main = <button className="mp-btn mp-main" onClick={() => { haptic.tap(); p.toggle() }} aria-label={playing ? 'Пауза' : 'Слушать'}><Icon id={playing ? 'pause' : 'play'} /></button>
+  const closeBtn = <button className="mp-btn mp-x" onClick={() => { haptic.tap(); p.stop() }} aria-label="Закрыть плеер"><Icon id="close" /></button>
+
+  if (mini) {
+    return (
+      <>
+        <div className={'miniplayer glass mp-small' + (inReader ? ' in-reader' : '')}>
+          <button className="mp-btn mp-x" onClick={() => { haptic.tap(); setMini(false) }} aria-label="Развернуть плеер"><Icon id="up" /></button>
+          {prevS}{prevA}{main}{nextA}{nextS}
+          {closeBtn}
+        </div>
+        {gear && <PlayerSettings onClose={() => setGear(false)} />}
+      </>
+    )
+  }
+
   return (
     <>
       <div className={'miniplayer glass' + (inReader ? ' in-reader' : '')}>
@@ -56,12 +81,11 @@ export function MiniPlayer() {
             <b>{sr?.name ?? `Сура ${s}`}</b>
             <span>Аят {a} из {sr?.ayahs ?? ''}{sl ? ` · сон ${sl.mode === 'time' ? `${left} мин` : `${sl.left} ${sl.left === 1 ? 'сура' : 'суры'}`}` : ''}</span>
           </button>
-          <button className="mp-btn mp-x" onClick={() => { haptic.tap(); p.stop() }} aria-label="Закрыть плеер"><Icon id="close" /></button>
+          <button className="mp-btn mp-x" onClick={() => { haptic.tap(); setMini(true) }} aria-label="Свернуть плеер"><Icon id="down" /></button>
+          {closeBtn}
         </div>
         <div className="mp-mid">
-          <button className="mp-btn mp-side" disabled={p.index <= 0} onClick={() => { haptic.tap(); p.play(p.queue, p.index - 1, p.memo) }} aria-label="Предыдущий аят"><Icon id="back" /></button>
-          <button className="mp-btn mp-main" onClick={() => { haptic.tap(); p.toggle() }} aria-label={playing ? 'Пауза' : 'Слушать'}><Icon id={playing ? 'pause' : 'play'} /></button>
-          <button className="mp-btn mp-side" disabled={p.index >= p.queue.length - 1} onClick={() => { haptic.tap(); p.play(p.queue, p.index + 1, p.memo) }} aria-label="Следующий аят"><Icon id="back" className="icon mp-next" /></button>
+          {prevS}{prevA}{main}{nextA}{nextS}
         </div>
         {!p.memo && (
           <div className="mp-bot">

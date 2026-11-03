@@ -57,11 +57,13 @@ export function MenuPanel({ sub, mode, tajweed, wbw, onWbw, onClose, onPlay, onB
           <div className="t"><b>Заучивание</b><span>Отрывок, повторы, скрытие текста</span></div>
           <Icon id="right" className="icon chev" />
         </button>
-        <button className="mrow" onClick={onWbw}>
-          <span className="mi"><Icon id="words" /></span>
-          <div className="t"><b>Пословный перевод</b><span>{mode === 'mushaf' ? 'Виден в режимах «Страница» и «Сура»' : 'Русская подпись под каждым словом'}</span></div>
-          <span className={'switch' + (wbw ? ' on' : '')} />
-        </button>
+        {mode !== 'mushaf' && (
+          <button className="mrow" onClick={onWbw}>
+            <span className="mi"><Icon id="words" /></span>
+            <div className="t"><b>Пословный перевод</b><span>Русская подпись под каждым словом</span></div>
+            <span className={'switch' + (wbw ? ' on' : '')} />
+          </button>
+        )}
         <button className="mrow" onClick={onTajweed}>
           <span className="mi"><Icon id="eye" /></span>
           <div className="t"><b>Таджвид</b><span>Цветная подсветка правил чтения</span></div>

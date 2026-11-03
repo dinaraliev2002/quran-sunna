@@ -1440,3 +1440,13 @@ div.srow { cursor: pointer; }
 .mp-away { position: fixed; inset: 0; z-index: 20; }
 .miniplayer .mp-pop { z-index: 3; }
 .rec-only { font-size: 11.5px; color: var(--text-2); font-weight: 700; }
+
+/* мини-плеер: кнопки сур по краям, свёрнутый вид одной узкой строкой */
+.miniplayer .mp-mid { gap: clamp(8px, 3.2vw, 20px); }
+.miniplayer .mp-surah { width: 38px; height: 38px; background: transparent; color: var(--gold-deep, var(--gold)); border: 1px solid var(--line); }
+.miniplayer .mp-surah .icon { width: 16px; height: 16px; }
+.miniplayer.mp-small { display: flex; align-items: center; justify-content: space-between; gap: 2px; padding: 6px 8px; }
+.miniplayer.mp-small .mp-main { width: 46px; height: 46px; }
+.miniplayer.mp-small .mp-side { width: 36px; height: 36px; }
+.miniplayer.mp-small .mp-surah { width: 32px; height: 32px; }
+.miniplayer.mp-small .mp-x { width: 34px; height: 34px; }
