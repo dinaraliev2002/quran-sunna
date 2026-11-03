@@ -342,7 +342,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
       {memo ? (
         <div className="memobar glass">
           <div className="ic"><Icon id="repeat" /></div>
-          <div className="t">
+          <div className="t" role="button" onClick={() => setOverlay('memo')}>
             <b>Заучивание · {player.queue[0]}–{player.queue[player.queue.length - 1]?.split(':')[1]}</b>
             <span>Аят {player.current?.split(':')[1]} · повтор {memo.each} из {memo.repeatEach} · круг {memo.round}{memo.repeatRange ? ` из ${memo.repeatRange}` : ''}</span>
             <div className="bar"><i style={{ width: `${((player.index + 1) / player.queue.length) * 100}%` }} /></div>
@@ -384,7 +384,8 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
           onClose={() => setOverlay(null)} onSurah={(s) => goSurah(s)} onPage={goPage} />
       )}
       {overlay === 'memo' && (
-        <MemoSheet surah={surah} startAyah={surah.id === surahId || mode !== 'sura' ? Math.min(topAyah.current, surah.ayahs) : 1}
+        <MemoSheet surah={memo && player.queue[0] ? surahs[+player.queue[0].split(':')[0] - 1] : surah} startAyah={surah.id === surahId || mode !== 'sura' ? Math.min(topAyah.current, surah.ayahs) : 1}
+          initial={memo && player.queue[0] ? { from: +player.queue[0].split(':')[1], to: +player.queue[player.queue.length - 1].split(':')[1], opts: { repeatEach: memo.repeatEach, repeatRange: memo.repeatRange, pause: memo.pause, hideText: memo.hideText } } : undefined}
           reciterName={(RECITERS[st.reciter] ?? RECITERS.alafasy).name} onClose={() => setOverlay(null)} onStart={startMemo} />
       )}
       {overlay === 'bookmarks' && (
