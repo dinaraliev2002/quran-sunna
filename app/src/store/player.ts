@@ -65,9 +65,90 @@ let waitTimer: ReturnType<typeof setTimeout> | undefined
 
 export const setReciter = (r: string) => { reciter = r }
 /** Скорость чтеца (заучивание: 0.5–1.5); при смене файла браузер берёт defaultPlaybackRate */
-export const setRate = (r: number) => els.forEach((e) => { e.defaultPlaybackRate = r; e.playbackRate = r })
+let rate = 1
+export const setRate = (r: number) => els.forEach((e) => { rate = r; e.defaultPlaybackRate = r; e.playbackRate = r })
+
+// ---------- обычное прослушивание: Web Audio, аяты встык без пауз ----------
+// Аяты — отдельные файлы; у <audio> между файлами всегда щель. Поэтому декодируем аяты заранее
+// и ставим их в расписание звуковой карты вплотную друг к другу (с точностью до сэмпла).
+// Лишнюю тишину в начале и конце файла обрезаем.
+interface Clip { buf: AudioBuffer; off: number; dur: number }
+const AC: typeof AudioContext | undefined = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+let ctx: AudioContext | null = null
+let gen = 0 // номер запуска: старые циклы замолкают
+let waOn = false
+let sources: AudioBufferSourceNode[] = []
+const clips = new Map<string, Promise<Clip>>()
+
+async function fetchClip(r: string, key: string): Promise<Clip> {
+  let data: ArrayBuffer | null = null
+  const blob = await cachedBlob(audioKey(r, key))
+  if (blob) data = await blob.arrayBuffer()
+  else for (const u of urls(r, key)) {
+    try { const res = await fetch(u); if (res.ok) { data = await res.arrayBuffer(); break } } catch { /* следующее зеркало */ }
+  }
+  if (!data) throw new Error('no audio')
+  const buf = await new Promise<AudioBuffer>((ok, bad) => ctx!.decodeAudioData(data!, ok, bad))
+  const ch = buf.getChannelData(0), th = 0.004
+  let a = 0, b = ch.length - 1
+  while (a < b && Math.abs(ch[a]) < th) a++
+  while (b > a && Math.abs(ch[b]) < th) b--
+  const sr = buf.sampleRate
+  const from = Math.max(0, a - Math.round(sr * 0.02)), to = Math.min(ch.length, b + Math.round(sr * 0.06))
+  return { buf, off: from / sr, dur: (to - from) / sr }
+}
+const clipOf = (r: string, key: string) => {
+  const id = r + key
+  let c = clips.get(id)
+  if (!c) { c = fetchClip(r, key); c.catch(() => clips.delete(id)); clips.set(id, c) }
+  return c
+}
+function stopWA() {
+  gen++
+  waOn = false
+  for (const s of sources) { try { s.stop() } catch { /* уже закончился */ } }
+  sources = []
+}
 
 export const usePlayer = create<PlayerState>((set, get) => {
+  async function waRun(start: number) {
+    const g = gen
+    const queue = get().queue
+    const r = reciter
+    let when = 0
+    let n = 0
+    try {
+      for (let i = start; i < queue.length; i++) {
+        const key = queue[i]
+        const c = await clipOf(r, key)
+        if (g !== gen) return
+        for (let k = 1; k <= 2; k++) if (queue[i + k]) clipOf(r, queue[i + k]).catch(() => {}) // заранее
+        // не уходим далеко вперёд по расписанию (пауза замораживает часы звуковой карты)
+        while (g === gen && when - ctx!.currentTime > 4) await new Promise((ok) => setTimeout(ok, 250))
+        if (g !== gen) return
+        const t = Math.max(ctx!.currentTime + 0.03, when)
+        const src = ctx!.createBufferSource()
+        src.buffer = c.buf
+        src.playbackRate.value = rate
+        src.connect(ctx!.destination)
+        src.start(t, c.off, c.dur)
+        sources.push(src)
+        src.onended = () => { sources = sources.filter((x) => x !== src) }
+        when = t + c.dur / rate
+        const first = n++ === 0
+        const show = () => { if (g !== gen) return; set({ index: i, current: key, status: ctx!.state === 'running' ? 'playing' : 'paused' }); mediaSession(key) }
+        if (first) show(); else setTimeout(show, Math.max(0, (t - ctx!.currentTime) * 1000))
+        // чистим память: старые аяты не держим
+        const old = queue[i - 3]
+        if (old) clips.delete(r + old)
+      }
+      while (g === gen && ctx!.currentTime < when) await new Promise((ok) => setTimeout(ok, 150))
+      if (g === gen) { waOn = false; set({ status: 'idle', current: null, memo: null }) }
+    } catch {
+      if (g === gen) set({ status: 'paused', error: 'Не удалось загрузить аудио. Проверьте интернет.' })
+    }
+  }
+
   async function load(i: number) {
     const { queue } = get()
     const key = queue[i]
@@ -173,6 +254,19 @@ export const usePlayer = create<PlayerState>((set, get) => {
     error: null,
     play: (queue, start = 0, memo = null) => {
       clearTimeout(waitTimer)
+      stopWA()
+      if (!memo && AC) {
+        // без повторов — встык через Web Audio
+        for (const el of els) { el.pause(); el.removeAttribute('src') }
+        ready = null
+        ctx = ctx ?? new AC()
+        ctx.resume().catch(() => {})
+        waOn = true
+        window.dispatchEvent(new Event('quran-play'))
+        set({ queue, memo: null, index: start, current: queue[start], status: 'loading', error: null })
+        waRun(start)
+        return
+      }
       set({ queue, memo: memo ? { ...memo, each: 1, round: 1 } : null })
       window.dispatchEvent(new Event('quran-play')) // остановить аудио азкара, если играет
       ready = null
@@ -181,10 +275,14 @@ export const usePlayer = create<PlayerState>((set, get) => {
     },
     toggle: () => {
       const s = get()
+      if (waOn && ctx) {
+        if (ctx.state === 'running') { ctx.suspend(); set({ status: 'paused' }) } else { ctx.resume(); set({ status: 'playing' }) }
+        return
+      }
       if (s.status === 'playing' || s.status === 'loading') { clearTimeout(waitTimer); audio.pause(); set({ status: 'paused' }) }
       else if (s.current) { set({ status: 'loading' }); audio.play().catch(() => {}) }
     },
-    stop: () => { clearTimeout(waitTimer); ready = null; for (const el of els) { el.pause(); el.removeAttribute('src') }; set({ status: 'idle', current: null, memo: null, queue: [] }) },
+    stop: () => { clearTimeout(waitTimer); stopWA(); ctx?.resume().catch(() => {}); ready = null; for (const el of els) { el.pause(); el.removeAttribute('src') }; set({ status: 'idle', current: null, memo: null, queue: [] }) },
   }
 })
 

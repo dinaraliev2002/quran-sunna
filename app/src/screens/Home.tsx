@@ -11,6 +11,7 @@ import { shareCardImage } from '../lib/shareImage'
 import { APP_LINK, haptic, shareText, tgUser } from '../lib/telegram'
 import { useUi } from '../store/ui'
 import { useStore, type TaskId } from '../store/settings'
+import { setBitrates, setMediaTitle, setReciter, usePlayer } from '../store/player'
 import { useChapterProgress } from './azkar/Azkar'
 import { useHifzToday } from './hifz/parts'
 import { useQhToday } from './hifz/Quran'
@@ -103,6 +104,23 @@ export default function Home() {
   const hzSub = !hz.started ? 'Заучивание хадисов: начните с первого' : hzLeft === 0 ? 'Повторы и новые хадисы на сегодня сделаны'
     : [hz.due.length ? `${hz.due.length} на повтор` : '', hz.newLeft ? `${hz.newLeft} ${plural(hz.newLeft, 'новый', 'новых', 'новых')}` : ''].filter(Boolean).join(' · ')
 
+  const player = usePlayer()
+  const s0 = lastRead?.s ?? 1
+  const playingHere = !!player.current && player.current.startsWith(s0 + ':') && player.status !== 'idle'
+  /** Золотая кнопка: слушать суру с того же аята, где остановились (повторное нажатие — пауза) */
+  const listen = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    haptic.tap()
+    if (playingHere) return player.toggle()
+    const sr = meta?.surahs[s0 - 1]
+    if (!sr) return
+    const st = useStore.getState()
+    setBitrates(st.bitrates); setReciter(st.reciter)
+    const names = meta!.surahs
+    setMediaTitle((k) => { const [a, b] = k.split(':'); return `${names[+a - 1].name}, аят ${b}` })
+    const from = lastRead?.a ?? 1
+    usePlayer.getState().play(Array.from({ length: sr.ayahs - from + 1 }, (_, i) => `${s0}:${from + i}`), 0)
+  }
   const continueReading = () => (lastRead ? nav(`/read/${lastRead.s}?a=${lastRead.a}&hl=1`) : nav('/read/1'))
   const pagesToday = today.pages.length
   const tasks: { id: TaskId; title: string; sub: string; action?: () => void }[] = [
@@ -139,14 +157,14 @@ export default function Home() {
           <div className="h-salam">السَّلَامُ عَلَيۡكُمۡ</div>
           <p><span className="h-cap">{gregToday()}</span> · {hijriToday()}</p>
         </div>
-        <button className="h-continue" onClick={continueReading}>
+        <div className="h-continue" role="button" tabIndex={0} onClick={continueReading} onKeyDown={(e) => { if (e.key === 'Enter') continueReading() }}>
           <div className="t">
             <span>{last ? 'Продолжить чтение' : 'Начать чтение Корана'}</span>
             <b>{last && lastRead ? `${last.name}, аят ${lastRead.a}` : 'Аль-Фатиха'}</b>
             <small>Страница {lastRead?.p ?? 1}</small>
           </div>
-          <div className="h-play"><Icon id="play" /></div>
-        </button>
+          <button className="h-play" onClick={listen} aria-label={playingHere && player.status === 'playing' ? 'Пауза' : 'Слушать'}><Icon id={playingHere && player.status === 'playing' ? 'pause' : 'play'} /></button>
+        </div>
       </header>
 
       {/* ===== разделы ===== */}

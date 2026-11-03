@@ -1398,3 +1398,4 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .hz-card + .hz-card { margin-top: 12px; }
 /* мусхаф: короткие строки (конец суры) стоят по центру, а не растягиваются */
 .mushaf .ln.loose { justify-content: center; gap: .32em; }
+.h-continue { cursor: pointer; } button.h-play { border: 0; padding: 0; }
