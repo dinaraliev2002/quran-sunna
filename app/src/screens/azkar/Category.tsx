@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { plural, TabBar } from '../../components/ui'
+import { TabBar } from '../../components/ui'
+import { plural } from '../../lib/plural'
 import { CATEGORY_ICON, chapterTitle, loadAzkar, type AzkarData } from '../../lib/azkar'
 import { useChapterProgress } from './Azkar'
 

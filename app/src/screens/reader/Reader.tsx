@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Tour } from '../../components/Tour'
-import { useQuranMeta } from '../../components/ui'
+import { useQuranMeta } from '../../hooks/useQuranMeta'
 import { juzByPage, loadMushafPage, loadSurah, surahByPage, surahGlyph, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
 import { setSurahCounts } from '../../lib/listen'

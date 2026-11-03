@@ -7,7 +7,7 @@ import { usePlayer } from '../store/player'
 import { useStore } from '../store/settings'
 import { Icon } from './Icon'
 import { PlayerSettings } from './PlayerSettings'
-import { useQuranMeta } from './ui'
+import { useQuranMeta } from '../hooks/useQuranMeta'
 
 const RATES = [0.75, 1, 1.25, 1.5]
 const fmtRate = (r: number) => String(r).replace('.', ',') + '×'

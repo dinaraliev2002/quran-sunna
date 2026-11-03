@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { plural, TabBar } from '../../components/ui'
+import { TabBar } from '../../components/ui'
+import { plural } from '../../lib/plural'
 import { snippet } from '../../lib/azkar'
 import { loadTopics, TOPIC_ICON, topicTitle, type TopicsData } from '../../lib/hadith'
 

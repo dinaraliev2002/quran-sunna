@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { plural, TabBar } from '../../components/ui'
+import { TabBar } from '../../components/ui'
+import { plural } from '../../lib/plural'
 import { loadHadithIndex, type HBook, type HGroup, type HIndex } from '../../lib/hadith'
 import { useStore } from '../../store/settings'
 

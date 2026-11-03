@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
-import { plural } from '../components/ui'
+import { plural } from '../lib/plural'
 import { loadGlossary, loadSajda, surahGlyph, type GlossaryItem, type SajdaData } from '../lib/data'
 
 /** Откуда открыли справочник: сура и страница, чтобы показать их в верхней плашке */

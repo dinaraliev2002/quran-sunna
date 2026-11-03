@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { plural } from '../../components/ui'
+import { plural } from '../../lib/plural'
 import { baseOf, bodyWords, dayNum, expand, firstLetter, hiddenMask, inDays, loadByKeys, loadHifzSet, LONG_WORDS, MAX_NEW, nextInterval, setOf, shuffled, toChunks, toWords, type Grade, type HifzItem } from '../../lib/hifz'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'

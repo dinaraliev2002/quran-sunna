@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../components/Icon'
-import { Sheet, SheetHead, useQuranMeta } from '../components/ui'
+import { Sheet, SheetHead } from '../components/ui'
+import { useQuranMeta } from '../hooks/useQuranMeta'
 import type { AsbabIndex, KulievIndex, Surah } from '../lib/data'
 import { setStoryMode, type StoryMode } from '../lib/storyMode'
 import { buildStoryIndex, searchStories, snippet, type StoryHit } from '../lib/storySearch'

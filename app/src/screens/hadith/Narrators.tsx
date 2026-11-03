@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../components/Icon'
-import { Sheet, SheetHead, plural } from '../../components/ui'
+import { Sheet, SheetHead } from '../../components/ui'
+import { plural } from '../../lib/plural'
 import { haptic } from '../../lib/telegram'
 import { splitTerms, TERMS } from './terms'
 
