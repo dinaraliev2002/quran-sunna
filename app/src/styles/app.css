@@ -1411,3 +1411,6 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .srow .srow-play { width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center; background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold-deep, var(--gold)); border: 0; padding: 0; margin-left: 4px; }
 .srow .srow-play .icon { width: 15px; height: 15px; }
 div.srow { cursor: pointer; }
+.miniplayer .mp-next { transform: scaleX(-1); }
+.miniplayer .mp-btn:disabled { opacity: .3; }
+.miniplayer .mp-btn:not(.mp-x) { order: 1; }
