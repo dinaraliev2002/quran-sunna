@@ -2,22 +2,12 @@ import { useEffect, useState } from 'react'
 import { haptic } from '../lib/telegram'
 import { Icon } from './Icon'
 import { Sheet, SheetHead } from './ui'
+import { freshNews, loadNews, markSeen } from '../lib/news'
+import type { News } from '../types/news'
 import './WhatsNew.css'
 
-// Окно «Что нового»: при открытии приложения показывает новости, которые человек ещё не видел.
-// Новости лежат в public/updates.json и подгружаются с сайта каждый раз заново — поэтому
-// сообщение можно добавить и без изменения кода. Новичкам (первый запуск) окно не показываем.
+// Окно «Что нового»: при открытии приложения показывает новости, которые человек ещё не видел (см. lib/news.ts).
 // Те же записи показывает «История обновлений» в настройках.
-
-export type NewsCard = { icon: string; color?: string; title: string; text: string; tip?: string; img?: string; imgs?: string[] }
-export type News = { id: string; version?: string; kind: 'update' | 'message'; date?: string; title: string; cards?: NewsCard[]; fixes?: string[]; points?: string[]; text?: string }
-declare const __NEWS_LATEST__: string // последняя новость на момент сборки (vite.config.ts)
-
-const SEEN = 'news_seen_v1'
-const read = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
-const write = (k: string, v: string) => { try { localStorage.setItem(k, v) } catch { /* приватный режим */ } }
-
-export const loadNews = () => fetch('updates.json', { cache: 'no-store' }).then((r) => r.json()).then((d: { items: News[] }) => d.items ?? [])
 
 /** Одна запись: карточки с значком, пояснением, подсказкой «где найти» и картинкой */
 export function NewsEntry({ n, onZoom }: { n: News; onZoom: (src: string) => void }) {
@@ -69,13 +59,9 @@ export function WhatsNew() {
     let alive = true
     const check = () =>
       loadNews().then((items) => {
-        if (!alive || !items.length) return
-        if (/[?&]news/.test(location.search)) { setList(items.slice(0, 1)); setStale(false); return } // просмотр окна: ?news
-        const seen = read(SEEN)
-        if (seen === null && !read('progress_v2')) { write(SEEN, items[0].id); return } // новичок
-        const idx = seen ? items.findIndex((n) => n.id === seen) : items.length
-        const fresh = items.slice(0, idx < 0 ? 1 : idx).slice(0, 3)
-        if (fresh.length) { setList(fresh); setStale(items[0].id !== __NEWS_LATEST__) }
+        if (!alive) return
+        const fresh = freshNews(items)
+        if (fresh.list.length) { setList(fresh.list); setStale(fresh.stale) }
       }).catch(() => { /* нет сети — покажем в другой раз */ })
     const t = setTimeout(check, 1500) // не мешать загрузке и экскурсу
     const onVis = () => { if (!document.hidden) check() } // вернулись в приложение — вдруг вышло новое
@@ -84,7 +70,7 @@ export function WhatsNew() {
   }, [])
 
   if (!list.length) return null
-  const close = () => { write(SEEN, list[0].id); setList([]) }
+  const close = () => { markSeen(list[0].id); setList([]) }
   const head = list[0]
   const title = head.kind === 'message' ? 'Сообщение' : head.version ? `Новое в ${head.version}` : 'Что нового'
   return (
@@ -99,7 +85,7 @@ export function WhatsNew() {
           </div>
         ))}
         {stale
-          ? <button className="bigbtn" onClick={() => { haptic.tap(); write(SEEN, list[0].id); location.reload() }}>Обновить приложение</button>
+          ? <button className="bigbtn" onClick={() => { haptic.tap(); markSeen(list[0].id); location.reload() }}>Обновить приложение</button>
           : <button className="bigbtn" onClick={() => { haptic.tap(); close() }}>Понятно</button>}
       </div>
     </Sheet>

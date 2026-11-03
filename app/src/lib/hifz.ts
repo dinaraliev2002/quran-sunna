@@ -257,3 +257,10 @@ export function shuffled<T>(a: T[]): T[] {
   }
   return r
 }
+
+/** Время начала слов в озвучке (рядом с mp3 лежит .json) — чтобы проигрывать часть хадиса */
+const timings = new Map<string, Promise<{ t: number[]; end: number } | null>>()
+export function loadTimings(src: string) {
+  if (!timings.has(src)) timings.set(src, fetch(src.replace('.mp3', '.json')).then((r) => (r.ok ? r.json() : null)).catch(() => null))
+  return timings.get(src)!
+}

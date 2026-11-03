@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead } from '../../components/ui'
-import { dayNum, hadithProgress, MAX_NEW, partsOf, setById, type HifzItem } from '../../lib/hifz'
+import { dayNum, hadithProgress, loadTimings, MAX_NEW, partsOf, setById, type HifzItem } from '../../lib/hifz'
 import { haptic } from '../../lib/telegram'
 import { dayStr, useStore } from '../../store/settings'
 
@@ -56,13 +56,6 @@ export function HadithBody({ item, ar }: { item: HifzItem; ar?: boolean }) {
 }
 
 const RATES = [0.75, 1, 1.25, 1.5]
-
-/** Время начала слов в озвучке (рядом с mp3 лежит .json) — чтобы проигрывать часть хадиса */
-const timings = new Map<string, Promise<{ t: number[]; end: number } | null>>()
-function loadTimings(src: string) {
-  if (!timings.has(src)) timings.set(src, fetch(src.replace('.mp3', '.json')).then((r) => (r.ok ? r.json() : null)).catch(() => null))
-  return timings.get(src)!
-}
 
 /**
  * «Слушать»: озвучка хадиса (заранее записана нейронным голосом) и скорость; если файла нет — кнопок нет.

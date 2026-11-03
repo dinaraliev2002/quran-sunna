@@ -5,24 +5,12 @@ import { Sheet, SheetHead } from '../../components/ui'
 import { plural } from '../../lib/plural'
 import { haptic } from '../../lib/telegram'
 import { splitTerms, TERMS } from './terms'
+import { AUTHOR, BOOK, gradeRu, loadNarrators, loadRich, shortTr, TABAQA, TABAQA_SHORT, tone } from '../../lib/narrators'
+import { useNarratorLink } from '../../hooks/useNarratorLink'
+import type { Narrator, Rich, RichNarrator } from '../../types/narrators'
 
 // Цепочка передатчиков хадиса и карточка передатчика (пробная версия, только аль-Бухари).
 // Данные: hadith-kg (Emad Jumaah, CC BY 4.0) — сведения о передатчиках и высказывания критиков, на арабском.
-
-// высказывание учёного: [имя, год смерти (0 — нет), арабский текст, русский перевод или null, окраска, id учёного]
-type Quote = [string, number, string, string | null, 'praise' | 'note' | 'crit', number]
-interface Narrator {
-  n: string; k?: string; rn?: string; r?: string; t?: number; ts?: 't' | 'd'; d?: number; nq?: number
-  tz?: 1; ik?: 1; st?: 1; tq?: string | null; tr?: string | null; c?: Quote[]
-}
-
-interface RichQuote { who: string; era: string; kind: 'praise' | 'note' | 'crit'; ar: string; ru: string }
-interface RichNarrator {
-  ru: string; kunya: string; nisba: string; role: string; taq_ar: string; taq_ru: string; tab: number
-  born: string; died: string; lived: string; post: string; flags?: string[]; quotes: RichQuote[]
-}
-interface Rich { hadith: { title: string; source: string; type: string; grade: string; facts: string[] }; narrators: Record<string, RichNarrator> }
-const loadRich = (cid: string, bn: number, i: number) => fetch(`data/narrators/rich/${cid}-${bn}-${i}.json`).then((r) => (r.ok ? (r.json() as Promise<Rich>) : null)).catch(() => null)
 
 const TermCtx = createContext<(id: string) => void>(() => {})
 
@@ -79,97 +67,9 @@ function TermSheet({ id, onClose }: { id: string; onClose: () => void }) {
   )
 }
 
-const get = <T,>(url: string) => fetch(url).then((r) => { if (!r.ok) throw new Error(url); return r.json() as Promise<T> })
-const cache = new Map<string, Promise<unknown>>()
-const once = <T,>(url: string, fallback?: T) => {
-  if (!cache.has(url)) cache.set(url, get<T>(url).catch((e) => { if (fallback !== undefined) return fallback; cache.delete(url); throw e }))
-  return cache.get(url) as Promise<T>
-}
-const loadChains = (cid: string) => once<Record<string, number[]>>(`data/narrators/chains-${cid}.json`, {})
-const loadSahabi = (cid: string) => once<Record<string, [number, number]>>(`data/narrators/sahabi-${cid}.json`, {})
-// ан-Навави и «Рияд»: цепочка того же хадиса из первоисточника — [книга, номер, звенья]
-const loadLinks = (cid: string) => once<Record<string, [string, string, number[]]>>(`data/narrators/links-${cid}.json`, {})
-/** Карточки передатчиков лежат шардами по 200 номеров — грузим только нужные */
-const loadNarrators = async (ids: number[]) => {
-  const shards = [...new Set(ids.map((id) => Math.floor(id / 200)))]
-  const parts = await Promise.all(shards.map((sh) => once<Record<string, Narrator>>(`data/narrators/n-${sh}.json`)))
-  return Object.assign({}, ...parts) as Record<string, Narrator>
-}
-const AUTHOR: Record<string, string> = { bukhari: 'аль-Бухари', muslim: 'Муслима', tirmidhi: 'ат-Тирмизи', abudawud: 'Абу Дауда', nasai: 'ан-Насаи', ibnmajah: 'Ибн Маджи', darimi: 'ад-Дарими', malik: 'Малика' }
-const BOOK: Record<string, string> = { bukhari: '«Сахих» аль-Бухари', muslim: '«Сахих» Муслима', tirmidhi: '«Сунан» ат-Тирмизи', abudawud: '«Сунан» Абу Дауда', nasai: '«Сунан» ан-Насаи', ibnmajah: '«Сунан» Ибн Маджи', darimi: '«Сунан» ад-Дарими', malik: '«Муватта» Малика' }
-
-// 12 поколений по «Такрибу» Ибн Хаджара
-const TABAQA: Record<number, string> = {
-  1: 'Сподвижники',
-  2: 'Старшие табиины (как Ибн аль-Мусайяб)',
-  3: 'Средние табиины (как аль-Хасан аль-Басри)',
-  4: 'Табиины, передававшие в основном от старших табиинов (как аз-Зухри)',
-  5: 'Младшие табиины (как аль-А‘маш)',
-  6: 'Современники пятого поколения, не заставшие сподвижников (как Ибн Джурайдж)',
-  7: 'Старшие из «последователей табиинов» (как Малик)',
-  8: 'Средние из «последователей табиинов» (как Ибн ‘Уяйна)',
-  9: 'Младшие из «последователей табиинов» (как аш-Шафи‘и)',
-  10: 'Старшие из тех, кто брал у «последователей табиинов» (как Ахмад)',
-  11: 'Средние из них (как аль-Бухари)',
-  12: 'Младшие из них (как ат-Тирмизи)',
-}
-const TABAQA_SHORT: Record<number, string> = { 1: 'сподвижник', 2: 'табиин', 3: 'табиин', 4: 'табиин', 5: 'табиин', 6: '6-е поколение', 7: '7-е поколение', 8: '8-е поколение', 9: '9-е поколение', 10: '10-е поколение', 11: '11-е поколение', 12: '12-е поколение' }
-
-const WORDS: Record<string, string> = {
-  'ثقة': 'надёжный', 'ثبت': 'твёрдый', 'حافظ': 'хафиз', 'متقن': 'точный', 'مأمون': 'заслуживающий доверия', 'حجة': 'довод',
-  'صدوق': 'правдивый', 'حسن': 'хороший', 'الحديث': 'в хадисах', 'مقبول': 'принимаемый', 'ضعيف': 'слабый', 'متروك': 'оставленный',
-  'صحابي': 'сподвижник', 'صحابية': 'сподвижница', 'صغير': 'младший', 'مخضرم': 'застал обе эпохи', 'مدلس': 'допускал тадлис', 'يرسل': 'передавал мурсаль',
-  'يخطئ': 'бывает, ошибается', 'يهم': 'бывает, ошибается', 'أوهام': 'ошибки', 'له': '', 'فيه': '', 'لين': 'мягок в передаче', 'إمام': 'имам', 'فقيه': 'знаток права', 'عابد': 'благочестивый',
-  'جليل': 'выдающийся', 'مكثر': 'передал много', 'أفراد': 'передавал одиночные сообщения',
-}
-const GRADE_EXACT: Record<string, string> = {
-  'ثقة': 'Надёжный', 'صحابي': 'Сподвижник', 'صدوق حسن الحديث': 'Правдивый, его хадисы хорошие', 'ثقة ثبت': 'Надёжный, твёрдый в передаче',
-  'ثقة حافظ': 'Надёжный, хафиз', 'مقبول': 'Принимаемый (при подтверждении)', 'له رؤية': 'Видел Пророка ﷺ', 'ضعيف الحديث': 'Слабый в хадисах',
-  'صحابي صغير': 'Младший сподвижник', 'مختلف في صحبته': 'О его сподвижничестве спорят', 'لم تثبت له صحبة': 'Сподвижничество не доказано',
-}
-export const gradeRu = (r?: string) => {
-  if (!r) return ''
-  if (GRADE_EXACT[r]) return GRADE_EXACT[r]
-  const t = r.split(/\s+/).map((w) => WORDS[w]).filter((x) => x !== undefined && x !== '')
-  if (!t.length) return ''
-  const s = t.join(', ')
-  return s[0].toUpperCase() + s.slice(1)
-}
-/** Начало русского перевода оценки — для значка, если короткого шаблона нет */
-const shortTr = (tr?: string | null) => {
-  if (!tr) return ''
-  const s = tr.replace(/\{\{\w+\|([^}]+)\}\}/g, '$1').split(/[.;:]/)[0].trim()
-  return s.length <= 48 ? s : ''
-}
-// цвет значка оценки: надёжные — зелёный, «правдивый» и с оговорками — золотой, слабые — красный
-const tone = (r?: string) => (!r ? 'n' : /ضعيف|متروك|منكر|كذاب|متهم|ليس/.test(r) ? 'bad' : /^ثقة|صحابي|صحابية|له رؤية|مخضرم|إمام|ثبت|حافظ/.test(r) && !/إلا|رمي|يخطئ|يهم/.test(r) ? 'good' : 'mid')
-
-// src — откуда цепочка, если она взята из первоисточника (для ан-Навави и «Рияда»)
-type Link = { chain?: number[]; src?: [string, string]; sahabi?: { id: number; sure: boolean } } | null
-
-function useLink(cid: string, bn: number, i: number): Link | undefined {
-  const [link, setLink] = useState<Link | undefined>(undefined)
-  useEffect(() => {
-    let alive = true
-    const k = `${bn}:${i}`
-    setLink(undefined)
-    if (cid === 'bukhari' || cid === 'muslim') loadChains(cid).then((c) => alive && setLink(c[k] ? { chain: c[k] } : null))
-    else if (cid === 'riyad' || cid === 'nawawi') Promise.all([loadSahabi(cid), loadLinks(cid)]).then(([s, l]) => {
-      if (!alive) return
-      const v: NonNullable<Link> = {}
-      if (s[k]) v.sahabi = { id: s[k][0], sure: !!s[k][1] }
-      if (l[k]) { v.chain = l[k][2]; v.src = [l[k][0], l[k][1]] }
-      setLink(v.chain || v.sahabi ? v : null)
-    })
-    else setLink(null)
-    return () => { alive = false }
-  }, [cid, bn, i])
-  return link
-}
-
 /** Кнопка в ряду значков хадиса: цепочка передатчиков (Бухари, Муслим) или сподвижник (остальные сборники) */
 export function ChainButton({ cid, bn, i, label }: { cid: string; bn: number; i: number; label: string }) {
-  const link = useLink(cid, bn, i)
+  const link = useNarratorLink(cid, bn, i)
   const [open, setOpen] = useState<'chain' | 'sahabi' | null>(null)
   const [term, setTerm] = useState<string | null>(null)
   if (!link) return null
@@ -196,7 +96,7 @@ export function ChainButton({ cid, bn, i, label }: { cid: string; bn: number; i:
 
 /** Пометка под текстом, если цепочки для хадиса нет (только Бухари и Муслим) */
 export function ChainNote({ cid, bn, i }: { cid: string; bn: number; i: number }) {
-  const link = useLink(cid, bn, i)
+  const link = useNarratorLink(cid, bn, i)
   return link === null && (cid === 'bukhari' || cid === 'muslim') ? <p className="nr-none">Цепочка передатчиков для этого хадиса не указана.</p> : null
 }
 
