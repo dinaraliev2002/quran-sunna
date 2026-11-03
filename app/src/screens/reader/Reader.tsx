@@ -13,6 +13,11 @@ import { Pager } from './Pager'
 import { useKulievIndex } from './Kuliev'
 import { AyahSheet, BookmarksSheet, MemoSheet, MenuPanel, MODES, ModePop, PickerSheet, ReaderSettingsSheet } from './sheets'
 import { MushafView, PageAyahs, SuraView, type AyahActions } from './views'
+import { MemoBar } from './MemoBar'
+import { readerTour } from './tour'
+import { useFlashAyah } from '../../hooks/useFlashAyah'
+import { useLastRead } from '../../hooks/useLastRead'
+import { usePageReadTimer } from '../../hooks/usePageReadTimer'
 
 type Overlay = null | 'pop' | 'menu' | 'picker' | 'search' | 'memo' | 'bookmarks' | 'settings' | { tafsir: [number, number] }
 
@@ -65,49 +70,13 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
 
   const mode = st.mode
   const markPage = st.markPage
-  // каждая открытая страница засчитывается в «Сегодня» на главной и в серию дней
-  // страница засчитывается (и задание «Прочитать страницу» выполняется), когда на ней пробыли около минуты,
-  // а не при быстром заходе. Время в свёрнутом приложении не считаем.
-  useEffect(() => {
-    let left = 60_000, since = Date.now(), t: ReturnType<typeof setTimeout> | undefined
-    const run = () => { since = Date.now(); t = setTimeout(() => markPage(page), left) }
-    const onVis = () => {
-      if (document.hidden) { clearTimeout(t); left -= Date.now() - since } else run()
-    }
-    if (!document.hidden) run()
-    document.addEventListener('visibilitychange', onVis)
-    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', onVis) }
-  }, [page, markPage])
+  usePageReadTimer(page, markPage)
   // на одной странице бывает несколько сур (напр. 604: 112–114) — если открытая сура есть на странице, показываем её
   const opened = surahs[surahId - 1]
   const pageSurah = opened.pages[0] <= page && page <= opened.pages[1] ? opened : surahByPage(surahs, page)
   const surah = mode === 'sura' ? surahs[surahId - 1] : pageSurah
 
-  // ----- последнее место чтения -----
-  // открыли по ссылке (из азкаров, 99 имён, «Аят дня») — это не «своё» чтение: «Продолжить чтение» не трогаем,
-  // пока человек сам не перейдёт к другой суре или странице через выбор суры/колесо
-  const fromLink = useRef(search.get('from') === 'link')
-  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const pendingLast = useRef<{ s: number; a: number; p: number } | null>(null)
-  // записать сразу — при выходе из чтения и при сворачивании, чтобы не потерять последние 0,8 с
-  const flushLast = useCallback(() => {
-    clearTimeout(saveTimer.current)
-    const x = pendingLast.current
-    pendingLast.current = null
-    if (x && !fromLink.current) useStore.getState().setLastRead(x)
-  }, [])
-  const saveLast = useCallback((s: number, a: number, p: number) => {
-    clearTimeout(saveTimer.current)
-    if (fromLink.current) return
-    pendingLast.current = { s, a, p }
-    saveTimer.current = setTimeout(flushLast, 800)
-  }, [flushLast])
-  useEffect(() => {
-    const onHide = () => { if (document.hidden) flushLast() }
-    document.addEventListener('visibilitychange', onHide)
-    window.addEventListener('pagehide', flushLast)
-    return () => { document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', flushLast); flushLast() }
-  }, [flushLast])
+  const { saveLast, fromLink } = useLastRead(search.get('from') === 'link')
 
   useEffect(() => {
     if (mode === 'sura') return
@@ -134,30 +103,8 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     return () => { alive = false }
   }, [tafsirKey, saveLast])
 
-  // «Продолжить чтение»: аят, на котором остановились, на пару секунд подсвечивается (в любом режиме)
-  const flashed = useRef(false)
-  useEffect(() => {
-    const hl = !!search.get('hl')
-    if (flashed.current || (!hl && !(mode === 'page' && initAyah > 1))) return
-    const key = `${initSurah}:${initAyah}`
-    let tries = 0, seen = 0
-    const t = setInterval(() => {
-      // ждём, пока аят реально появится на экране (в «Странице» открывается сначала первая страница суры, потом нужная)
-      const els = [...document.querySelectorAll<HTMLElement>(`.view [data-key="${key}"], .view [data-k="${key}"]`)]
-      const shown = els.filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > 0 && r.left < window.innerWidth })
-      if (!shown.length) { if (++tries > 40) clearInterval(t); seen = 0; return }
-      if (++seen < 2) return // дали странице устояться
-      clearInterval(t)
-      flashed.current = true
-      if (mode !== 'mushaf') { appScrollUntil.current = Date.now() + 1200; shown[0].scrollIntoView({ block: 'center' }) }
-      if (!hl) return
-      shown.forEach((e) => e.classList.add('flash'))
-      // страница могла перерисоваться — пока подсветка идёт, возвращаем её на новые элементы
-      const keep = setInterval(() => document.querySelectorAll(`.view [data-key="${key}"], .view [data-k="${key}"]`).forEach((e) => e.classList.add('flash')), 300)
-      setTimeout(() => { clearInterval(keep); document.querySelectorAll('.flash').forEach((e) => e.classList.remove('flash')) }, 2600)
-    }, 250)
-    return () => clearInterval(t)
-  }, [])
+  // «Продолжить чтение»: аят, на котором остановились, на пару секунд подсвечивается
+  useFlashAyah(!!search.get('hl'), mode, initSurah, initAyah, appScrollUntil)
 
   const onTop = useCallback((ayah: number, p: number) => {
     topAyah.current = ayah
@@ -318,7 +265,6 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     else setPage(p)
   }, [mode, surahId])
   const memo = player.memo
-  const playing = player.status === 'playing' || player.status === 'loading'
 
   return (
     <div className={'reader' + (bare ? ' bare' : '') + (mode === 'mushaf' ? ' m-mushaf' : '')} style={{ ['--ar-size' as string]: st.arSize + 'px', ['--tr-size' as string]: st.trSize + 'px' }}>
@@ -341,18 +287,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
         </div>
       </div>
 
-      {memo ? (
-        <div className="memobar glass">
-          <div className="ic"><Icon id="repeat" /></div>
-          <div className="t" role="button" onClick={() => setOverlay('memo')}>
-            <b>Заучивание · {player.queue[0]}–{player.queue[player.queue.length - 1]?.split(':')[1]}</b>
-            <span>Аят {player.current?.split(':')[1]} · повтор {memo.each} из {memo.repeatEach} · круг {memo.round}{memo.repeatRange ? ` из ${memo.repeatRange}` : ''}</span>
-            <div className="bar"><i style={{ width: `${((player.index + 1) / player.queue.length) * 100}%` }} /></div>
-          </div>
-          <button onClick={player.toggle} aria-label="Пауза"><Icon id={playing ? 'pause' : 'play'} /></button>
-          <button onClick={player.stop} aria-label="Стоп"><Icon id="close" /></button>
-        </div>
-      ) : (
+      {memo ? <MemoBar onOpen={() => setOverlay('memo')} /> : (
         player.status === 'idle' ? <button className="fab" onClick={onFab} aria-label="Слушать"><Icon id="play" /></button> : null
       )}
       {player.error && <div className="memobar glass" style={{ bottom: 'calc(var(--safe-bottom) + 170px)' }}><div className="t"><span>{player.error}</span></div></div>}
@@ -398,20 +333,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
       {overlay && typeof overlay === 'object' && (
         <AyahSheet surah={surahs[overlay.tafsir[0] - 1]} ayah={overlay.tafsir[1]} onAyah={followAyah} onClose={() => setOverlay(null)} onPlay={(s, a) => { setOverlay(null); playFrom(s, a) }} />
       )}
-      {/* экскурс по читалке — один раз; шаги, кнопок которых нет в этом режиме, пропускаются */}
-      {!overlay && <Tour id="reader" scroll={false} steps={[
-        { el: '.vscroll .a-story, .pscroll .a-story', title: 'История аята', text: 'Есть у аятов, о которых передана причина ниспослания: что случилось и по какому поводу ниспослан аят.' },
-        { el: '.a-act[aria-label="Перевод и тафсир"]', title: 'Окно аята', text: 'Перевод, история аята и тафсир ас-Саади. В окне можно листать аяты свайпом.' },
-        ...(mode === 'mushaf' ? [{ title: 'Окно аята', text: 'Нажмите на аят и подержите — откроется перевод, история аята и тафсир ас-Саади.' }, { v: 1, title: 'Перевод слова', text: 'Нажмите на слово два раза подряд — сверху появится перевод именно этого слова.' }] : []),
-        { el: '.s-story', title: 'История суры', text: 'Где и когда ниспослана сура. В мусхафе — значок в звезде на рамке названия суры.' },
-        { el: '.modebtn', title: 'Режим чтения', text: 'Мусхаф — печатные страницы. Страница — аяты страницы с переводом. Сура — вся сура подряд.' },
-        { el: '.dial', title: 'Линейка страниц', text: 'Ведите пальцем, чтобы листать страницы. Нажмите на номер — откроется выбор суры, джуза или страницы.' },
-        { el: '.rbar .rcircle[aria-label="Меню"]', title: 'Меню', text: 'Таджвид, закладки, поиск, заучивание на слух, словарь, земные поклоны и настройки чтения.' },
-        { v: 1, el: '.rbar .rcircle[aria-label="Меню"]', title: 'Пословный перевод', text: 'В меню включается «Пословный перевод»: под каждым арабским словом появится его значение. Работает в режимах «Страница» и «Сура».' },
-        { v: 1, title: 'Учить аят', text: 'В окне аята есть кнопка «Учить». Нажмите — начать заучивание с этого аята. Зажмите — выбрать: учить сейчас или добавить аят, часть суры или суру целиком в «Мой набор».' },
-        { el: '.fab', title: 'Слушать', text: 'Чтение аятов вслух. Чтеца можно выбрать в настройках.' },
-        { title: 'Жесты', text: 'Свайп вбок — соседняя страница или сура. Нажатие на текст прячет панели, чтобы читать без отвлечений.' },
-      ]} />}
+      {!overlay && <Tour id="reader" scroll={false} steps={readerTour(mode)} />}
     </div>
   )
 }
