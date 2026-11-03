@@ -12,7 +12,9 @@
     "deploy:test": "npm run build && node scripts/deploy.mjs test",
     "release": "npm run build && node scripts/deploy.mjs release",
     "sync": "npm run build && cap sync",
-    "icons": "capacitor-assets generate --iconBackgroundColor \"#0E4A31\" --iconBackgroundColorDark \"#0E4A31\" --splashBackgroundColor \"#0E1110\" --splashBackgroundColorDark \"#0E1110\""
+    "icons": "capacitor-assets generate --iconBackgroundColor \"#0E4A31\" --iconBackgroundColorDark \"#0E4A31\" --splashBackgroundColor \"#0E1110\" --splashBackgroundColorDark \"#0E1110\"",
+    "store-data": "python -I scripts/build-asbab.py --store --out store-data/asbab && python -I scripts/build-kuliev.py --draft --out store-data/kuliev",
+    "sync:store": "npm run build && node scripts/apply-store-data.mjs && cap sync"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",

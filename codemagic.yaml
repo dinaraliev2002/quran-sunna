@@ -23,6 +23,7 @@ workflows:
           cd app
           npm ci
           npm run build
+          node scripts/apply-store-data.mjs   # только книги и комментарии, разрешённые для магазинов
           npx cap sync ios
       - name: Номер сборки
         script: |
@@ -53,6 +54,7 @@ workflows:
           cd app
           npm ci
           npm run build
+          node scripts/apply-store-data.mjs   # только книги и комментарии, разрешённые для магазинов
           npx cap sync android
       - name: Номер сборки
         script: |

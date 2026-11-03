@@ -16,6 +16,9 @@
 
 Запуск:  python scripts/build-asbab.py           — только готовые книги (для публичной версии)
          python scripts/build-asbab.py --draft   — вместе с книгами в работе (draft) — для тестовой версии
+         python scripts/build-asbab.py --store --out store-data/asbab
+                                                 — для приложений в магазинах: только книги, на которые есть право
+                                                   (STORE_BOOKS); остальные остаются в Telegram-версии
 """
 import hashlib
 import json
@@ -26,6 +29,12 @@ import sys
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 SRC = os.path.join(ROOT, 'asbab-src')
 OUT = os.path.join(ROOT, 'public', 'data', 'asbab')
+if '--out' in sys.argv:
+    OUT = os.path.abspath(os.path.join(ROOT, sys.argv[sys.argv.index('--out') + 1]))
+
+# В магазины (App Store, Google Play) идут только книги со свободными правами: оригинал аль-Вахиди (V в. х.).
+# Современные книги (аль-Вадии, аль-Музайни, аль-Исти‘аб) — только в Telegram, пока нет разрешения правообладателей.
+STORE_BOOKS = ['wahidi']
 
 BOOKS = {
     'wadii': {
@@ -99,7 +108,9 @@ def opinion(x):
 
 def main():
     draft = '--draft' in sys.argv
-    books = {k: {f: v for f, v in b.items() if f != 'draft'} for k, b in BOOKS.items() if draft or not b.get('draft')}
+    store = '--store' in sys.argv
+    books = {k: {f: v for f, v in b.items() if f != 'draft'} for k, b in BOOKS.items()
+             if (k in STORE_BOOKS if store else (draft or not b.get('draft')))}
     main_book, *others = books
     cards = {}  # id главной записи → карточка
     order = []
@@ -151,7 +162,7 @@ def main():
     json.dump(index, open(os.path.join(OUT, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     size = sum(os.path.getsize(os.path.join(OUT, f)) for f in os.listdir(OUT)) // 1024
     merged = sum(len(c['opinions']) for c in cards.values())
-    print(f'{len(order)} cards ({merged} merged opinions), {len(by_surah)} surahs -> public/data/asbab/ ({size} KB)')
+    print(f'{len(order)} cards ({merged} merged opinions), {len(by_surah)} surahs -> {os.path.relpath(OUT, ROOT)} ({size} KB)')
 
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@
 Текст — авторский (Кулиев, издание Комплекса короля Фахда): показывать только в тестовой версии.
 Запуск:  python scripts/build-kuliev.py --draft   — собрать для тестовой версии
          python scripts/build-kuliev.py           — убрать данные (для публичной версии)
+         python scripts/build-kuliev.py --draft --out store-data/kuliev   — для приложений в магазинах
 """
 import hashlib
 import io
@@ -20,6 +21,8 @@ import sys
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 SRC = os.path.join(ROOT, 'kuliev-src', 'parsed')
 OUT = os.path.join(ROOT, 'public', 'data', 'kuliev')
+if '--out' in sys.argv:
+    OUT = os.path.abspath(os.path.join(ROOT, sys.argv[sys.argv.index('--out') + 1]))
 
 
 def load(name):
@@ -47,7 +50,7 @@ def main():
     index['v'] = hashlib.md5(json.dumps(index, ensure_ascii=False).encode()).hexdigest()[:8]
     json.dump(index, io.open(os.path.join(OUT, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     size = sum(os.path.getsize(os.path.join(OUT, f)) for f in os.listdir(OUT)) // 1024
-    print(f"{len(comments)} сур, {sum(len(i['n']) for i in index['s'].values())} аятов с комментариями -> public/data/kuliev/ ({size} KB)")
+    print(f"{len(comments)} сур, {sum(len(i['n']) for i in index['s'].values())} аятов с комментариями -> {os.path.relpath(OUT, ROOT)} ({size} KB)")
 
 
 main()
