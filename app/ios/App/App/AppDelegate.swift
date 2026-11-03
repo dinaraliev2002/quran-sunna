@@ -7,7 +7,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Скачанные аудио и шрифты можно скачать снова — не кладём их в резервную копию iCloud
+        if let lib = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first {
+            var dir = lib.appendingPathComponent("downloads", isDirectory: true)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            try? dir.setResourceValues(values)
+        }
         return true
     }
 
