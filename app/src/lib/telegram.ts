@@ -149,12 +149,45 @@ export function allowRotation(free: boolean) {
   else ScreenOrientation.lock({ orientation: 'portrait' }).catch(() => {})
 }
 
+function toast(text: string) {
+  const el = document.createElement('div')
+  el.textContent = text
+  el.style.cssText = 'position:fixed;left:50%;bottom:calc(var(--safe-bottom,0px) + 110px);transform:translateX(-50%);max-width:86vw;padding:10px 16px;border-radius:16px;background:rgba(30,30,30,.92);color:#fff;font:600 14px var(--font-ui,system-ui);z-index:1000;text-align:center'
+  document.body.appendChild(el)
+  setTimeout(() => el.remove(), 1800)
+}
+
+// Android: если системные панели (строка состояния и кнопки навигации) лежат ВНЕ окна приложения, отступы под них не нужны.
+// Иначе нижнее меню и плеер поднимаются выше, чем должны. На телефонах, где окно идёт под панелями, ничего не меняем.
+function fixAndroidInsets() {
+  const root = document.documentElement.style
+  const apply = () => {
+    const outside = screen.height - window.innerHeight > 8
+    for (const side of ['top', 'bottom']) {
+      if (outside) root.setProperty(`--tg-safe-area-inset-${side}`, '0px')
+      else root.removeProperty(`--tg-safe-area-inset-${side}`)
+    }
+  }
+  apply()
+  window.addEventListener('resize', apply)
+  window.addEventListener('orientationchange', () => setTimeout(apply, 300))
+}
+if (isNative && Capacitor.getPlatform() === 'android') fixAndroidInsets()
+
 // Приложение из магазина: кнопка «Назад» на Android и свайп от левого края на iPhone — как в системных приложениях
 let nativeBack: (() => void) | null = null
 if (isNative) {
+  let lastBack = 0
   CapApp.addListener('backButton', () => {
-    if (nativeBack) nativeBack()
-    else CapApp.exitApp().catch(() => {})
+    if (nativeBack) return nativeBack()
+    // у экрана нет своей кнопки «Назад»: идём назад по истории приложения, а с главной выходим со второго нажатия
+    const st = history.state as { idx?: number } | null
+    if (st && typeof st.idx === 'number' && st.idx > 0) return history.back()
+    if (!/^#?\/?$/.test(location.hash)) { location.hash = '#/'; return }
+    const now = Date.now()
+    if (now - lastBack < 2000) { CapApp.exitApp().catch(() => {}); return }
+    lastBack = now
+    toast('Нажмите «Назад» ещё раз, чтобы выйти')
   })
   if (isIos) {
     let sx = 0, sy = 0, edge = false
