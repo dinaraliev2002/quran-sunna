@@ -76,7 +76,7 @@
 ### Заметка для проверяющего Apple (Review Notes)
 > The app is an offline-capable reader of the Quran (Medina Mushaf), Hadith collections and Islamic reference texts with
 > memorization (spaced repetition) tools. No account or login is required. All texts are bundled in the app.
-> Recitation audio and mushaf fonts are downloaded on demand from Quran.com and cached on the device.
+> Recitation audio (everyayah.com, mirror quranicaudio.com) and mushaf page fonts (Quran Foundation CDN) are downloaded on demand and cached on the device.
 
 ### Тексты карточки (русский)
 **Название:** Коран и Сунна
