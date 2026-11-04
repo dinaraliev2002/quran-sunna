@@ -78,6 +78,12 @@ export const setRate = (r: number) => els.forEach((e) => { rate = r; e.defaultPl
 // Лишнюю тишину в начале и конце файла обрезаем.
 interface Clip { buf: AudioBuffer; off: number; dur: number }
 const AC: typeof AudioContext | undefined = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+// iPhone/iPad: Web Audio там — «звук игры»: его глушит переключатель беззвучного режима и он замирает,
+// когда экран заблокирован. Поэтому на iOS слушаем через <audio> (как медиа-плеер), на стыке аятов — второй плеер
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+// iOS 17+: звук приложения — «медиа», а не «звук игры» (касается и азкаров, и озвучки хадисов)
+const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+if (session) try { session.type = 'playback' } catch { /* старая версия */ }
 let ctx: AudioContext | null = null
 let gen = 0 // номер запуска: старые циклы замолкают
 let waOn = false
@@ -291,7 +297,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       clearTimeout(waitTimer)
       stopWA()
       if (!memo) setRate(playerCfg.rate)
-      if (!memo && AC && playerCfg.rate === 1) {
+      if (!memo && AC && playerCfg.rate === 1 && !IOS) {
         // без повторов — встык через Web Audio
         for (const el of els) { el.pause(); el.removeAttribute('src') }
         ready = null
