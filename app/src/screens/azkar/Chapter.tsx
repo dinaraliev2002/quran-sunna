@@ -69,7 +69,7 @@ export default function Chapter() {
     const el = track.current!
     const idx = Math.round(el.scrollLeft / el.clientWidth)
     lastCard.set(`${ch}:${focusItem}`, idx)
-    if (idx !== cur) { setCur(idx); haptic.tick(); if (audio.id !== null) audio.stop() }
+    if (idx !== cur) { setCur(idx); haptic.tick('azkar'); if (audio.id !== null) audio.stop() }
   }
 
   const itemId = items[cur]
@@ -85,7 +85,7 @@ export default function Chapter() {
     if (v >= item.rep) {
       haptic.success()
       if (st.azAuto && cur < items.length - 1) setTimeout(() => go(cur + 1), 450)
-    } else haptic.tap()
+    } else haptic.tap('azkar')
   }
 
   return (
@@ -122,7 +122,7 @@ export default function Chapter() {
                 </div>
                 {st.azShowAr && <ArText text={it.ar} hafsDigits={(st.azFont ?? 'sch') === 'hafs'} />}
                 {st.azShowAr && st.azShowTr && it.ru && <div className="azc-divider"><span>۞</span></div>}
-                {st.azShowTr && it.ru && <RuText text={it.ru} surahs={surahs} onOpen={(s, a) => nav(`/read/${s}?a=${a}&from=link`)} />}
+                {st.azShowTr && it.ru && <RuText text={it.ru} surahs={surahs} onOpen={(s, a) => nav(`/read/${s}?a=${a}&from=link${a === 1 ? '&m=sura' : ''}`)} />}
                 {st.azShowRef && it.ref && <div className="azc-ref">Источник: {it.ref}</div>}
               </div>
             </section>

@@ -84,7 +84,7 @@ function SurahStorySheet({ sid, name, onClose }: { sid: number; name?: string; o
     <Sheet onClose={onClose} tall>
       <SheetHead title="О суре" sub={name ?? meta?.surahs[sid - 1]?.name ?? ''} onClose={onClose} />
       <div className="body">
-        {(!stories || !ix) && <div className="loading">Загрузка…</div>}
+        {(!stories || !ix) && !(kv && kv.intro.length > 0) && <div className="loading" style={{ height: 56 }}>Загрузка…</div>}
         {kv && kv.intro.length > 0 && (
           <>
             <div className="as-label">Вступление</div>

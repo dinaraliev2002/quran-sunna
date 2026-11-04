@@ -77,7 +77,9 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   useEffect(() => { setSurahCounts(surahs) }, [surahs])
   useEffect(() => { setMediaTitle((k) => { const [s, a] = k.split(':'); return `${surahs[+s - 1].name}, аят ${a}` }) }, [surahs])
 
-  const mode = st.mode
+  // ссылка на целую суру (например, из азкаров) открывает её в режиме «Сура» один раз, настройку чтения не меняя
+  const [modeOverride, setModeOverride] = useState<ReadMode | null>(search.get('m') === 'sura' ? 'sura' : null)
+  const mode = modeOverride ?? st.mode
   const markPage = st.markPage
   usePageReadTimer(page, markPage)
   // на одной странице бывает несколько сур (напр. 604: 112–114) — если открытая сура есть на странице, показываем её
@@ -144,6 +146,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   }, [mode, ownReading])
 
   function switchMode(m: ReadMode) {
+    setModeOverride(null)
     setOverlay(null)
     haptic.tap()
     if (m === 'sura' && mode !== 'sura') {

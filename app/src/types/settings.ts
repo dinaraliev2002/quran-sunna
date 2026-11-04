@@ -56,6 +56,10 @@ export interface Settings {
   plSleepSuras: number
   plFollow: boolean // листать страницы вслед за звуком
   plResume: boolean // продолжать суру с места остановки
+  hapAll: boolean // вибрация в приложении из магазина
+  hapAzkar: boolean
+  hapHadith: boolean
+  hapQuran: boolean // листание тафсира, страниц, линейка
   plPos: Record<number, number> // место остановки по сурам
   qhRate: number // скорость чтеца при заучивании, 0.5–1.5
   qhWbw: boolean // пословный перевод в уроке (иначе обычный перевод под аятом)

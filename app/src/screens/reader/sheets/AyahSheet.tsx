@@ -40,7 +40,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
   useEffect(() => {
     if (!a) return
     const first = lastPage.current === null
-    if (!first && lastPage.current !== a.p) haptic.page()
+    if (!first && lastPage.current !== a.p) haptic.page('quran')
     lastPage.current = a.p
     if (!first) onAyah?.(surah.id, cur, a.p) // при открытии окна текст под ним не двигаем
   }, [a])

@@ -67,7 +67,7 @@ export function Dial({ page, juz, onChange, onOpenPicker }: { page: number; juz:
   function onScroll() {
     const el = ruler.current!
     const p = Math.max(1, Math.min(TOTAL_PAGES, Math.round(el.scrollLeft / TICK) + 1))
-    if (p !== shown) { setShown(p); if (!silent.current) haptic.tick() }
+    if (p !== shown) { setShown(p); if (!silent.current) haptic.tick('quran') }
     // страницу меняем только если колесо крутит человек (а не раскладка экрана или «доводка»)
     if (silent.current || Date.now() - touchedAt.current > 2000) return
     clearTimeout(settle.current)

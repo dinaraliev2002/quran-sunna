@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { baseOf, dayNum, schedule, type Grade, type HifzCard, type MyHifz, type Split } from '../lib/hifz'
 import { parseQh, qhShards, QH_KEY, QH_SHARDS } from '../lib/hifzQuran'
-import { cloudGet, cloudGetBoth, cloudSet, localSet } from '../lib/telegram'
+import { cloudGet, cloudGetBoth, cloudSet, localSet, setHapticPolicy } from '../lib/telegram'
 import type { ReadMode, Translation, ThemePref, LastRead, TaskId, Settings, Activity } from '../types/settings'
 export type { ReadMode, Translation, ThemePref, LastRead, TaskId, Settings, Activity }
 
@@ -86,7 +86,7 @@ const DEFAULT_SETTINGS: Settings = {
   azTrSize: 17,
   azShowAr: true,
   azShowTr: true,
-  azShowRef: true,
+  azShowRef: false,
   azAuto: true,
   azFont: 'sch',
   hdArSize: 24,
@@ -107,6 +107,10 @@ const DEFAULT_SETTINGS: Settings = {
   plSleepSuras: 1,
   plFollow: true,
   plResume: true,
+  hapAll: true,
+  hapAzkar: true,
+  hapHadith: true,
+  hapQuran: true,
   plPos: {},
   qhWbw: true,
   qhChain: false,
@@ -443,3 +447,10 @@ if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') useStore.getState().rollDay() })
   setInterval(() => useStore.getState().rollDay(), 60_000)
 }
+
+// вибрация в приложении из магазина: общий выключатель и выключатели по разделам (Настройки → Вибрация)
+setHapticPolicy((area) => {
+  const s = useStore.getState()
+  if (!s.hapAll) return false
+  return area === 'azkar' ? s.hapAzkar : area === 'hadith' ? s.hapHadith : area === 'quran' ? s.hapQuran : true
+})

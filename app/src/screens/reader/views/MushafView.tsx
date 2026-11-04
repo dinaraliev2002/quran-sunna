@@ -112,7 +112,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
     let k = i
     while (k > 0 && !tr[k]) k-- // пустая подпись — слово переведено вместе с предыдущим
     if (!tr[k]) return
-    haptic.tick()
+    haptic.tick('quran')
     const r = el.getBoundingClientRect()
     setTip({ x: r.left + r.width / 2, top: r.top, bottom: r.bottom, g: el.textContent ?? '', text: tr[k] })
   }

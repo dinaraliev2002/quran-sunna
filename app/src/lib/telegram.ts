@@ -1,7 +1,7 @@
 // Тонкая обёртка над Telegram WebApp API (скрипт telegram-web-app.js подключён в index.html).
 // В обычном браузере (без Telegram) всё работает через заглушки и localStorage.
 
-import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core'
+import { Capacitor, registerPlugin, SystemBars, SystemBarsStyle } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
@@ -12,7 +12,15 @@ import { SplashScreen } from '@capacitor/splash-screen'
 /** Запущено как установленное приложение (App Store / Google Play), а не в браузере или Telegram */
 export const isNative = Capacitor.isNativePlatform()
 const isIos = Capacitor.getPlatform() === 'ios'
+const isAndroid = Capacitor.getPlatform() === 'android'
 const impact = (style: ImpactStyle) => isNative && Haptics.impact({ style }).catch(() => {})
+// Android: свой модуль с системным откликом касания (мягче, чем вибромотор плагина Haptics)
+const Feedback = registerPlugin<{ perform: (o: { kind: string }) => Promise<void> }>('Feedback')
+
+/** Где вибрация разрешена: пользователь выключает её в настройках по разделам (store/settings подключает правило) */
+export type HapticArea = 'azkar' | 'hadith' | 'quran'
+let hapticAllowed: (area?: HapticArea) => boolean = () => true
+export const setHapticPolicy = (fn: (area?: HapticArea) => boolean) => { hapticAllowed = fn }
 
 type HapticStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'
 
@@ -85,15 +93,32 @@ export const telegramScheme = (): 'light' | 'dark' | null => (inTelegram ? wa!.c
 
 export const tgUser = (): TgUser | undefined => (inTelegram ? wa!.initDataUnsafe.user : undefined)
 
+const feel = (kind: 'tap' | 'tick' | 'page' | 'success') => Feedback.perform({ kind }).catch(() => {})
+
 export const haptic = {
-  tap: () => (isNative ? impact(ImpactStyle.Light) : inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('light')),
-  tick: () => {
+  tap: (area?: HapticArea) => {
+    if (isNative && !hapticAllowed(area)) return
+    if (isAndroid) return feel('tap')
+    return isNative ? impact(ImpactStyle.Light) : inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('light')
+  },
+  /** листание карточек, страниц, аятов: самый лёгкий отклик */
+  tick: (area?: HapticArea) => {
+    if (isNative && !hapticAllowed(area)) return
+    if (isAndroid) return feel('tick')
     if (!isNative) return inTelegram && at('6.1') && wa!.HapticFeedback.selectionChanged()
     Haptics.selectionStart().then(() => Haptics.selectionChanged()).then(() => Haptics.selectionEnd()).catch(() => {})
   },
-  /** перешли на другую страницу Корана — ощутимее, чем обычное листание */
-  page: () => (isNative ? impact(ImpactStyle.Medium) : inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('medium')),
-  success: () => (isNative ? Haptics.notification({ type: NotificationType.Success }).catch(() => {}) : inTelegram && at('6.1') && wa!.HapticFeedback.notificationOccurred('success')),
+  /** перешли на другую страницу Корана — чуть заметнее, чем обычное листание */
+  page: (area?: HapticArea) => {
+    if (isNative && !hapticAllowed(area)) return
+    if (isAndroid) return feel('page')
+    return isNative ? impact(ImpactStyle.Medium) : inTelegram && at('6.1') && wa!.HapticFeedback.impactOccurred('medium')
+  },
+  success: () => {
+    if (isNative && !hapticAllowed()) return
+    if (isAndroid) return feel('success')
+    return isNative ? Haptics.notification({ type: NotificationType.Success }).catch(() => {}) : inTelegram && at('6.1') && wa!.HapticFeedback.notificationOccurred('success')
+  },
 }
 
 export const APP_LINK ='https://t.me/quran_sunna_app_bot?startapp'

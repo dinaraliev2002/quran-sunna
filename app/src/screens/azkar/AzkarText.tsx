@@ -111,6 +111,8 @@ export function ArText({ text, hafsDigits }: { text: string; hafsDigits?: boolea
   // шрифт Хафс (кодировка KFGQPC): круглый ноль над буквой — это U+0652, а обычный сукун — U+06E1;
   // знака U+06DF в шрифте нет, и браузер рисовал его отдельно с пунктирным кружком
   if (hafsDigits) clean = clean.replace(/ْ/g, 'ۡ').replace(/۟/g, 'ْ')
+  // арабская «؛» шрифт Хафс рисует кружком с точкой — заменяем на обычную запятую, как в остальном тексте
+  if (hafsDigits) clean = clean.replace(/؛/g, ',')
   const paras = clean.split(/\n{2,}/).flatMap((p) => p.split(BISM)).map((p) => p.trim()).filter(Boolean)
   const inline = (t: string, k: number) =>
     t.split(/(\([^()]*\)|\*|۝[٠-٩]+)/).map((part, j) =>

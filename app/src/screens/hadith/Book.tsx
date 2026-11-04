@@ -69,7 +69,7 @@ export default function Book() {
     const k = Math.round(el.scrollLeft / el.clientWidth)
     if (k === cur || k < 0 || k >= items.length) return
     setCur(k)
-    haptic.tick()
+    haptic.tick('hadith')
     cardMemory.set(memKey, k)
     st.setHadithLast({ c: cid, n: bn, i: k })
   }

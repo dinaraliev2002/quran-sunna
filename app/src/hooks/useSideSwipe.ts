@@ -35,8 +35,8 @@ export function useSideSwipe(
     const end = () => {
       if (lock !== 'h') return
       const { hasNext, hasPrev, onSwipe } = swipeRef.current
-      if (dx > 90 && hasNext) { set(el.clientWidth, true); haptic.tick(); setTimeout(() => onSwipe(1), 200) }
-      else if (dx < -90 && hasPrev) { set(-el.clientWidth, true); haptic.tick(); setTimeout(() => onSwipe(-1), 200) }
+      if (dx > 90 && hasNext) { set(el.clientWidth, true); haptic.tick('quran'); setTimeout(() => onSwipe(1), 200) }
+      else if (dx < -90 && hasPrev) { set(-el.clientWidth, true); haptic.tick('quran'); setTimeout(() => onSwipe(-1), 200) }
       else set(0, true)
       lock = null
     }

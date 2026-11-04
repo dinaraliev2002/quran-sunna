@@ -68,7 +68,7 @@ export function Pager({ page, onChange, render }: { page: number; onChange: (p: 
     // страница «встала» → сообщаем наружу
     settleTimer.current = setTimeout(() => {
       const cur = indexNow()
-      if (cur !== pageRef.current) { haptic.tick(); onChange(cur) }
+      if (cur !== pageRef.current) { haptic.tick('quran'); onChange(cur) }
     }, 90)
   }
 

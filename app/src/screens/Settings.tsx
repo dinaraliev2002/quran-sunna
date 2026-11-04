@@ -4,7 +4,7 @@ import { haptic } from '../lib/telegram'
 import { Icon } from '../components/Icon'
 import { PlayerSettings } from '../components/PlayerSettings'
 import { Sheet, SheetHead, TabBar } from '../components/ui'
-import { openBot, openSupport, tgUser } from '../lib/telegram'
+import { isNative, openBot, openSupport, tgUser } from '../lib/telegram'
 import { RECITERS, bitrateOf } from '../store/player'
 import { ReciterList } from '../components/ReciterList'
 import { NewsHistory } from '../components/WhatsNew'
@@ -58,6 +58,18 @@ export default function Settings() {
         <button className="sitem" onClick={() => setOpen('rec')}><span className="si" style={{ background: '#C08A2E' }}><Icon id="sound" /></span><span className="t">Чтец</span><span className="v">{(RECITERS[st.reciter] ?? RECITERS.alafasy).name} · {bitrateOf(st.reciter, st.bitrates)}</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => setPlayerOpen(true)}><span className="si" style={{ background: '#2F7D6B' }}><Icon id="play" /></span><span className="t">Плеер</span><span className="v">Скорость, таймер сна, пауза</span><Icon id="right" className="icon chev" /></button>
       </div>
+
+      {isNative && (
+        <>
+          <div className="group-t">Вибрация</div>
+          <div className="group">
+        <button className="sitem" onClick={() => st.set({ hapAll: !st.hapAll })}><span className="si" style={{ background: '#7A5AC8' }}><Icon id="bell" /></span><span className="t">Вибрация</span><span className="v">Общий выключатель</span><span className={'switch' + (st.hapAll ? ' on' : '')} /></button>
+        <button className="sitem" onClick={() => st.set({ hapAzkar: !st.hapAzkar })}><span className="si" style={{ background: '#C08A2E' }}><Icon id="bell" /></span><span className="t">Азкары</span><span className="v">Листание карточек и счётчик</span><span className={'switch' + (st.hapAzkar ? ' on' : '')} /></button>
+        <button className="sitem" onClick={() => st.set({ hapHadith: !st.hapHadith })}><span className="si" style={{ background: '#2F7D6B' }}><Icon id="bell" /></span><span className="t">Хадисы</span><span className="v">Листание карточек</span><span className={'switch' + (st.hapHadith ? ' on' : '')} /></button>
+        <button className="sitem" onClick={() => st.set({ hapQuran: !st.hapQuran })}><span className="si" style={{ background: '#13704B' }}><Icon id="bell" /></span><span className="t">Коран и тафсир</span><span className="v">Страницы, линейка, аяты в тафсире</span><span className={'switch' + (st.hapQuran ? ' on' : '')} /></button>
+          </div>
+        </>
+      )}
 
       <div className="group-t">Без интернета</div>
       <div className="group">
