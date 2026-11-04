@@ -178,12 +178,16 @@ if (isNative && Capacitor.getPlatform() === 'android') fixAndroidInsets()
 let nativeBack: (() => void) | null = null
 if (isNative) {
   let lastBack = 0
+  /** Назад по истории приложения; true — шаг сделан, false — мы на главной */
+  const stepBack = () => {
+    const st = history.state as { idx?: number } | null
+    if (st && typeof st.idx === 'number' && st.idx > 0) { history.back(); return true }
+    if (!/^#?\/?$/.test(location.hash)) { location.hash = '#/'; return true }
+    return false
+  }
   CapApp.addListener('backButton', () => {
     if (nativeBack) return nativeBack()
-    // у экрана нет своей кнопки «Назад»: идём назад по истории приложения, а с главной выходим со второго нажатия
-    const st = history.state as { idx?: number } | null
-    if (st && typeof st.idx === 'number' && st.idx > 0) return history.back()
-    if (!/^#?\/?$/.test(location.hash)) { location.hash = '#/'; return }
+    if (stepBack()) return // у экрана нет своей кнопки «Назад»: идём назад по истории, а с главной выходим со второго нажатия
     const now = Date.now()
     if (now - lastBack < 2000) { CapApp.exitApp().catch(() => {}); return }
     lastBack = now
@@ -194,13 +198,13 @@ if (isNative) {
     document.addEventListener('touchstart', (e) => {
       const t = e.touches[0]
       sx = t.clientX; sy = t.clientY
-      edge = !!nativeBack && sx < 24
+      edge = sx < 24
     }, { passive: true })
     document.addEventListener('touchend', (e) => {
       if (!edge) return
       edge = false
       const t = e.changedTouches[0]
-      if (t.clientX - sx > 70 && Math.abs(t.clientY - sy) < 60) nativeBack?.()
+      if (t.clientX - sx > 70 && Math.abs(t.clientY - sy) < 60) { if (nativeBack) nativeBack(); else stepBack() }
     }, { passive: true })
   }
 }

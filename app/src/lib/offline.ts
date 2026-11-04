@@ -1,7 +1,7 @@
 // Загрузки для работы без интернета: текст Корана, шрифты страниц, аудио чтеца.
 import { create } from 'zustand'
 import { DATA_BASE, loadSurahs, TOTAL_PAGES, type Surah } from './data'
-import { fontKey, fontUrl } from './fonts'
+import { fontKey, fontUrl, isBundled } from './fonts'
 import { idbDeletePrefix, idbKeys, requestPersistence } from './idb'
 import { cachedBuffer, cachedJson, dataKey, DATA_VERSION, downloadBlob } from './net'
 import { audioKey, audioUrls } from '../store/player'
@@ -75,6 +75,7 @@ export async function downloadData() {
 }
 
 export async function downloadFonts(variant: string) {
+  if (isBundled(variant)) return // шрифты этого варианта уже внутри приложения
   const have = new Set(await idbKeys(`font:${variant}:`))
   const todo = Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1).filter((p) => !have.has(fontKey(p, variant)))
   return run('fonts:' + variant, 'fonts', 'Страницы мусхафа', todo.map((p) => () => cachedBuffer(fontKey(p, variant), fontUrl(p, variant), abort?.signal)))
@@ -110,7 +111,7 @@ export async function offlineStatus(fontVariantNow: string, reciter: string) {
   const fullSurahs = surahs.filter((s) => (perSurah.get(s.id) ?? 0) >= s.ayahs).map((s) => s.id)
   return {
     data: { done: data.length, total: dataFiles().length },
-    fonts: { done: fonts.length, total: TOTAL_PAGES },
+    fonts: { done: isBundled(fontVariantNow) ? TOTAL_PAGES : fonts.length, total: TOTAL_PAGES },
     audio: { done: audio.length, total: 6236, perSurah, fullSurahs },
   }
 }

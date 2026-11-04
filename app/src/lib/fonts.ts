@@ -7,7 +7,14 @@
 // Пока берём с CDN Quran.com; перед релизом перенесём к себе.
 
 import { create } from 'zustand'
+import { Capacitor } from '@capacitor/core'
 import { cachedBuffer } from './net'
+
+/** Какие шрифты вшиты в приложение из магазина (Android: обычный и с таджвидом; iPhone: только обычный). См. scripts/bundle-fonts.mjs */
+const platform = Capacitor.getPlatform()
+const BUNDLED = platform === 'android' ? ['v2', 'v4c'] : platform === 'ios' ? ['v2'] : []
+export const isBundled = (variant: string) => BUNDLED.includes(variant)
+const localFont = (p: number, variant: string) => `${import.meta.env.BASE_URL}fonts/${variant}/p${p}.woff2`
 
 type Theme = 'light' | 'dark'
 
@@ -50,7 +57,9 @@ export function loadPageFont(p: number, tajweed: boolean, theme: Theme): Promise
   if (useFonts.getState().ready[family]) return Promise.resolve()
   if (!pending.has(family)) {
     const variant = fontVariant(tajweed, theme)
-    const promise = cachedBuffer(fontKey(p, variant), fontUrl(p, variant))
+    const remote = () => cachedBuffer(fontKey(p, variant), fontUrl(p, variant))
+    // вшитый шрифт берём из самого приложения (без интернета); если вдруг файла нет — как обычно из сети
+    const promise = (isBundled(variant) ? fetch(localFont(p, variant)).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('нет файла')))).catch(remote) : remote())
       .then((buf) => new FontFace(family, buf).load())
       .then((face) => {
         document.fonts.add(face)

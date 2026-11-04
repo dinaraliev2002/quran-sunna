@@ -24,6 +24,7 @@ workflows:
           npm ci
           npm run build
           node scripts/apply-store-data.mjs   # только книги и комментарии, разрешённые для магазинов
+          node scripts/bundle-fonts.mjs v2     # шрифты обычного текста внутрь приложения (таджвид скачивается)
           npx cap sync ios
       - name: Номер сборки
         script: |
@@ -55,6 +56,7 @@ workflows:
           npm ci
           npm run build
           node scripts/apply-store-data.mjs   # только книги и комментарии, разрешённые для магазинов
+          node scripts/bundle-fonts.mjs v2 v4c # шрифты (обычный и с таджвидом) внутрь приложения
           npx cap sync android
       - name: Номер сборки
         script: |

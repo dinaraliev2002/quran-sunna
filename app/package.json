@@ -14,7 +14,9 @@
     "sync": "npm run build && cap sync",
     "icons": "capacitor-assets generate --iconBackgroundColor \"#0E4A31\" --iconBackgroundColorDark \"#0E4A31\" --splashBackgroundColor \"#0E1110\" --splashBackgroundColorDark \"#0E1110\"",
     "store-data": "python -I scripts/build-asbab.py --store --out store-data/asbab && python -I scripts/build-kuliev.py --draft --out store-data/kuliev",
-    "sync:store": "npm run build && node scripts/apply-store-data.mjs && cap sync"
+    "sync:store": "npm run build && node scripts/apply-store-data.mjs && cap sync",
+    "sync:android": "npm run build && node scripts/apply-store-data.mjs && node scripts/bundle-fonts.mjs v2 v4c && cap sync android",
+    "sync:ios": "npm run build && node scripts/apply-store-data.mjs && node scripts/bundle-fonts.mjs v2 && cap sync ios"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
