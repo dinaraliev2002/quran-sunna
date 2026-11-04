@@ -4,7 +4,8 @@ import { haptic } from '../lib/telegram'
 import { Icon } from '../components/Icon'
 import { PlayerSettings } from '../components/PlayerSettings'
 import { Sheet, SheetHead, TabBar } from '../components/ui'
-import { isNative, openBot, openSupport, tgUser } from '../lib/telegram'
+import { isNative, openBot, openSupport } from '../lib/telegram'
+import { useProfile } from '../lib/profile'
 import { RECITERS, bitrateOf } from '../store/player'
 import { ReciterList } from '../components/ReciterList'
 import { NewsHistory } from '../components/WhatsNew'
@@ -18,7 +19,7 @@ type Picker = null | 'tr' | 'rec' | 'theme' | 'font' | 'sources' | 'news'
 export default function Settings() {
   const st = useStore()
   const nav = useNavigate()
-  const user = tgUser()
+  const pr = useProfile()
   const [open, setOpen] = useState<Picker>(null)
   const [playerOpen, setPlayerOpen] = useState(false)
   const close = () => setOpen(null)
@@ -40,8 +41,8 @@ export default function Settings() {
     <div className="screen">
       <h1 className="page-title">Настройки</h1>
       <button className="list-item" onClick={() => nav('/profile')}>
-        <div className="avatar">{user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? 'А')}</div>
-        <div className="t"><b style={{ fontSize: 17 }}>{user?.first_name ?? 'Профиль'}</b><span>Профиль, план, статистика</span></div>
+        <div className="avatar">{pr.photo ? <img src={pr.photo} alt="" /> : pr.initial}</div>
+        <div className="t"><b style={{ fontSize: 17 }}>{pr.first || 'Профиль'}</b><span>Профиль, план, статистика</span></div>
         <Icon id="right" className="icon" />
       </button>
 

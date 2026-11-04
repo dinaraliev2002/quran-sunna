@@ -4,7 +4,9 @@ import { Icon } from '../components/Icon'
 import { Tour } from '../components/Tour'
 import { plural } from '../lib/plural'
 import { dayNum, hadithProgress, SETS } from '../lib/hifz'
-import { haptic, tgUser } from '../lib/telegram'
+import { haptic } from '../lib/telegram'
+import { useProfile } from '../lib/profile'
+import { ProfileEdit } from './ProfileEdit'
 import { useStore, type Activity } from '../store/settings'
 import { useHifzToday } from './hifz/parts'
 
@@ -29,7 +31,8 @@ const TIPS = [
 export default function Profile() {
   const nav = useNavigate()
   const st = useStore()
-  const user = tgUser()
+  const pr = useProfile()
+  const [editing, setEditing] = useState(false)
   const today = dayNum()
   const hz = useHifzToday()
   const days = Math.max(1, today - (st.since || today) + 1)
@@ -48,13 +51,17 @@ export default function Profile() {
       <div className="topbar">
         <button className="icon-btn" onClick={() => nav(-1)} aria-label="Назад"><Icon id="back" /></button>
         <div className="ttl"><b>Профиль</b></div>
-        <button className="icon-btn" onClick={() => nav('/settings')} aria-label="Настройки"><Icon id="gear" /></button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="icon-btn txt" onClick={() => { haptic.tap(); setEditing(true) }} aria-label="Изменить профиль">Изм.</button>
+          <button className="icon-btn" onClick={() => nav('/settings')} aria-label="Настройки"><Icon id="gear" /></button>
+        </div>
       </div>
+      {editing && <ProfileEdit onClose={() => setEditing(false)} />}
 
       <div className="pf-head">
-        <div className="pf-ava">{user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? 'А')}</div>
-        <b>{user ? [user.first_name, user.last_name].filter(Boolean).join(' ') : 'Гость'}</b>
-        <span>{user?.username ? `@${user.username} · ` : ''}с нами {days} {plural(days, 'день', 'дня', 'дней')}</span>
+        <div className="pf-ava">{pr.photo ? <img src={pr.photo} alt="" /> : pr.initial}</div>
+        <b>{pr.full}</b>
+        <span>{pr.username && !pr.own ? `@${pr.username} · ` : ''}с нами {days} {plural(days, 'день', 'дня', 'дней')}</span>
       </div>
 
       <div className="pf-stats">

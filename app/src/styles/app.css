@@ -1461,3 +1461,10 @@ div.srow { cursor: pointer; }
 .tafsir-audio .ta-t { font-size: 13px; font-weight: 700; color: var(--text-2); margin-bottom: 6px; }
 .tafsir-audio audio { width: 100%; height: 40px; }
 .tafsir-audio .ta-err { margin-top: 6px; font-size: 12.5px; color: var(--text-2); }
+
+/* профиль: «Изм.» и окно изменения */
+.icon-btn.txt { width: auto; padding: 0 14px; font-size: 14px; font-weight: 800; color: var(--text); }
+.pe-ava { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.pe-ava > div { display: grid; gap: 8px; justify-items: start; }
+.pe-ava .pf-ava { margin: 0; border: 0; padding: 0; cursor: pointer; flex: none; }
+.pe-name { width: 100%; height: 48px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); padding: 0 14px; font: 600 16px var(--font-ui); }

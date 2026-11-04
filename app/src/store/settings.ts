@@ -107,6 +107,8 @@ const DEFAULT_SETTINGS: Settings = {
   plSleepSuras: 1,
   plFollow: true,
   plResume: true,
+  profName: '',
+  profPhoto: '',
   hapAll: true,
   hapAzkar: true,
   hapHadith: true,

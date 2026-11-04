@@ -10,7 +10,8 @@ import { loadSurah, surahGlyph, type Ayah } from '../lib/data'
 import { hadithOfDay, type EncHadith } from '../lib/hadith'
 import { pageFontFamily } from '../lib/fonts'
 import { shareCardImage } from '../lib/shareImage'
-import { APP_LINK, haptic, shareText, tgUser } from '../lib/telegram'
+import { APP_LINK, haptic, shareText } from '../lib/telegram'
+import { useProfile } from '../lib/profile'
 import { useUi } from '../store/ui'
 import { useStore, type TaskId } from '../store/settings'
 import { listenSurah } from '../lib/listen'
@@ -82,7 +83,7 @@ export default function Home() {
   const meta = useQuranMeta()
   const { lastRead, recent, streak, today, markTask, tajweed, rollDay, learned } = useStore()
   useEffect(() => { rollDay() }, [rollDay]) // открыли главную — убедиться, что «Сегодня» за сегодня
-  const user = tgUser()
+  const pr = useProfile()
   const last = lastRead && meta ? meta.surahs[lastRead.s - 1] : null
   const aod = useAyahOfDay()
   const [hod, setHod] = useState<EncHadith | null>(null)
@@ -136,8 +137,8 @@ export default function Home() {
         <div className="h-glow" />
         <div className="h-top">
           <button className="h-me" onClick={() => nav('/profile')} aria-label="Профиль">
-            <span className="h-avatar">{user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? 'А')}</span>
-            {user?.first_name && <b>{user.first_name}</b>}
+            <span className="h-avatar">{pr.photo ? <img src={pr.photo} alt="" /> : pr.initial}</span>
+            {pr.first && <b>{pr.first}</b>}
           </button>
           <div className="h-top-r">
             <div className="h-pill" title="Дней подряд с чтением Корана"><Icon id="flame" />{streak} {plural(streak, 'день', 'дня', 'дней')}</div>

@@ -56,6 +56,8 @@ export interface Settings {
   plSleepSuras: number
   plFollow: boolean // листать страницы вслед за звуком
   plResume: boolean // продолжать суру с места остановки
+  profName: string // своё имя (пусто — из Telegram или «Гость»)
+  profPhoto: string // своё фото (сжатый JPEG в виде data-ссылки)
   hapAll: boolean // вибрация в приложении из магазина
   hapAzkar: boolean
   hapHadith: boolean
