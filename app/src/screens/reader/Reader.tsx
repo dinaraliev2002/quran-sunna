@@ -312,7 +312,8 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
         <MenuPanel
           sub={`${surah.name} · стр. ${page}`} tajweed={st.tajweed} mode={mode}
           onClose={() => setOverlay(null)}
-          onPlay={() => { setOverlay(null); onFab() }}
+          playing={player.status === 'playing' || player.status === 'loading'}
+          onPlay={() => { if (player.status !== 'idle') { haptic.tap(); player.toggle() } else { setOverlay(null); onFab() } }}
           onBookmarks={() => setOverlay('bookmarks')}
           onSearch={() => setOverlay('search')}
           onMemo={() => setOverlay('memo')}

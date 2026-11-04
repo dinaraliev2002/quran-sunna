@@ -2,8 +2,8 @@ import { Icon } from '../../../components/Icon'
 import { Sheet, SheetHead } from '../../../components/ui'
 import type { ReadMode } from '../../../types/settings'
 
-export function MenuPanel({ sub, mode, tajweed, wbw, onWbw, onClose, onPlay, onBookmarks, onSearch, onMemo, onTajweed, onSettings, onGlossary, onSajda }: {
-  sub: string; tajweed: boolean; mode: ReadMode; wbw: boolean; onWbw: () => void
+export function MenuPanel({ sub, mode, tajweed, wbw, playing, onWbw, onClose, onPlay, onBookmarks, onSearch, onMemo, onTajweed, onSettings, onGlossary, onSajda }: {
+  sub: string; tajweed: boolean; mode: ReadMode; wbw: boolean; playing?: boolean; onWbw: () => void
   onClose: () => void; onPlay: () => void; onBookmarks: () => void; onSearch: () => void; onMemo: () => void; onTajweed: () => void; onSettings: () => void; onGlossary?: () => void; onSajda?: () => void
 }) {
   // окно снизу — закрывается свайпом вниз, как и остальные
@@ -12,7 +12,7 @@ export function MenuPanel({ sub, mode, tajweed, wbw, onWbw, onClose, onPlay, onB
       <SheetHead title="Меню" sub={sub} onClose={onClose} />
       <div className="menu-body">
         <div className="quick">
-          <button onClick={onPlay}><Icon id="play" />Слушать</button>
+          <button onClick={onPlay}><Icon id={playing ? 'pause' : 'play'} />{playing ? 'Пауза' : 'Слушать'}</button>
           <button onClick={onBookmarks}><Icon id="bookmark" />Закладки</button>
           <button onClick={onSearch}><Icon id="search" />Поиск</button>
         </div>

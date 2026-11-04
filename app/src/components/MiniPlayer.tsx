@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '../lib/telegram'
@@ -25,6 +25,18 @@ export function MiniPlayer() {
   const [, tick] = useState(0)
   // над нижним меню — только на экранах, где оно есть; на остальных (главная) плеер прижат к низу
   const [hasTab, setHasTab] = useState(false)
+  // в чтении плеер живёт внутри экрана чтения: тогда окна (меню, аят) закрывают его, а не наоборот
+  const [host, setHost] = useState<Element | null>(null)
+  const inRead = loc.pathname.startsWith('/read/')
+  useEffect(() => {
+    setHost(null)
+    if (!inRead) return
+    // экран чтения может пересоздать свой корневой элемент (после загрузки) — держим ссылку свежей
+    const sync = () => setHost((cur) => { const el = document.querySelector('.reader'); return el && el !== cur ? el : cur })
+    sync()
+    const t = setInterval(sync, 200)
+    return () => clearInterval(t)
+  }, [inRead])
   useEffect(() => {
     const look = () => setHasTab(!!document.querySelector('.tabbar'))
     look()
@@ -68,8 +80,10 @@ export function MiniPlayer() {
   const main = <button className="mp-btn mp-main" onClick={() => { haptic.tap(); p.toggle() }} aria-label={playing ? 'Пауза' : 'Слушать'}><Icon id={playing ? 'pause' : 'play'} /></button>
   const closeBtn = <button className="mp-btn mp-x" onClick={() => { haptic.tap(); p.stop() }} aria-label="Закрыть плеер"><Icon id="close" /></button>
 
+  const place = (node: ReactNode) => (inRead && host ? createPortal(node, host) : node)
+
   if (mini) {
-    return (
+    return place(
       <>
         <div className={'miniplayer glass mp-small' + (inReader ? ' in-reader' : hasTab ? ' has-tab' : '')}>
           <button className="mp-btn mp-x" onClick={() => { haptic.tap(); setMini(false) }} aria-label="Развернуть плеер"><Icon id="up" /></button>
@@ -81,7 +95,7 @@ export function MiniPlayer() {
     )
   }
 
-  return (
+  return place(
     <>
       <div className={'miniplayer glass' + (inReader ? ' in-reader' : hasTab ? ' has-tab' : '')}>
         <div className="mp-top">
