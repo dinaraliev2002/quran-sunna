@@ -20,7 +20,15 @@ export function useSwipeToClose(ref: RefObject<HTMLDivElement | null>, dimRef: R
       const t = e.touches[0]
       startY = lastY = t.clientY; startX = t.clientX; lastT = e.timeStamp; speed = 0
       // листается внутренний список, а если его нет — само окно (в альбомной ориентации меню не помещается)
-      scroller = (e.target as HTMLElement).closest<HTMLElement>('.body') ?? (sheet.scrollHeight > sheet.clientHeight + 1 ? sheet : null)
+      // ближайший прокручиваемый предок касания (внутри окна), иначе — .body или само окно
+      let el: HTMLElement | null = e.target as HTMLElement
+      scroller = null
+      while (el && el !== sheet) {
+        const oy = getComputedStyle(el).overflowY
+        if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) { scroller = el; break }
+        el = el.parentElement
+      }
+      scroller ??= (e.target as HTMLElement).closest<HTMLElement>('.body') ?? (sheet.scrollHeight > sheet.clientHeight + 1 ? sheet : null)
       mode = 'none'
     }
     const onMove = (e: TouchEvent) => {

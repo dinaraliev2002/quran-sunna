@@ -14,6 +14,7 @@ export function NewsEntry({ n, onZoom }: { n: News; onZoom: (src: string) => voi
   return (
     <div className="wn-item">
       {n.kind === 'message' && <h4>{n.title}</h4>}
+      {(isNative ? n.intro : n.introWeb ?? n.intro) && <div className="wn-intro"><b>Коротко о главном</b><p>{isNative ? n.intro : n.introWeb ?? n.intro}</p></div>}
       {n.text && <p>{n.text}</p>}
       {n.points && <ul>{n.points.map((p, i) => <li key={i}>{p}</li>)}</ul>}
       {n.cards?.filter((c) => !c.only || (c.only === 'native') === isNative).map((c, i) => (
@@ -99,7 +100,10 @@ export function NewsHistory({ onClose }: { onClose: () => void }) {
   const [items, setItems] = useState<News[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [zoom, setZoom] = useState<string | null>(null)
+  const [ver, setVer] = useState<string>('') // выбранная запись; '' — первая (самая новая)
   useEffect(() => { loadNews().then(setItems).catch(() => setFailed(true)) }, [])
+  const shown = items ? items.filter((n) => n.id === (ver || items[0]?.id)) : []
+  const label = (n: News) => (n.kind === 'update' && n.version ? n.version : n.title)
   return (
     <>
     <Sheet onClose={onClose} tall>
@@ -107,7 +111,12 @@ export function NewsHistory({ onClose }: { onClose: () => void }) {
       <div className="body wn">
         {!items && !failed && <div className="loading">Загрузка…</div>}
         {failed && <div className="empty">Не удалось загрузить. Проверьте интернет</div>}
-        {items?.map((n) => (
+        {items && items.length > 1 && (
+          <div className="wn-pick" role="tablist" aria-label="Версия">
+            {items.map((n, i) => <button key={n.id} role="tab" className={n.id === (ver || items[0].id) ? 'on' : ''} onClick={() => { haptic.tap(); setVer(i === 0 ? '' : n.id) }}>{label(n)}</button>)}
+          </div>
+        )}
+        {shown.map((n) => (
           <div key={n.id}>
             <div className="wn-ver">{n.kind === 'update' && n.version ? `Версия ${n.version}` : n.title}<small> · {n.date}</small></div>
             <NewsEntry n={n} onZoom={setZoom} />

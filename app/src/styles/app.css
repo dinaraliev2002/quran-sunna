@@ -1662,3 +1662,15 @@ div.srow { cursor: pointer; }
 .term-pop .gl-big { position: static; font-size: 38px; line-height: 1.5; margin: 0; }
 .term-pop .gl-big { text-align: center; }
 .term-pop .gl-name { margin-top: 0; }
+
+/* круглая кнопка-меню внизу справа: разделы вылетают веером (components/QuickMenu.tsx) */
+.qm-dim { position: fixed; inset: 0; z-index: 22; background: rgba(0, 0, 0, .28); animation: qmfade .2s ease; }
+@keyframes qmfade { from { opacity: 0 } to { opacity: 1 } }
+.qm { position: fixed; right: calc(var(--safe-right) + 22px); bottom: calc(var(--safe-bottom) + 104px); width: 52px; height: 52px; z-index: 23; transition: bottom .2s; }
+.qm.up { bottom: calc(var(--safe-bottom) + 170px); }
+.qm-main { position: absolute; inset: 0; border-radius: 50%; background: var(--gold); color: var(--on-gold); display: grid; place-items: center; box-shadow: 0 8px 20px rgba(217, 164, 65, .4); transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
+.qm.open .qm-main { transform: rotate(90deg); background: var(--surface); color: var(--text); }
+.qm-item { position: absolute; left: 3px; top: 3px; width: 46px; height: 46px; border-radius: 50%; color: #fff; display: grid; place-items: center; box-shadow: 0 6px 16px rgba(0, 0, 0, .25); opacity: 0; transform: translate(0, 0) scale(.3); pointer-events: none; transition: transform .32s cubic-bezier(.2, 1.2, .3, 1) var(--d), opacity .2s ease var(--d); }
+.qm.open .qm-item { opacity: 1; transform: translate(var(--x), var(--y)) scale(1); pointer-events: auto; }
+.qm-item .icon { width: 22px; height: 22px; }
+.qm-lbl { position: absolute; left: 50%; top: 50%; transform: translate(calc(-50% + var(--ux) * 50% + var(--ux) * 30px), calc(-50% - var(--uy) * 50% - var(--uy) * 22px)); font-size: 12px; font-weight: 700; color: #fff; background: rgba(20, 20, 20, .72); padding: 3px 9px; border-radius: 999px; white-space: nowrap; pointer-events: none; }

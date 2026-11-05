@@ -73,6 +73,7 @@ function TelegramBack() {
 
 import { initPlayerSettings } from './lib/listen'
 import { MiniPlayer } from './components/MiniPlayer'
+import { QuickMenu } from './components/QuickMenu'
 import { WordSheet } from './screens/reader/word/WordSheet'
 
 export default function App() {
@@ -87,6 +88,7 @@ export default function App() {
       <IconSprite />
       <TelegramBack />
       <MiniPlayer />
+      {hydrated && <QuickMenu />}
       <WordSheet />
       <TermPop />
       {hydrated && <OnboardingGate />}
