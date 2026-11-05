@@ -1,10 +1,11 @@
 import { rootLetters, stemOf, tagValue, wordText } from '../../../lib/morph'
 import { segChips, segRole } from '../../../lib/morphLabels'
-import type { MorphWord } from '../../../types/morph'
+import type { MorphWord, WordTarget } from '../../../types/morph'
 import { VerbForms } from './VerbForms'
+import { WordConcepts } from './WordConcepts'
 
 /** Вкладка «Разбор»: слово, перевод, корень и части слова с грамматикой */
-export function WordParse({ word, tr }: { word: MorphWord; tr: string | null }) {
+export function WordParse({ word, tr, target }: { word: MorphWord; tr: string | null; target: WordTarget }) {
   const stem = stemOf(word)
   const root = stem && tagValue(stem, 'ROOT')
   const lemma = stem && tagValue(stem, 'LEM')
@@ -14,6 +15,7 @@ export function WordParse({ word, tr }: { word: MorphWord; tr: string | null }) 
         <div className="wd-ar ar" dir="rtl">{wordText(word)}</div>
         {tr && <div className="wd-tr">{tr}</div>}
       </div>
+      <WordConcepts target={target} />
       {(root || lemma) && (
         <div className="wd-facts">
           {root && <div><span>Корень</span><b className="ar" dir="rtl">{rootLetters(root)}</b></div>}

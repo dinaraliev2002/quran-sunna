@@ -16,3 +16,13 @@ export function loadConcepts() {
 export function conceptsOfAyah(list: Concept[], key: string): Concept[] {
   return list.filter((c) => c.v.includes(key)).sort((a, b) => a.n - b.n)
 }
+
+let wordMap: Promise<Record<string, string[]> | null> | null = null
+/** Какие слова Корана — понятия: «сура:аят:слово» → номера понятий */
+export function loadConceptWords() {
+  if (!wordMap) {
+    wordMap = fetch(DATA_BASE + 'concept-words.json').then((r) => (r.ok ? (r.json() as Promise<Record<string, string[]>>) : null)).catch(() => null)
+    wordMap.then((r) => { if (!r) wordMap = null })
+  }
+  return wordMap
+}

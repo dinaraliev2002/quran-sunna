@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
+import { ConceptVerses } from './ConceptVerses'
 import { loadConcepts } from '../../lib/concepts'
 import { plural } from '../../lib/plural'
 import type { Concept } from '../../types/concepts'
@@ -69,6 +70,9 @@ export function ConceptsTab({ focus }: { focus?: string | null }) {
                   {c.n > c.v.length ? ` (${c.n} ${plural(c.n, 'слово', 'слова', 'слов')})` : ''}.
                   {c.n > 600 ? ' Показаны первые.' : ''}
                 </p>
+                <div className="wd-sub">Первые аяты</div>
+                <ConceptVerses refs={c.v.slice(0, 3)} />
+                <div className="wd-sub">Все аяты</div>
                 <div className="wd-refs">
                   {refs.map((k) => <button key={k} onClick={() => { const [s, a] = k.split(':'); nav(`/read/${s}?a=${a}&from=link`) }}>{k}</button>)}
                   {!all && c.v.length > SHOW && <button className="more" onClick={() => setAll(true)}>ещё {c.v.length - SHOW}</button>}

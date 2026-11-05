@@ -28,6 +28,7 @@ except ImportError:
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 CACHE = os.path.join(ROOT, 'morph-src', 'qac-ontology')
 OUT = os.path.join(ROOT, 'public', 'data', 'concepts.json')
+OUT_WORDS = os.path.join(ROOT, 'public', 'data', 'concept-words.json')
 
 
 # общая категория для фильтра: по самому длинному подходящему признаку в пути («Prophet», «City»…)
@@ -63,6 +64,7 @@ def main():
     top = read('topics.html')
     ids = sorted(set(re.findall(r'concept\.jsp\?id=([^"&]+)"', top)))
     out, missing = [], []
+    words_of = {}  # «сура:аят:слово» → номера понятий (для окна разбора слова)
     for cid in ids:
         key = re.sub(r'[^a-z0-9-]', '_', cid)
         page = read(f'c_{key}.html')
@@ -85,10 +87,13 @@ def main():
             if p == 1:
                 t = re.search(r'Results <b>\d+</b> to <b>\d+</b> of <b>(\d+)</b>', sp)
                 words = int(t.group(1)) if t else 0
-            for s_, a_ in re.findall(r'\((\d+):(\d+):\d+\)', sp):
+            for s_, a_, w_ in re.findall(r'\((\d+):(\d+):(\d+)\)', sp):
                 k = f'{s_}:{a_}'
                 if k not in verses:
                     verses.append(k)
+                ids_ = words_of.setdefault(f'{s_}:{a_}:{w_}', [])
+                if cid not in ids_:
+                    ids_.append(cid)
             p += 1
         if not verses:
             continue  # общее название-категория без собственных аятов (например, «Ангелы»: аяты есть у Джибриля, Микаиля…)
@@ -98,6 +103,10 @@ def main():
             'v': verses, 'n': words,
         })
     out.sort(key=lambda x: x['ru'].lower())
+    have = {x['i'] for x in out}
+    words_of = {k: [i for i in v if i in have] for k, v in words_of.items()}
+    with io.open(OUT_WORDS, 'w', encoding='utf-8') as f:
+        json.dump({k: v for k, v in words_of.items() if v}, f, ensure_ascii=False, separators=(',', ':'))
     with io.open(OUT, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, separators=(',', ':'))
     print(f'{len(out)} понятий, не докачано {len(missing)}; {os.path.getsize(OUT) // 1024} КБ')

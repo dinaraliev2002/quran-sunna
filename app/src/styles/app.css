@@ -1601,3 +1601,12 @@ div.srow { cursor: pointer; }
 .wd-role .wd-link { background: var(--surface); }
 .wd-link .wd-dim { flex-basis: 100%; }
 .wd-link .ar { font-size: 24px; color: var(--gold-ink); }
+
+.group + .group { margin-top: 12px; }
+/* понятие в окне разбора слова и аяты понятия */
+.wd-concept { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: -4px 0 12px; }
+.wd-concept button { font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 99px; background: var(--highlight); color: var(--gold-ink); }
+.cn-verse { width: 100%; display: block; text-align: left; background: var(--surface-2); border-radius: 14px; padding: 10px 14px; margin: 8px 0 0; }
+.cn-verse .ar { display: block; font-size: 22px; line-height: 1.9; color: var(--text); }
+.cn-verse p { font-size: 13.5px; line-height: 1.45; color: var(--text-2); margin: 4px 0 0; }
+.cn-verse .wd-dim { display: block; margin-bottom: 2px; }

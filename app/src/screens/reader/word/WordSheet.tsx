@@ -34,7 +34,7 @@ function WordSheetBody({ target, onClose }: { target: WordTarget; onClose: () =>
       <div className="wd-body">
         {word === undefined && <div className="loading">Загрузка…</div>}
         {word === null && <p className="wd-note">Для этого слова нет разбора.</p>}
-        {word && tab === 'parse' && <WordParse word={word} tr={tr} />}
+        {word && tab === 'parse' && <WordParse word={word} tr={tr} target={target} />}
         {word && tab === 'role' && <RoleTab target={target} word={word} />}
         {word && tab === 'where' && <WhereTab root={root} />}
         {word && tab === 'forms' && <FormsTab root={root} />}
