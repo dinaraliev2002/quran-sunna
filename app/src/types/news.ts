@@ -1,4 +1,5 @@
 // Новости «Что нового» (public/updates.json)
 
-export type NewsCard = { icon: string; color?: string; title: string; text: string; tip?: string; img?: string; imgs?: string[] }
+/** only: карточка только для Telegram и сайта ('web') или только для приложения из магазина ('native') */
+export type NewsCard = { only?: 'web' | 'native'; icon: string; color?: string; title: string; text: string; tip?: string; img?: string; imgs?: string[] }
 export type News = { id: string; version?: string; kind: 'update' | 'message'; date?: string; title: string; cards?: NewsCard[]; fixes?: string[]; points?: string[]; text?: string }

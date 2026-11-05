@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { haptic } from '../lib/telegram'
+import { haptic, isNative } from '../lib/telegram'
 import { Icon } from './Icon'
 import { Sheet, SheetHead } from './ui'
 import { freshNews, loadNews, markSeen } from '../lib/news'
@@ -16,7 +16,7 @@ export function NewsEntry({ n, onZoom }: { n: News; onZoom: (src: string) => voi
       {n.kind === 'message' && <h4>{n.title}</h4>}
       {n.text && <p>{n.text}</p>}
       {n.points && <ul>{n.points.map((p, i) => <li key={i}>{p}</li>)}</ul>}
-      {n.cards?.map((c, i) => (
+      {n.cards?.filter((c) => !c.only || (c.only === 'native') === isNative).map((c, i) => (
         <div key={i} className="wn-card">
           <div className="wn-h">
             <span className="wn-ic" style={{ color: c.color ?? 'var(--gold-ink)' }}><Icon id={c.icon} /></span>
