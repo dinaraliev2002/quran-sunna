@@ -36,11 +36,6 @@ export default function Words({ section }: { section: 'words' | 'meaning' }) {
         )}
       </div>
       {tab === 'freq' ? <FreqTab /> : tab === 'grammar' ? <GrammarTab /> : tab === 'concepts' ? <ConceptsTab focus={concept} /> : <TopicsTab focus={topic} />}
-      <p className="wd-src">
-        {section === 'words'
-          ? <>Разбор слов — <a href="https://corpus.quran.com" target="_blank" rel="noreferrer">Quranic Arabic Corpus</a> (corpus.quran.com).</>
-          : <>Понятия и темы — <a href="https://corpus.quran.com" target="_blank" rel="noreferrer">Quranic Arabic Corpus</a> и <a href="https://qul.tarteel.ai" target="_blank" rel="noreferrer">Quranic Universal Library</a>.</>}
-      </p>
     </div>
   )
 }

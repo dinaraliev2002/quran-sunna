@@ -39,11 +39,6 @@ function WordSheetBody({ target, onClose }: { target: WordTarget; onClose: () =>
         {word && tab === 'where' && <WhereTab root={root} />}
         {word && tab === 'forms' && <FormsTab root={root} />}
       </div>
-      <p className="wd-src">
-        {tab === 'role'
-          ? <>Роли слов — <a href="https://github.com/NoorBayan/Quranic" target="_blank" rel="noreferrer">The Quranic Treebank</a> (NoorBayan, лицензия MIT).</>
-          : <>Грамматический разбор — <a href="https://corpus.quran.com" target="_blank" rel="noreferrer">Quranic Arabic Corpus</a> (corpus.quran.com).</>}
-      </p>
     </Sheet>
   )
 }

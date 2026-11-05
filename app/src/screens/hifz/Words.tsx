@@ -80,7 +80,6 @@ export default function WordsHifz() {
             )}
           </div>
         )}
-        <p className="wd-src">Разбор слов — Quranic Arabic Corpus (corpus.quran.com).</p>
       </div>
     )
   }
