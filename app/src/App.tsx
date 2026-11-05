@@ -68,6 +68,7 @@ function TelegramBack() {
 
 import { initPlayerSettings } from './lib/listen'
 import { MiniPlayer } from './components/MiniPlayer'
+import { WordSheet } from './screens/reader/word/WordSheet'
 
 export default function App() {
   const hydrated = useStore((s) => s.hydrated)
@@ -80,6 +81,7 @@ export default function App() {
       <IconSprite />
       <TelegramBack />
       <MiniPlayer />
+      <WordSheet />
       {hydrated && <OnboardingGate />}
       <div className="app">
         {hydrated && (

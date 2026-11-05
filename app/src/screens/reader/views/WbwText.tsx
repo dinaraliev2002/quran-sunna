@@ -1,5 +1,6 @@
 import { pageFont, pagePalette, useFontReady } from '../../../lib/fonts'
 import { useWordOf } from '../../../lib/wordSync'
+import { useWordSheet, WORD_PARSE } from '../../../store/wordSheet'
 import { useUi } from '../../../store/ui'
 import { useWbw } from '../../../hooks/useWbw'
 import type { Ayah } from '../../../types/quran'
@@ -22,7 +23,7 @@ export function WbwText({ sid, a, tajweed, hidden }: { sid: number; a: Ayah; taj
   return (
     <div className={'wbw a-wbw' + (glyph && !ready ? ' loading-font' : '') + (hidden ? ' hidden' : '')}>
       {a.w.map((w, i) => (
-        <div className={'w' + (word === i + 1 ? ' wl' : '')} key={i}>
+        <div className={'w' + (word === i + 1 ? ' wl' : '')} key={i} onClick={WORD_PARSE ? () => useWordSheet.getState().open({ s: sid, a: a.n, w: i + 1 }) : undefined}>
           {glyph
             ? <GlyphWord glyph={gl[i]} family={family} ready={ready} style={st!} />
             : colored ? <span className="wa" dangerouslySetInnerHTML={{ __html: parts[i] }} /> : <span className="wa">{w}</span>}

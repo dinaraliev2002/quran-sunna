@@ -5,6 +5,8 @@ import { loadMushafPage, loadWbw } from '../../../lib/data'
 import { loadPageFont, pageFont, pagePalette } from '../../../lib/fonts'
 import { layoutLines } from '../../../lib/mushafLayout'
 import { haptic } from '../../../lib/telegram'
+import { useAyahOffsets } from '../../../hooks/useAyahOffsets'
+import { useWordSheet, WORD_PARSE } from '../../../store/wordSheet'
 import { useWordOf } from '../../../lib/wordSync'
 import { useLandscape } from '../../../hooks/useLandscape'
 import { useUi } from '../../../store/ui'
@@ -25,18 +27,19 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
   const box = useRef<HTMLDivElement>(null)
   const hold = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null)
   const tap = useRef<{ t: number; el: HTMLElement } | null>(null)
-  const [tip, setTip] = useState<{ x: number; top: number; bottom: number; g: string; text: string } | null>(null)
+  const [tip, setTip] = useState<{ x: number; top: number; bottom: number; g: string; text: string; s: number; a: number; w: number } | null>(null)
   const theme = useUi((s) => s.theme)
   const ix = useAsbabIndex() // у каких сур есть «История суры» — кнопка в звезде заголовка
   const kix = useKulievIndex()
   // номер слова внутри аята для каждого слова страницы (знак конца аята — 0): по нему подсвечивается звучащее слово
+  const off = useAyahOffsets(mp) // слов аята на предыдущих страницах (если аят начался там)
   const wordNo = useMemo(() => {
     const cnt = new Map<string, number>()
     const out: Record<string, number[]> = {}
     for (const n of Object.keys(mp?.lines ?? {}).sort((x, y) => Number(x) - Number(y)))
-      out[n] = mp!.lines[n].map(([, key, end]) => { if (end) return 0; const c = (cnt.get(key) ?? 0) + 1; cnt.set(key, c); return c })
+      out[n] = mp!.lines[n].map(([, key, end]) => { if (end) return 0; const c = (cnt.get(key) ?? 0) + 1; cnt.set(key, c); return (off[key] ?? 0) + c })
     return out
-  }, [mp])
+  }, [mp, off])
   const word = useWordOf(playing)
 
   useEffect(() => {
@@ -124,7 +127,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
     if (!tr[k]) return
     haptic.tick('quran')
     const r = el.getBoundingClientRect()
-    setTip({ x: r.left + r.width / 2, top: r.top, bottom: r.bottom, g: el.textContent ?? '', text: tr[k] })
+    setTip({ x: r.left + r.width / 2, top: r.top, bottom: r.bottom, g: el.textContent ?? '', text: tr[k], s, a, w: (off[key] ?? 0) + i + 1 })
   }
   const onUp = (e: RPE) => {
     const quick = hold.current !== null // отпустили до долгого нажатия и без сдвига
@@ -178,6 +181,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
         <div className={'mw-tip' + (tip.top < 130 ? ' below' : '')} style={{ left: Math.min(Math.max(tip.x, 90), window.innerWidth - 90), top: tip.top < 130 ? tip.bottom + 8 : tip.top - 8 }}>
           <span className="g qpc" style={{ fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(page) }}>{tip.g}</span>
           <b>{tip.text}</b>
+          {WORD_PARSE && <button className="mw-more" onClick={() => { useWordSheet.getState().open({ s: tip.s, a: tip.a, w: tip.w }); setTip(null) }}>Разбор слова ›</button>}
         </div>, document.body)}
     </div>
   )

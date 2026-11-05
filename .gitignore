@@ -21,3 +21,4 @@ app/public/data/asbab/
 __pycache__/
 /*.ogg
 .claude/settings.local.json
+app/morph-src/

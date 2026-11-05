@@ -1392,7 +1392,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .qh-my button:disabled { opacity: .35; }
 .qh-my .icon.flip { transform: rotate(180deg); }
 .mus .mushaf { touch-action: manipulation; }
-.mw-tip { position: fixed; z-index: 30; transform: translate(-50%, -100%); max-width: 220px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 14px 9px; border-radius: 14px; background: var(--surface); color: var(--text); box-shadow: 0 6px 24px rgba(0,0,0,.25); border: 1px solid var(--line, rgba(127,127,127,.2)); text-align: center; pointer-events: none; animation: mwtip .15s ease-out; }
+.mw-tip { position: fixed; z-index: 30; transform: translate(-50%, -100%); max-width: 220px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 14px 9px; border-radius: 14px; background: var(--surface); color: var(--text); box-shadow: 0 6px 24px rgba(0,0,0,.25); border: 1px solid var(--line, rgba(127,127,127,.2)); text-align: center; pointer-events: auto; animation: mwtip .15s ease-out; }
 .mw-tip.below { transform: translate(-50%, 0); }
 .mw-tip .g { font-size: 26px; line-height: 1.7; direction: rtl; }
 .mw-tip b { font-size: 14.5px; font-weight: 700; line-height: 1.3; }
@@ -1480,3 +1480,38 @@ div.srow { cursor: pointer; }
 .shr-img { max-width: 100%; max-height: 52vh; border-radius: 14px; box-shadow: 0 8px 28px rgba(0, 0, 0, .35); }
 .shr-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--text-2); }
 .shr-nav .sq { width: 48px; height: 48px; border-radius: 16px; background: var(--surface-2); display: grid; place-items: center; color: var(--text); }
+
+/* окно разбора слова */
+.mw-tip .mw-more { margin-top: 6px; font-size: 12.5px; font-weight: 800; color: var(--gold-ink); background: var(--highlight); border-radius: 99px; padding: 5px 12px; }
+.wd-tabs { display: flex; gap: 6px; margin: 4px 0 12px; background: var(--surface-2); border-radius: 14px; padding: 4px; }
+.wd-tabs button { flex: 1; padding: 9px 6px; border-radius: 11px; font-size: 14px; font-weight: 700; color: var(--text-2); }
+.wd-tabs button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); }
+.wd-body { min-height: 220px; flex: none; }
+.wd-tabs, .wd-src { flex: none; }
+.wd-head { text-align: center; padding: 6px 0 14px; }
+.wd-ar { font-size: 44px; line-height: 1.5; color: var(--gold-ink); }
+.wd-tr { font-size: 17px; font-weight: 700; margin-top: 2px; }
+.wd-facts { display: flex; gap: 10px; margin-bottom: 14px; }
+.wd-facts > div { flex: 1; background: var(--surface-2); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; text-align: center; }
+.wd-facts span { font-size: 11.5px; font-weight: 700; color: var(--text-2); letter-spacing: .04em; text-transform: uppercase; }
+.wd-facts b { font-size: 24px; font-weight: 400; color: var(--text); }
+.wd-sub { font-size: 12px; font-weight: 800; color: var(--gold-ink); letter-spacing: .06em; text-transform: uppercase; margin: 12px 2px 8px; }
+.wd-seg { display: flex; gap: 14px; align-items: center; background: var(--surface-2); border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; }
+.wd-seg > .ar { font-size: 28px; min-width: 64px; text-align: center; color: var(--gold-ink); }
+.wd-seg b { font-size: 14.5px; }
+.wd-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.wd-chips span { font-size: 12px; font-weight: 600; background: var(--surface-3); color: var(--text-2); border-radius: 99px; padding: 3px 9px; }
+.wd-note { font-size: 14.5px; line-height: 1.5; color: var(--text-2); margin: 4px 2px 12px; }
+.wd-note b.ar { font-size: 20px; color: var(--gold-ink); font-weight: 400; }
+.wd-refs { display: flex; flex-wrap: wrap; gap: 6px; }
+.wd-refs button { font-size: 12.5px; font-weight: 700; background: var(--surface-2); border-radius: 99px; padding: 6px 11px; }
+.wd-refs button.more { color: var(--gold-ink); background: var(--highlight); }
+.wd-refs.sm button { font-size: 11px; padding: 3px 8px; color: var(--text-2); }
+.wd-form { display: flex; gap: 12px; align-items: flex-start; background: var(--surface-2); border-radius: 16px; padding: 10px 14px; margin-bottom: 8px; }
+.wd-form > .ar { font-size: 24px; min-width: 72px; text-align: center; color: var(--gold-ink); }
+.wd-form .mid { flex: 1; font-size: 12.5px; color: var(--text-2); line-height: 1.4; display: flex; flex-direction: column; gap: 6px; }
+.wd-form > b { font-size: 15px; color: var(--text); }
+.wd-more { width: 100%; padding: 12px; border-radius: 14px; background: var(--surface-2); font-weight: 700; margin-top: 4px; }
+.wd-src { font-size: 11.5px; color: var(--text-2); text-align: center; margin: 12px 0 2px; }
+.wd-src a { color: var(--gold-ink); }
+.a-wbw .w { cursor: pointer; }
