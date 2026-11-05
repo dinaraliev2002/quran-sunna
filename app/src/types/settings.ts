@@ -41,6 +41,7 @@ export interface Settings {
   hdTrSize: number
   hdAr: boolean
   termHl: boolean // подсветка терминов в комментариях
+  quickTabY: number // высота язычка боковой панели, % экрана (его можно двигать вверх-вниз)
   quickHidden: string[] // какие пункты скрыты в боковой панели разделов (QuickMenu)
   ayahBlocks: AyahBlocks // что показывать в окне аята (перевод и тафсир — всегда)
   // заучивание
