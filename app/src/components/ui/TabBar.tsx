@@ -7,7 +7,6 @@ export function TabBar() {
     { to: '/quran', icon: 'book' },
     { to: '/azkar', icon: 'hands' },
     { to: '/hadith', icon: 'scroll' },
-    { to: '/settings', icon: 'more' },
   ]
   return (
     <nav className="tabbar">
