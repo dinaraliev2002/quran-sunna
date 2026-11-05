@@ -1666,8 +1666,8 @@ div.srow { cursor: pointer; }
 /* боковая панель разделов (components/QuickMenu.tsx): язычок у правого края, панель выезжает */
 .qm-dim { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .35); animation: qmfade .2s ease; }
 @keyframes qmfade { from { opacity: 0 } to { opacity: 1 } }
-.qm-tab { position: fixed; right: 0; touch-action: none; margin-top: -32px; width: 22px; height: 64px; z-index: 19; border-radius: 14px 0 0 14px; background: color-mix(in srgb, var(--gold) 80%, transparent); color: var(--on-gold); display: grid; place-items: center; box-shadow: -2px 4px 14px rgba(0, 0, 0, .18); padding: 0; }
-.qm-tab .icon { width: 14px; height: 14px; }
+.qm-tab { position: fixed; right: 0; touch-action: none; margin-top: -28px; width: 14px; height: 56px; z-index: 19; border-radius: 10px 0 0 10px; opacity: .85; background: color-mix(in srgb, var(--gold) 80%, transparent); color: var(--on-gold); display: grid; place-items: center; box-shadow: -2px 4px 14px rgba(0, 0, 0, .18); padding: 0; }
+.qm-tab .icon { width: 10px; height: 10px; }
 .qm-panel { position: fixed; right: 0; width: 84px; max-height: 84vh; z-index: 41; background: var(--surface); box-shadow: -8px 0 26px rgba(0, 0, 0, .3); border-radius: 22px 0 0 22px; padding: 10px 6px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; transform: translate(105%, -50%); transition: transform .28s cubic-bezier(.2, .8, .2, 1), width .2s; }
 .qm-panel.open { transform: translate(0, -50%); }
 .qm-panel.edit { width: min(250px, 80vw); padding: 10px; }
