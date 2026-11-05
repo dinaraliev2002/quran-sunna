@@ -1588,3 +1588,16 @@ div.srow { cursor: pointer; }
 .term { color: var(--gold-ink); border-bottom: 1.5px dotted var(--gold-ink); cursor: pointer; }
 .term-pop { text-align: center; padding: 0 4px 6px; }
 .term-pop .gl-mean { text-align: left; margin: 10px 0 14px; }
+
+/* роль слова в предложении */
+.wd-role { background: var(--surface-2); border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; }
+.wd-role-top { display: flex; align-items: center; gap: 14px; }
+.wd-role-top > .ar { font-size: 28px; color: var(--gold-ink); min-width: 48px; text-align: center; }
+.wd-role-top b { display: block; font-size: 15px; }
+.wd-role-top div > .ar { display: block; font-size: 20px; color: var(--gold-ink); margin-top: 2px; }
+.wd-role p { font-size: 13.5px; line-height: 1.45; color: var(--text-2); margin: 8px 0 0; }
+.wd-dim { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.wd-link { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; background: var(--surface-2); border-radius: 14px; padding: 10px 14px; margin-top: 8px; font-size: 14px; flex-wrap: wrap; }
+.wd-role .wd-link { background: var(--surface); }
+.wd-link .wd-dim { flex-basis: 100%; }
+.wd-link .ar { font-size: 24px; color: var(--gold-ink); }

@@ -7,8 +7,9 @@ import { useWordSheet } from '../../../store/wordSheet'
 import type { WordTarget } from '../../../types/morph'
 import { WordParse } from './WordParse'
 import { FormsTab, WhereTab } from './WordRoot'
+import { RoleTab } from './WordRole'
 
-const TABS = [['parse', 'Разбор'], ['where', 'Где ещё'], ['forms', 'Формы']] as const
+const TABS = [['parse', 'Разбор'], ['role', 'Роль'], ['where', 'Где ещё'], ['forms', 'Формы']] as const
 
 /** Окно разбора слова: открывается из режимов «Мусхаф» и «Слова с переводом» */
 export function WordSheet() {
@@ -34,10 +35,15 @@ function WordSheetBody({ target, onClose }: { target: WordTarget; onClose: () =>
         {word === undefined && <div className="loading">Загрузка…</div>}
         {word === null && <p className="wd-note">Для этого слова нет разбора.</p>}
         {word && tab === 'parse' && <WordParse word={word} tr={tr} />}
+        {word && tab === 'role' && <RoleTab target={target} word={word} />}
         {word && tab === 'where' && <WhereTab root={root} />}
         {word && tab === 'forms' && <FormsTab root={root} />}
       </div>
-      <p className="wd-src">Грамматический разбор — <a href="https://corpus.quran.com" target="_blank" rel="noreferrer">Quranic Arabic Corpus</a> (corpus.quran.com).</p>
+      <p className="wd-src">
+        {tab === 'role'
+          ? <>Роли слов — <a href="https://github.com/NoorBayan/Quranic" target="_blank" rel="noreferrer">The Quranic Treebank</a> (NoorBayan, лицензия MIT).</>
+          : <>Грамматический разбор — <a href="https://corpus.quran.com" target="_blank" rel="noreferrer">Quranic Arabic Corpus</a> (corpus.quran.com).</>}
+      </p>
     </Sheet>
   )
 }

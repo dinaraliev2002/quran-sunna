@@ -18,3 +18,8 @@ export interface WordTarget { s: number; a: number; w: number }
 export type FreqWord = [string, string, 'N' | 'V' | 'P', number, string, string, string]
 /** Частые слова: сколько всего слов в Коране и список по убыванию частоты */
 export interface FreqData { total: number; w: FreqWord[] }
+
+/** Роль части слова: [номер роли, слово-вершина (0 — вершина предложения, -1 — подразумеваемое слово), аят вершины (0 — тот же), номер части слова] */
+export type SyntaxSeg = [number, number, number, number]
+/** Роли слов суры: номер аята → слова аята → их роли */
+export type SyntaxSurah = Record<string, SyntaxSeg[][]>
