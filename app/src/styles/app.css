@@ -239,6 +239,9 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .mushaf .ln span { display: inline-block; }
 [data-theme="dark"] .mushaf .ln.w, [data-theme="dark"] .qpc { font-palette: var(--pal); }
 .mushaf .ln span.hl { background: rgba(217, 164, 65, .25); border-radius: 4px; }
+/* звучащее слово */
+.mushaf .ln span.hl.wl { background: rgba(217, 164, 65, .6); }
+.qpc .wl, .wbw .w.wl { background: rgba(217, 164, 65, .45); border-radius: 8px; }
 .mushaf .ln.head { display: block; }
 .mushaf .ln.head .sbanner { max-width: none; }
 .mushaf .ln.bism { font-family: var(--font-quran); justify-content: center; }

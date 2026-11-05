@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { IconSprite } from './components/Icon'
 import { cleanupOldData } from './lib/net'
+import { useWordHighlight } from './lib/wordSync'
 import { allowRotation, backButton, initTelegram, paintChrome, registerVisit, telegramScheme } from './lib/telegram'
 import Azkar from './screens/azkar/Azkar'
 import AzkarCategory from './screens/azkar/Category'
@@ -71,6 +72,7 @@ import { MiniPlayer } from './components/MiniPlayer'
 export default function App() {
   const hydrated = useStore((s) => s.hydrated)
   useTheme()
+  useWordHighlight()
   useEffect(() => { hydrateStore(); cleanupOldData(); initPlayerSettings() }, [])
 
   return (

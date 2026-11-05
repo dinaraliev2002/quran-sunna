@@ -68,6 +68,22 @@ let mirror = 0
 let waitTimer: ReturnType<typeof setTimeout> | undefined
 
 export const setReciter = (r: string) => { reciter = r }
+export const currentReciter = () => reciter
+
+/** Что звучит прямо сейчас: аят и место в его файле (мс) — для подсветки слов */
+export function playbackPos(): { key: string; ms: number } | null {
+  if (waOn && ctx) {
+    const now = ctx.currentTime
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      const c = timeline[i]
+      if (c.t <= now) return { key: c.key, ms: ((now - c.t) * c.rate + c.off) * 1000 }
+    }
+    return null
+  }
+  const key = usePlayer.getState().current
+  if (key && !audio.paused && !isSilent()) return { key, ms: audio.currentTime * 1000 }
+  return null
+}
 /** Скорость чтеца (заучивание: 0.5–1.5); при смене файла браузер берёт defaultPlaybackRate */
 let rate = 1
 export const setRate = (r: number) => els.forEach((e) => { rate = r; e.defaultPlaybackRate = r; e.playbackRate = r })
@@ -88,6 +104,8 @@ let ctx: AudioContext | null = null
 let gen = 0 // номер запуска: старые циклы замолкают
 let waOn = false
 let sources: AudioBufferSourceNode[] = []
+// когда какой аят поставлен в расписание звуковой карты — по этому считаем, на каком месте записи мы сейчас
+const timeline: { key: string; t: number; off: number; rate: number }[] = []
 const clips = new Map<string, Promise<Clip>>()
 
 async function fetchClip(r: string, key: string): Promise<Clip> {
@@ -115,6 +133,7 @@ const clipOf = (r: string, key: string) => {
 }
 function stopWA() {
   gen++
+  timeline.length = 0
   waOn = false
   for (const s of sources) { try { s.stop() } catch { /* уже закончился */ } }
   sources = []
@@ -166,6 +185,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         src.playbackRate.value = rate
         src.connect(ctx!.destination)
         src.start(t, c.off, c.dur)
+        timeline.push({ key, t, off: c.off, rate }); if (timeline.length > 6) timeline.shift()
         sources.push(src)
         src.onended = () => { sources = sources.filter((x) => x !== src) }
         when = t + c.dur / rate + gapMs(c.dur / rate) / 1000

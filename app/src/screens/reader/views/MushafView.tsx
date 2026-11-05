@@ -1,10 +1,11 @@
 import { createPortal } from 'react-dom'
-import { memo, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPE } from 'react'
 import { SurahBanner } from '../../../components/SurahBanner'
 import { loadMushafPage, loadWbw } from '../../../lib/data'
 import { loadPageFont, pageFont, pagePalette } from '../../../lib/fonts'
 import { layoutLines } from '../../../lib/mushafLayout'
 import { haptic } from '../../../lib/telegram'
+import { useWordOf } from '../../../lib/wordSync'
 import { useLandscape } from '../../../hooks/useLandscape'
 import { useUi } from '../../../store/ui'
 import type { MushafPage } from '../../../types/quran'
@@ -28,6 +29,15 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
   const theme = useUi((s) => s.theme)
   const ix = useAsbabIndex() // у каких сур есть «История суры» — кнопка в звезде заголовка
   const kix = useKulievIndex()
+  // номер слова внутри аята для каждого слова страницы (знак конца аята — 0): по нему подсвечивается звучащее слово
+  const wordNo = useMemo(() => {
+    const cnt = new Map<string, number>()
+    const out: Record<string, number[]> = {}
+    for (const n of Object.keys(mp?.lines ?? {}).sort((x, y) => Number(x) - Number(y)))
+      out[n] = mp!.lines[n].map(([, key, end]) => { if (end) return 0; const c = (cnt.get(key) ?? 0) + 1; cnt.set(key, c); return c })
+    return out
+  }, [mp])
+  const word = useWordOf(playing)
 
   useEffect(() => {
     let alive = true
@@ -156,7 +166,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
             return (
               <div key={i} className={'ln w' + (page <= 2 ? ' center' : '')} style={{ fontFamily: `'${family}'`, ['--pal' as string]: pagePalette(page) }}>
                 {mp.lines[l.n].map(([g, key, end], j) => (
-                  <span key={j} data-k={key} data-e={end ? 1 : undefined} className={key === playing ? 'hl' : key === pressed ? 'press' : ''}>{g}</span>
+                  <span key={j} data-k={key} data-e={end ? 1 : undefined} className={key === playing ? (word && wordNo[l.n]?.[j] === word ? 'hl wl' : 'hl') : key === pressed ? 'press' : ''}>{g}</span>
                 ))}
               </div>
             )

@@ -34,7 +34,7 @@ export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, h
       </div>
       {opts.wbw
         ? <WbwText sid={sid} a={a} tajweed={opts.tajweed} hidden={hidden} />
-        : <QpcText page={a.p} glyphs={a.g} tajweed={opts.tajweed} className={'a-ar' + (hidden ? ' hidden' : '')} />}
+        : <QpcText page={a.p} glyphs={a.g} tajweed={opts.tajweed} ayahKey={key} className={'a-ar' + (hidden ? ' hidden' : '')} />}
       <div className="a-tr">{opts.translation === 'aa' ? a.aa : a.ku}</div>
     </div>
   )
