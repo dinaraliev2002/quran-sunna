@@ -6,6 +6,7 @@ import { Sheet, SheetHead } from '../../components/ui'
 import { dayNum, hadithProgress, loadTimings, MAX_NEW, partsOf, setById, type HifzItem } from '../../lib/hifz'
 import { haptic } from '../../lib/telegram'
 import { dayStr, useStore } from '../../store/settings'
+import { WORD_PARSE } from '../../store/wordSheet'
 
 /** Что на сегодня: хадисы на повтор (из всех наборов), сколько новых осталось по плану (из выбранного набора) */
 export function useHifzToday() {
@@ -166,13 +167,14 @@ function HifzAddSheet({ hadithRef, suggest, onClose }: { hadithRef: string; sugg
 }
 
 /** Переключатель «Хадисы / Коран» в разделе «Заучивание» */
-export function HifzTabs({ on }: { on: 'hadith' | 'quran' }) {
+export function HifzTabs({ on }: { on: 'hadith' | 'quran' | 'words' }) {
   const nav = useNavigate()
   const go = (to: string) => { haptic.tick(); nav(to, { replace: true }) }
   return (
     <div className="qh-tabs">
       <button className={on === 'hadith' ? 'on' : ''} onClick={() => on !== 'hadith' && go('/hifz')}>Хадисы</button>
       <button className={on === 'quran' ? 'on' : ''} onClick={() => on !== 'quran' && go('/hifz/quran')}>Коран</button>
+      {WORD_PARSE && <button className={on === 'words' ? 'on' : ''} onClick={() => on !== 'words' && go('/hifz/words')}>Слова</button>}
     </div>
   )
 }

@@ -19,6 +19,7 @@ import HadithTopic from './screens/hadith/Topic'
 import Hifz from './screens/hifz/Hifz'
 import HifzSession from './screens/hifz/Session'
 import QuranHifz from './screens/hifz/Quran'
+import WordsHifz from './screens/hifz/Words'
 import QuranSession from './screens/hifz/QuranSession'
 import Home from './screens/Home'
 import Names from './screens/names/Names'
@@ -115,6 +116,7 @@ export default function App() {
             <Route path="/hifz/learn" element={<HifzSession mode="learn" />} />
             <Route path="/hifz/review" element={<HifzSession mode="review" />} />
             <Route path="/hifz/quran" element={<QuranHifz />} />
+            <Route path="/hifz/words" element={<WordsHifz />} />
             <Route path="/hifz/quran/learn" element={<QuranSession mode="learn" />} />
             <Route path="/hifz/quran/review" element={<QuranSession mode="review" />} />
             <Route path="/names" element={<Names />} />

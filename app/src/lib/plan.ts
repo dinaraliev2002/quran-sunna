@@ -2,7 +2,7 @@
 
 export type QuranLevel = 'none' | 'short' | 'j30' | 'more' | 'custom'
 export type HadithLevel = 'none' | 'few' | 'nawawi'
-export type Goal = 'quran' | 'hadith' | 'names' | 'azkar'
+export type Goal = 'quran' | 'hadith' | 'names' | 'azkar' | 'words'
 /** known — суры, которые человек отметил как заученные (при quran: 'custom') */
 export interface PlanAnswers { quran: QuranLevel; hadith: HadithLevel; goals: Goal[]; minutes: 5 | 10 | 20 | 30; known?: number[] }
 export interface PlanStep { title: string; sub: string; to: string; surahs?: number[] }
@@ -40,6 +40,7 @@ export function buildPlan(a: PlanAnswers): PlanStep[] {
     else if (a.hadith === 'few') out.push({ title: 'Продолжить 40 хадисов ан-Навави', sub: 'Дальше по плану на день', to: '/hifz' })
     else out.push({ title: 'Рияд ас-Салихин', sub: 'Читать и выбирать хадисы для заучивания', to: '/hadith' })
   }
+  if (a.goals.includes('words')) out.push({ title: '100 самых частых слов Корана', sub: 'Сто слов — больше половины текста: так начинаешь понимать Коран', to: '/hifz/words' })
   if (a.goals.includes('names')) out.push({ title: '99 имён Аллаха', sub: 'По одному в день: значение и заучивание', to: '/names/learn' })
   if (a.goals.includes('azkar')) out.push({ title: 'Утренние и вечерние азкары', sub: 'Каждый день после намаза', to: '/azkar' })
   return out

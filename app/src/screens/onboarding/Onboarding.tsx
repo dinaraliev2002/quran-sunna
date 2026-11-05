@@ -15,6 +15,7 @@ import { Capacitor } from '@capacitor/core'
 import { RECITERS } from '../../store/player'
 import { useStore } from '../../store/settings'
 import { useUi } from '../../store/ui'
+import { WORD_PARSE } from '../../store/wordSheet'
 import './onboarding.css'
 
 type Step = 'welcome' | 'profile' | 'quran' | 'hadith' | 'goals' | 'time' | 'plan' | 'download'
@@ -148,6 +149,7 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
                 <div className="ob-opts">
                   <Opt icon={<Icon id="book" />} title="Коран" sub="Суры и аяты" on={a.goals.includes('quran')} onClick={() => toggleGoal('quran')} />
                   <Opt icon={<Icon id="scroll" />} title="Хадисы" sub="40 хадисов, Рияд ас-Салихин" on={a.goals.includes('hadith')} onClick={() => toggleGoal('hadith')} />
+                  {WORD_PARSE && <Opt icon={<Icon id="font" />} title="Арабские слова" sub="100 самых частых слов — чтобы лучше понимать Коран" on={a.goals.includes('words')} onClick={() => toggleGoal('words')} />}
                   <Opt icon={<Icon id="star" />} title="99 имён Аллаха" sub="Значения и заучивание" on={a.goals.includes('names')} onClick={() => toggleGoal('names')} />
                   <Opt icon={<Icon id="hands" />} title="Азкары" sub="Утренние и вечерние" on={a.goals.includes('azkar')} onClick={() => toggleGoal('azkar')} />
                 </div>

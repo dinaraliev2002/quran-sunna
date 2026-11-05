@@ -1,6 +1,7 @@
 // Понятия Корана (люди, места, существа, растения, предметы): данные public/data/concepts.json (собирает scripts/build-concepts.py).
 import { DATA_BASE } from './data'
 import type { Concept } from '../types/concepts'
+import type { GlossaryItem } from '../types/quran'
 
 let all: Promise<Concept[] | null> | null = null
 /** Все понятия (около 250, грузятся один раз) */
@@ -25,4 +26,12 @@ export function loadConceptWords() {
     wordMap.then((r) => { if (!r) wordMap = null })
   }
   return wordMap
+}
+
+const key = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/\s*\(.*\)/, '').replace(/^(аль|ас|ат|ад|ар|аз|аш|ан|эль)[-\s]/, '').replace(/[-’‘'\s]/g, '')
+/** Запись словаря Кулиева о том же понятии (по названию; допускаем разницу в конце: «Джинны» и «Джинн») */
+export function glossaryFor(c: Concept, items: GlossaryItem[]): GlossaryItem | null {
+  const k = key(c.ru)
+  if (k.length < 4) return null
+  return items.find((g) => { const t = key(g.tr); return t === k || (t.length >= 4 && (t.startsWith(k) || k.startsWith(t)) && Math.abs(t.length - k.length) <= 2) }) ?? null
 }

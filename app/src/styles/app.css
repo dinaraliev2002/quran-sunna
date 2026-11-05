@@ -1323,7 +1323,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .nr-row.gap { opacity: .85; } .nr-row.gap .nr-n { background: transparent; border: 1.5px dashed var(--gold-ink); }
 
 /* ===== заучивание Корана ===== */
-.qh-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin: 0 0 14px; border-radius: 16px; background: var(--surface); }
+.qh-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; margin: 0 0 14px; border-radius: 16px; background: var(--surface); }
 .qh-tabs button { padding: 9px 0; border-radius: 12px; font-weight: 700; font-size: 14px; color: var(--text-2); }
 .qh-tabs button.on { background: var(--gold); color: #fff; }
 .qw-ayah { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: 2px 6px; font-size: calc(var(--ar-size) * .95); line-height: 1.9; color: var(--text); }
@@ -1618,3 +1618,17 @@ div.srow { cursor: pointer; }
 .words-head .wd-tabs { margin: 0 0 6px; }
 .icon-btn.fold .icon { transition: transform .2s; }
 .icon-btn.fold.on .icon { transform: rotate(180deg); }
+
+/* заучивание слов: карточка занятия */
+.fwl-card { background: var(--surface); border-radius: 24px; padding: 22px 18px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.fwl-ar { font-size: 64px; line-height: 1.5; color: var(--gold-ink); }
+.fwl-tr { font-size: 22px; font-weight: 800; }
+.fwl-ex { font-size: 13.5px; color: var(--text-2); }
+.fwl-ex .ar { font-size: 20px; color: var(--gold-ink); }
+.fwl-show, .fwl-btns button { height: 50px; border-radius: 16px; font-size: 15px; font-weight: 800; background: var(--surface-2); padding: 0 22px; }
+.fwl-show { width: 100%; background: var(--gold); color: #fff; }
+.fwl-btns { display: flex; gap: 10px; width: 100%; }
+.fwl-btns button { flex: 1; }
+.fwl-btns button.good { background: var(--emerald-bright); color: #fff; }
+.cn-kv { background: var(--surface-2); border-radius: 14px; padding: 10px 14px; margin: 8px 0; text-align: left; }
+.cn-kv p { font-size: 13.5px; line-height: 1.45; margin: 4px 0 0; }

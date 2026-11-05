@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { ConceptVerses } from './ConceptVerses'
-import { loadConcepts } from '../../lib/concepts'
+import { glossaryFor, loadConcepts } from '../../lib/concepts'
+import { loadGlossary } from '../../lib/data'
 import { plural } from '../../lib/plural'
 import type { Concept } from '../../types/concepts'
+import type { GlossaryItem } from '../../types/quran'
 
 const SHOW = 60 // сколько аятов показываем сразу
 
@@ -16,7 +18,8 @@ export function ConceptsTab({ focus }: { focus?: string | null }) {
   const [cat, setCat] = useState('')
   const [open, setOpen] = useState<string | null>(focus ?? null)
   const [all, setAll] = useState(false)
-  useEffect(() => { loadConcepts().then(setList) }, [])
+  const [gloss, setGloss] = useState<GlossaryItem[]>([])
+  useEffect(() => { loadConcepts().then(setList); loadGlossary().then((g) => setGloss(g ?? [])) }, [])
 
   const cats = useMemo(() => {
     const n = new Map<string, number>()
@@ -65,6 +68,7 @@ export function ConceptsTab({ focus }: { focus?: string | null }) {
                 <b className="gl-name">{c.ru}</b>
                 {c.c.length > 0 && <span className="gl-tag">{c.c.join(' · ').toUpperCase()}</span>}
                 {c.d && <p className="gl-mean">{c.d}</p>}
+                {(() => { const g = glossaryFor(c, gloss); return g && <div className="cn-kv"><span className="wd-dim">Из словаря Кулиева</span><p>{g.mean}</p></div> })()}
                 <p className="wd-note">
                   Упоминается в {c.v.length} {plural(c.v.length, 'аяте', 'аятах', 'аятах')}
                   {c.n > c.v.length ? ` (${c.n} ${plural(c.n, 'слово', 'слова', 'слов')})` : ''}.
