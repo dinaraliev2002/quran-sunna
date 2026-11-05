@@ -1583,3 +1583,8 @@ div.srow { cursor: pointer; }
 .gs-main .mid { flex: 1; font-size: 12.5px; color: var(--text-2); }
 .gs-main .mid .ar { font-size: 16px; color: var(--gold-ink); }
 .gs-hit .wd-refs { padding: 2px 0 8px; }
+
+/* подсвеченные термины */
+.term { color: var(--gold-ink); border-bottom: 1.5px dotted var(--gold-ink); cursor: pointer; }
+.term-pop { text-align: center; padding: 0 4px 6px; }
+.term-pop .gl-mean { text-align: left; margin: 10px 0 14px; }

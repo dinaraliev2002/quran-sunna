@@ -42,8 +42,9 @@ function useBackSwipe() {
 export function Glossary() {
   const swipe = useBackSwipe()
   const [items, setItems] = useState<GlossaryItem[] | null>(null)
-  const [q, setQ] = useState('')
-  const [open, setOpen] = useState<string | null>(null) // какой термин раскрыт (по одному)
+  const fromTerm = (useLocation().state as { open?: string } | null)?.open ?? null // пришли из подсвеченного термина
+  const [q, setQ] = useState(fromTerm ?? '')
+  const [open, setOpen] = useState<string | null>(fromTerm) // какой термин раскрыт (по одному)
   useEffect(() => { loadGlossary().then((g) => setItems(g ?? [])) }, [])
   const list = useMemo(() => {
     if (!items) return []

@@ -1,4 +1,7 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { loadTermMatcher, type TermMatcher } from '../../lib/termHighlight'
+import { useStore } from '../../store/settings'
+import { useTermPop } from '../glossary/TermPop'
 
 // Оформление «Комментариев» Кулиева. Слова книги не меняются, только вид:
 //  • длинные цитаты (слова хадиса, богослова) — отдельным блоком с золотой чертой слева,
@@ -35,8 +38,17 @@ const INLINE = new RegExp(
 
 const REF_IN = new RegExp('^(.*?)\\s*(' + REF_S + ')$', 's')
 
+/** Подсветка терминов: поиск по словарю и уже отмеченные в этом тексте термины */
+type Terms = { m: TermMatcher; seen: Set<string> } | null
+
+/** Обычный кусок текста: термины из словаря отмечены цветом, нажатие открывает пояснение */
+function Plain({ t, terms }: { t: string; terms: Terms }) {
+  if (!terms) return <>{t}</>
+  return <>{terms.m.find(t, terms.seen).map((p, i) => typeof p === 'string' ? p : <span key={i} className="term" role="button" onClick={() => useTermPop.getState().open(p.item)}>{p.text}</span>)}</>
+}
+
 /** Строка текста с выделениями */
-function Inline({ t, start }: { t: string; start?: boolean }) {
+function Inline({ t, start, terms }: { t: string; start?: boolean; terms: Terms }) {
   const out: ReactNode[] = []
   let s = t
   if (start) {
@@ -47,7 +59,7 @@ function Inline({ t, start }: { t: string; start?: boolean }) {
   let last = 0, m: RegExpExecArray | null
   INLINE.lastIndex = 0
   while ((m = INLINE.exec(s))) {
-    if (m.index > last) out.push(s.slice(last, m.index))
+    if (m.index > last) out.push(<Plain key={'p' + last} t={s.slice(last, m.index)} terms={terms} />)
     const k = m.index
     if (m[1]) {
       const r = REF_IN.exec(m[1])!
@@ -59,7 +71,7 @@ function Inline({ t, start }: { t: string; start?: boolean }) {
     last = k + m[0].length
     if (m[0].length === 0) INLINE.lastIndex++
   }
-  if (last < s.length) out.push(s.slice(last))
+  if (last < s.length) out.push(<Plain key={'p' + last} t={s.slice(last)} terms={terms} />)
   return <>{out}</>
 }
 
@@ -187,23 +199,27 @@ function rows(t: string): Row[] {
   return out.filter((r) => r.k === 'q' || r.parts.join('').trim())
 }
 
-function Rows({ t }: { t: string }) {
+function Rows({ t, terms }: { t: string; terms: Terms }) {
   return (
     <>
       {rows(t).map((r, i) => r.k === 'p'
-        ? <p key={i} className="kv-p"><Inline t={r.parts.join('').replace(/^\s+/, '')} start /></p>
-        : <div key={i} className="kv-q">{r.lines.map((l, j) => <p key={j}><Inline t={l} start /></p>)}</div>)}
+        ? <p key={i} className="kv-p"><Inline t={r.parts.join('').replace(/^\s+/, '')} start terms={terms} /></p>
+        : <div key={i} className="kv-q">{r.lines.map((l, j) => <p key={j}><Inline t={l} start terms={terms} /></p>)}</div>)}
     </>
   )
 }
 
 /** Одна запись комментария (несколько абзацев книги) */
 export function KvNote({ paras }: { paras: string[] }) {
+  const on = useStore((s) => s.termHl)
+  const [m, setM] = useState<TermMatcher | null>(null)
+  useEffect(() => { if (on) loadTermMatcher().then(setM) }, [on])
+  const terms: Terms = on && m ? { m, seen: new Set() } : null // каждый термин подсвечиваем один раз на запись
   return (
     <>
       {units(paras).map((g, i) => (
         <div key={i} className="kv-u">
-          <Rows t={g.map((u) => u.text).filter(Boolean).join('\n')} />
+          <Rows t={g.map((u) => u.text).filter(Boolean).join('\n')} terms={terms} />
           {g[g.length - 1].tail && <div className="kv-tail">{g[g.length - 1].tail}</div>}
         </div>
       ))}

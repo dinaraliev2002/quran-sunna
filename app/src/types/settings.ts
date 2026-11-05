@@ -40,6 +40,7 @@ export interface Settings {
   hdArSize: number
   hdTrSize: number
   hdAr: boolean
+  termHl: boolean // подсветка терминов в комментариях
   // заучивание
   hzPerDay: number // план: новых хадисов в день
   hzDrills: boolean // упражнения при заучивании: пропуски, первые буквы, сборка

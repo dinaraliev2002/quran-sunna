@@ -6,6 +6,7 @@ import { useWordHighlight } from './lib/wordSync'
 import { useReminders } from './hooks/useReminders'
 import Reminders from './screens/Reminders'
 import Words from './screens/words/Words'
+import { TermPop } from './screens/glossary/TermPop'
 import { allowRotation, backButton, initTelegram, paintChrome, registerVisit, telegramScheme } from './lib/telegram'
 import Azkar from './screens/azkar/Azkar'
 import AzkarCategory from './screens/azkar/Category'
@@ -86,6 +87,7 @@ export default function App() {
       <TelegramBack />
       <MiniPlayer />
       <WordSheet />
+      <TermPop />
       {hydrated && <OnboardingGate />}
       <div className="app">
         {hydrated && (
