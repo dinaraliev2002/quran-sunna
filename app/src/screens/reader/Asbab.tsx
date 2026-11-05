@@ -7,6 +7,7 @@ import { hasAsbab, loadAsbabIndex, loadAsbabSurah, loadKulievSurah, type KulievS
 import { haptic } from '../../lib/telegram'
 import { useKulievIndex } from './Kuliev'
 import { KvNote } from './KvFormat'
+import { Plain, useTerms } from '../../components/TermText'
 
 // оглавление историй — одно на всё приложение; пока не загрузилось (или файлов нет) — null
 let ixReady: AsbabIndex | null = null
@@ -114,11 +115,12 @@ const STORY: AsbabPart['k'][] = ['src', 'isnad', 'text']
 const doubtful = (o: AsbabOpinion) => o.sabab === 'no' || o.sabab === 'other' || o.sabab === 'weak'
 
 function Parts({ parts, chains }: { parts: AsbabPart[]; chains: boolean }) {
+  const terms = useTerms()
   return (
     <>
       {parts.map((p, i) => {
         if (p.k === 'isnad') return chains ? <p key={i} className="asb-isnad">{p.t}</p> : null
-        return p.t.split('\n').map((line, j) => <p key={`${i}.${j}`} className={'asb-' + p.k}>{line}</p>)
+        return p.t.split('\n').map((line, j) => <p key={`${i}.${j}`} className={'asb-' + p.k}>{p.k === 'text' ? <Plain t={line} terms={terms} /> : line}</p>)
       })}
     </>
   )

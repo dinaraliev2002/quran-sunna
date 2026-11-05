@@ -41,6 +41,7 @@ export interface Settings {
   hdTrSize: number
   hdAr: boolean
   termHl: boolean // подсветка терминов в комментариях
+  ayahBlocks: AyahBlocks // что показывать в окне аята (перевод и тафсир — всегда)
   // заучивание
   hzPerDay: number // план: новых хадисов в день
   hzDrills: boolean // упражнения при заучивании: пропуски, первые буквы, сборка
@@ -80,6 +81,9 @@ export interface Settings {
   hzRate: number // скорость озвучки хадисов
   rem: Record<RemindKey, RemindCfg> // напоминания (локальные уведомления)
 }
+
+/** Блоки окна аята, которые можно скрыть (шестерёнка в окне аята) */
+export interface AyahBlocks { topics: boolean; concepts: boolean; story: boolean; kuliev: boolean }
 
 /** Напоминание: включено ли и время «ЧЧ:ММ» */
 export interface RemindCfg { on: boolean; t: string }

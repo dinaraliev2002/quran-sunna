@@ -6,7 +6,7 @@ import { buildTopicTree, loadTopics, topicPath, topicsOfAyah, type TopicTree } f
 import type { Concept, Topic } from '../../../types/concepts'
 
 /** «О ком и о чём в аяте»: понятия (люди, места, существа…) из этого аята; нажатие открывает их в разделе «Слова Корана» */
-export function AyahConcepts({ surah, ayah }: { surah: number; ayah: number }) {
+export function AyahConcepts({ surah, ayah, topics: showTopics = true, concepts: showConcepts = true }: { surah: number; ayah: number; topics?: boolean; concepts?: boolean }) {
   const nav = useNavigate()
   const [list, setList] = useState<Concept[] | null>(null)
   const [topics, setTopics] = useState<{ t: Topic; path: string }[]>([])
@@ -21,20 +21,22 @@ export function AyahConcepts({ surah, ayah }: { surah: number; ayah: number }) {
     })
     return () => { alive = false }
   }, [surah, ayah])
-  if (!list?.length && !topics.length) return null
+  const shownTopics = showTopics ? topics : []
+  const shownConcepts = showConcepts ? list ?? [] : []
+  if (!shownConcepts.length && !shownTopics.length) return null
   return (
     <>
-      {topics.length > 0 && (
+      {shownTopics.length > 0 && (
         <>
           <div className="as-label">Темы аята</div>
           <div className="fw-chips">
-            {topics.map(({ t, path }) => <button key={t.i} onClick={() => { rememberReaderSpot(surah, ayah, true); nav('/meaning', { state: { topic: t.i } }) }}>{path}</button>)}
+            {shownTopics.map(({ t, path }) => <button key={t.i} onClick={() => { rememberReaderSpot(surah, ayah, true); nav('/meaning', { state: { topic: t.i } }) }}>{path}</button>)}
           </div>
         </>
       )}
-      {!!list?.length && <div className="as-label">О ком и о чём в аяте</div>}
+      {shownConcepts.length > 0 && <div className="as-label">О ком и о чём в аяте</div>}
       <div className="fw-chips">
-        {(list ?? []).slice(0, 12).map((c) => <button key={c.i} onClick={() => { rememberReaderSpot(surah, ayah, true); nav('/meaning', { state: { concept: c.i } }) }}>{c.ru}</button>)}
+        {shownConcepts.slice(0, 12).map((c) => <button key={c.i} onClick={() => { rememberReaderSpot(surah, ayah, true); nav('/meaning', { state: { concept: c.i } }) }}>{c.ru}</button>)}
       </div>
     </>
   )

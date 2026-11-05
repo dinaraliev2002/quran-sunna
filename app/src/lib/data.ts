@@ -79,7 +79,14 @@ export function loadKulievSurah(id: number) {
   }
   return kulievSurah.get(id)!
 }
-export const loadGlossary = () => loadKulievIndex().then((ix) => (ix ? getJson<GlossaryItem[]>(`kuliev/glossary.json?v=${ix.v}`) : null))
+/** Словарь терминов: приложение к переводу Кулиева и наши дополнения (общие исламские термины: намаз, ширк, таква…) */
+export const loadGlossary = () => loadKulievIndex().then(async (ix) => {
+  if (!ix) return null
+  const [kv, extra] = await Promise.all([getJson<GlossaryItem[]>(`kuliev/glossary.json?v=${ix.v}`), getJson<GlossaryItem[]>('terms-extra.json')])
+  if (!kv) return null
+  const have = new Set(kv.map((g) => g.tr.toLowerCase().replace(/^(аль|ас|ат|ад|ар|аз|аш|ан)-/, '')))
+  return [...kv, ...(extra ?? []).filter((g) => !have.has(g.tr.toLowerCase()))].sort((a, b) => a.tr.localeCompare(b.tr, 'ru'))
+})
 export const loadSajda = () => loadKulievIndex().then((ix) => (ix ? getJson<SajdaData>(`kuliev/sajda.json?v=${ix.v}`) : null))
 /** Есть ли у аята пояснения Кулиева (по оглавлению) */
 export const hasKuliev = (ix: KulievIndex | null, surah: number, ayah: number) => !!ix?.s[surah]?.n.includes(ayah)

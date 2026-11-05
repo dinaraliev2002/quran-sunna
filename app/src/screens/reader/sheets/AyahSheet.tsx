@@ -10,6 +10,7 @@ import { TafsirText } from '../TafsirText'
 import { AsbabBlock } from '../Asbab'
 import { KulievBlock, SajdaBlock } from '../Kuliev'
 import { AyahConcepts } from './AyahConcepts'
+import { AyahBlocksSheet } from './AyahBlocksSheet'
 import { WORD_PARSE } from '../../../store/wordSheet'
 import { LearnMenu } from './LearnMenu'
 import { TRANSLATIONS } from './translations'
@@ -28,6 +29,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
   const [slide, setSlide] = useState<'' | 'l' | 'r'>('')
   const bodyRef = useRef<HTMLDivElement>(null)
   const [learnMenu, setLearnMenu] = useState(false)
+  const [blocksOpen, setBlocksOpen] = useState(false) // шестерёнка: что показывать в окне
   const learnPress = useRef<ReturnType<typeof setTimeout>>(undefined)
   const learnLong = useRef(false)
   useEffect(() => {
@@ -84,6 +86,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="xbtn" disabled={cur <= 1} style={{ opacity: cur > 1 ? 1 : .35 }} onClick={() => go(cur - 1, 'r')} aria-label="Предыдущий аят"><Icon id="back" /></button>
           <button className="xbtn" disabled={cur >= surah.ayahs} style={{ opacity: cur < surah.ayahs ? 1 : .35 }} onClick={() => go(cur + 1, 'l')} aria-label="Следующий аят"><Icon id="right" /></button>
+          <button className="xbtn" onClick={() => setBlocksOpen(true)} aria-label="Что показывать"><Icon id="gear" /></button>
           <button className="xbtn" onClick={onClose} aria-label="Закрыть"><Icon id="close" /></button>
         </div>
       </div>
@@ -109,10 +112,10 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
             </div>
             <div className="as-label">Перевод · {TRANSLATIONS[st.translation]}</div>
             <div className="as-tr">{st.translation === 'aa' ? a.aa : a.ku}</div>
-            {WORD_PARSE && <AyahConcepts key={'cn' + key} surah={surah.id} ayah={cur} />}
-            <AsbabBlock key={key} surah={surah.id} ayah={cur} />
+            {WORD_PARSE && (st.ayahBlocks.topics || st.ayahBlocks.concepts) && <AyahConcepts key={'cn' + key} surah={surah.id} ayah={cur} topics={st.ayahBlocks.topics} concepts={st.ayahBlocks.concepts} />}
+            {st.ayahBlocks.story && <AsbabBlock key={key} surah={surah.id} ayah={cur} />}
             <SajdaBlock key={'sj' + key} surah={surah.id} ayah={cur} />
-            <KulievBlock key={'kv' + key} surah={surah.id} ayah={cur} />
+            {st.ayahBlocks.kuliev && <KulievBlock key={'kv' + key} surah={surah.id} ayah={cur} />}
             <div className="as-label">Тафсир ас-Саади{range ? ` · ${range}` : ''}</div>
             {tf === undefined && <div className="loading" style={{ height: 80 }}>Загрузка…</div>}
             {tf !== undefined && !t && <div className="empty">Для этого аята тафсир не найден</div>}
@@ -122,6 +125,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
         )}
       </div>
       {learnMenu && <LearnMenu surah={surah} ayah={cur} onClose={() => setLearnMenu(false)} />}
+      {blocksOpen && <AyahBlocksSheet onClose={() => setBlocksOpen(false)} />}
     </Sheet>
   )
 }

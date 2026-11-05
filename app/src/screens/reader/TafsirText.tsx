@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { Plain, useTerms, type Terms } from '../../components/TermText'
 
 // Тафсир приходит одним сплошным текстом без абзацев. Делаем его удобным для чтения:
 //  • абзац начинается со слов-переходов («Во-первых», «Затем», «Таким образом»…) или
@@ -30,7 +31,7 @@ function paragraphs(text: string): string[] {
   return out
 }
 
-function styled(p: string) {
+function styled(p: string, terms: Terms) {
   const m = p.match(MARKERS)
   const head = m ? m[0] : ''
   const rest = p.slice(head.length)
@@ -38,15 +39,16 @@ function styled(p: string) {
   return (
     <>
       {head && <b className="tf-mark">{head}</b>}
-      {parts.map((x, i) => (x.startsWith('«') ? <span key={i} className="tf-quote">{x}</span> : <Fragment key={i}>{x}</Fragment>))}
+      {parts.map((x, i) => (x.startsWith('«') ? <span key={i} className="tf-quote">{x}</span> : <Fragment key={i}><Plain t={x} terms={terms} /></Fragment>))}
     </>
   )
 }
 
 export function TafsirText({ text }: { text: string }) {
+  const terms = useTerms() // термины словаря подсвечены, каждый — один раз на текст
   return (
     <div className="tafsir-txt">
-      {paragraphs(text).map((p, i) => <p key={i}>{styled(p)}</p>)}
+      {paragraphs(text).map((p, i) => <p key={i}>{styled(p, terms)}</p>)}
     </div>
   )
 }

@@ -131,6 +131,7 @@ const DEFAULT_SETTINGS: Settings = {
   hzRate: 1,
   rem: { review: { on: false, t: '20:00' }, morning: { on: false, t: '07:00' }, evening: { on: false, t: '18:30' }, friday: { on: false, t: '10:00' }, streak: { on: false, t: '21:00' } },
   termHl: true,
+  ayahBlocks: { topics: true, concepts: true, story: true, kuliev: true },
   hdAr: false, // арабский текст хадисов — по умолчанию выключен (новое имя, чтобы не взять старое сохранённое «вкл»)
 }
 /** Последние отрывки Корана: этот — первым, без повторов, не больше 6 */

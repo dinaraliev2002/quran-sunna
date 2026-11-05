@@ -1,7 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { loadTermMatcher, type TermMatcher } from '../../lib/termHighlight'
-import { useStore } from '../../store/settings'
-import { useTermPop } from '../glossary/TermPop'
+import type { ReactNode } from 'react'
+import { Plain, useTerms, type Terms } from '../../components/TermText'
 
 // Оформление «Комментариев» Кулиева. Слова книги не меняются, только вид:
 //  • длинные цитаты (слова хадиса, богослова) — отдельным блоком с золотой чертой слева,
@@ -37,15 +35,6 @@ const INLINE = new RegExp(
   'g')
 
 const REF_IN = new RegExp('^(.*?)\\s*(' + REF_S + ')$', 's')
-
-/** Подсветка терминов: поиск по словарю и уже отмеченные в этом тексте термины */
-type Terms = { m: TermMatcher; seen: Set<string> } | null
-
-/** Обычный кусок текста: термины из словаря отмечены цветом, нажатие открывает пояснение */
-function Plain({ t, terms }: { t: string; terms: Terms }) {
-  if (!terms) return <>{t}</>
-  return <>{terms.m.find(t, terms.seen).map((p, i) => typeof p === 'string' ? p : <span key={i} className="term" role="button" onClick={() => useTermPop.getState().open(p.item)}>{p.text}</span>)}</>
-}
 
 /** Строка текста с выделениями */
 function Inline({ t, start, terms }: { t: string; start?: boolean; terms: Terms }) {
@@ -211,10 +200,7 @@ function Rows({ t, terms }: { t: string; terms: Terms }) {
 
 /** Одна запись комментария (несколько абзацев книги) */
 export function KvNote({ paras }: { paras: string[] }) {
-  const on = useStore((s) => s.termHl)
-  const [m, setM] = useState<TermMatcher | null>(null)
-  useEffect(() => { if (on) loadTermMatcher().then(setM) }, [on])
-  const terms: Terms = on && m ? { m, seen: new Set() } : null // каждый термин подсвечиваем один раз на запись
+  const terms = useTerms() // каждый термин подсвечиваем один раз на запись
   return (
     <>
       {units(paras).map((g, i) => (
