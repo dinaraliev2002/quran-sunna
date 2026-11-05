@@ -1554,3 +1554,8 @@ div.srow { cursor: pointer; }
 .rm-item:last-child { border-bottom: 0; }
 .rm-time { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 12px; font-size: 14px; color: var(--text-2); }
 .rm-time input { font: inherit; font-weight: 700; color: var(--text); background: var(--surface-2); border: 0; border-radius: 12px; padding: 8px 12px; }
+
+/* породы глагола и масдар в разборе слова */
+.wd-roman { min-width: 44px; text-align: center; font-size: 17px; font-weight: 800; color: var(--gold-ink); align-self: center; }
+.wd-form.cur { background: var(--highlight); box-shadow: inset 0 0 0 1.5px var(--gold-ink); }
+.qpc [data-w] { cursor: pointer; border-radius: 6px; }

@@ -1,6 +1,7 @@
 import { rootLetters, stemOf, tagValue, wordText } from '../../../lib/morph'
 import { segChips, segRole } from '../../../lib/morphLabels'
 import type { MorphWord } from '../../../types/morph'
+import { VerbForms } from './VerbForms'
 
 /** Вкладка «Разбор»: слово, перевод, корень и части слова с грамматикой */
 export function WordParse({ word, tr }: { word: MorphWord; tr: string | null }) {
@@ -29,6 +30,7 @@ export function WordParse({ word, tr }: { word: MorphWord; tr: string | null }) 
           </div>
         </div>
       ))}
+      {stem && <VerbForms stem={stem} root={root || null} />}
     </>
   )
 }

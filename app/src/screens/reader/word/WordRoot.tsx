@@ -1,22 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loadRoots } from '../../../lib/morph'
+import { useRoot } from '../../../hooks/useRoot'
 import { formLabel } from '../../../lib/morphLabels'
 import { plural } from '../../../lib/plural'
 import { useWordSheet } from '../../../store/wordSheet'
-import type { RootInfo } from '../../../types/morph'
-
-/** Корень из общего списка: undefined — грузится, null — нет данных */
-function useRoot(root: string | null) {
-  const [info, setInfo] = useState<RootInfo | null | undefined>(undefined)
-  useEffect(() => {
-    let alive = true
-    if (!root) return
-    loadRoots().then((r) => alive && setInfo(r?.[root] ?? null))
-    return () => { alive = false }
-  }, [root])
-  return root ? info : null
-}
 
 /** Переход к аяту (или слову) из окна разбора */
 function useGo() {
