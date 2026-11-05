@@ -77,7 +77,12 @@ export interface Settings {
   qhRepeat: number // сколько раз чтец повторяет каждый аят при прослушивании
   qhPos: { s: number; a: number } | null // откуда учить дальше (выбранная сура); null — 30-й джуз с конца
   hzRate: number // скорость озвучки хадисов
+  rem: Record<RemindKey, RemindCfg> // напоминания (локальные уведомления)
 }
+
+/** Напоминание: включено ли и время «ЧЧ:ММ» */
+export interface RemindCfg { on: boolean; t: string }
+export type RemindKey = 'review' | 'morning' | 'evening' | 'friday' | 'streak'
 
 /** Активность по дням: номер дня → [страниц прочитано, хадисов выучено, повторов сделано] */
 export type Activity = Record<number, [number, number, number]>

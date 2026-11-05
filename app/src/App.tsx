@@ -3,6 +3,8 @@ import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-route
 import { IconSprite } from './components/Icon'
 import { cleanupOldData } from './lib/net'
 import { useWordHighlight } from './lib/wordSync'
+import { useReminders } from './hooks/useReminders'
+import Reminders from './screens/Reminders'
 import { allowRotation, backButton, initTelegram, paintChrome, registerVisit, telegramScheme } from './lib/telegram'
 import Azkar from './screens/azkar/Azkar'
 import AzkarCategory from './screens/azkar/Category'
@@ -74,6 +76,7 @@ export default function App() {
   const hydrated = useStore((s) => s.hydrated)
   useTheme()
   useWordHighlight()
+  useReminders()
   useEffect(() => { hydrateStore(); cleanupOldData(); initPlayerSettings() }, [])
 
   return (
@@ -93,6 +96,7 @@ export default function App() {
             <Route path="/glossary" element={<Glossary />} />
             <Route path="/sajda" element={<SajdaList />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/reminders" element={<Reminders />} />
             <Route path="/downloads" element={<Downloads />} />
             <Route path="/azkar" element={<Azkar />} />
             <Route path="/azkar/ch/:id" element={<AzkarChapter />} />

@@ -8,6 +8,7 @@ const config: CapacitorConfig = {
   backgroundColor: '#0E1110',
   ios: { contentInset: 'never', scrollEnabled: false },
   plugins: {
+    LocalNotifications: { smallIcon: 'ic_stat_notify', iconColor: '#13704B' },
     SplashScreen: { launchAutoHide: true, launchShowDuration: 600, backgroundColor: '#0E1110' },
   },
 }

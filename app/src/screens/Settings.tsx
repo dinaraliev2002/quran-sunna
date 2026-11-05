@@ -56,6 +56,7 @@ export default function Settings() {
       </div>
 
       <div className="group">
+        <button className="sitem" onClick={() => nav('/reminders')}><span className="si" style={{ background: '#C0563B' }}><Icon id="bell" /></span><span className="t">Напоминания</span><span className="v">{Object.values(st.rem).some((r) => r.on) ? 'Включены' : 'Повтор, азкары, пятница'}</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => nav('/plan')}><span className="si" style={{ background: '#D9A441' }}><Icon id="star" /></span><span className="t">Личный план</span><span className="v">{st.plan ? 'Ваши шаги по очереди' : 'Пройти опрос'}</span><Icon id="right" className="icon chev" /></button>
       </div>
 
