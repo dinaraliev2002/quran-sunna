@@ -33,6 +33,9 @@ export function QuickMenu() {
   const sx = useRef<number | null>(null)
   const sy = useRef(0)
   const drag = useRef(false)
+  const pid = useRef<number | null>(null)
+  const p0 = useRef({ x: 0, y: 0 })
+  const ly = useRef<number | null>(null) // положение язычка во время перетаскивания
   const tabY = useStore((s) => s.quickTabY)
   const [liveY, setLiveY] = useState<number | null>(null) // пока тянем
   useEffect(() => { setOpen(false); setEdit(false) }, [loc.pathname])
@@ -46,15 +49,22 @@ export function QuickMenu() {
 
   // жест: на язычке — потянуть влево открывает; на панели — вправо закрывает
   const down = (e: React.TouchEvent) => { sx.current = e.touches[0].clientX; sy.current = e.touches[0].clientY; drag.current = false }
-  // язычок можно двигать вверх-вниз: потянули по вертикали — он следует за пальцем и запоминает место
-  const move = (e: React.TouchEvent) => {
-    const t = e.touches[0]
-    if (!drag.current && Math.abs(t.clientY - sy.current) > 8 && Math.abs(t.clientY - sy.current) > Math.abs(t.clientX - (sx.current ?? 0))) drag.current = true
-    if (drag.current) setLiveY(Math.min(86, Math.max(10, (t.clientY / innerHeight) * 100)))
+  // язычок: палец или мышь. Тап/потянуть влево — открыть, потянуть вверх-вниз — передвинуть
+  const pdown = (e: React.PointerEvent<HTMLButtonElement>) => { pid.current = e.pointerId; p0.current = { x: e.clientX, y: e.clientY }; drag.current = false; e.currentTarget.setPointerCapture(e.pointerId) }
+  const pmove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (pid.current !== e.pointerId) return
+    const dy = e.clientY - p0.current.y, dx = e.clientX - p0.current.x
+    if (!drag.current && Math.abs(dy) > 6 && Math.abs(dy) > Math.abs(dx)) drag.current = true
+    if (drag.current) { ly.current = Math.min(86, Math.max(10, (e.clientY / innerHeight) * 100)); setLiveY(ly.current) }
+  }
+  const pup = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (pid.current !== e.pointerId) return
+    pid.current = null
+    if (drag.current) { drag.current = false; if (ly.current != null) set({ quickTabY: Math.round(ly.current) }); ly.current = null; setLiveY(null); return }
+    haptic.tap(); setOpen(true)
   }
   const up = (e: React.TouchEvent, dir: 'open' | 'close') => {
     if (sx.current == null) return
-    if (drag.current) { if (liveY != null) set({ quickTabY: Math.round(liveY) }); setLiveY(null); drag.current = false; sx.current = null; e.preventDefault(); return }
     const dx = e.changedTouches[0].clientX - sx.current
     sx.current = null
     if (dir === 'open' && dx < -20) { haptic.tap(); setOpen(true) }
@@ -63,7 +73,7 @@ export function QuickMenu() {
 
   return (
     <>
-      {!open && <button className="qm-tab" onClick={() => { haptic.tap(); setOpen(true) }} style={{ top: `${liveY ?? tabY}%` }} onTouchStart={down} onTouchMove={move} onTouchEnd={(e) => up(e, 'open')} aria-label="Меню разделов"><Icon id="back" /></button>}
+      {!open && <button className="qm-tab" style={{ top: `${liveY ?? tabY}%` }} onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={() => { pid.current = null; setLiveY(null) }} onClick={(e) => { if (e.detail === 0) setOpen(true) }} aria-label="Меню разделов"><Icon id="back" /></button>}
       {open && <div className="qm-dim" onClick={close} />}
       <aside className={'qm-panel' + (open ? ' open' : '') + (edit ? ' edit' : '')} style={{ top: `${Math.min(70, Math.max(30, tabY))}%` }} onTouchStart={down} onTouchEnd={(e) => up(e, 'close')} aria-hidden={!open}>
         <div className="qm-head">
