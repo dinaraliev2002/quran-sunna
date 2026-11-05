@@ -19,6 +19,8 @@ import { TuneSets } from './quran/TuneSets'
 import { MySetSheet } from './quran/MySetSheet'
 import { PickSheet } from './quran/PickSheet'
 import { SurahSheet } from './quran/SurahSheet'
+import { KnownSurahsSheet } from './quran/KnownSurahsSheet'
+import { knownCards, learnedSurahs } from '../../lib/knownSurahs'
 
 // Раздел «Заучивание» → «Коран»: что на сегодня, откуда учить, план, суры с прогрессом
 export default function QuranHifz() {
@@ -34,6 +36,14 @@ export default function QuranHifz() {
   const [myAdd, setMyAdd] = useState(false)
   const [tune, setTune] = useState(false)
   const [open, setOpen] = useState<Surah | null>(null)
+  const [knownOpen, setKnownOpen] = useState(false)
+  const learnedIds = surahs ? learnedSurahs(st.qhifz, surahs) : []
+  const saveKnown = async (ids: number[]) => {
+    setKnownOpen(false)
+    learnedIds.filter((s) => !ids.includes(s)).forEach((s) => st.qhReset(s))
+    const add = ids.filter((s) => !learnedIds.includes(s))
+    if (add.length) st.qhMarkKnown(add, await knownCards(add))
+  }
   const name = (s: number) => surahs?.[s - 1]?.name ?? ''
 
   const setPlan = (n: number) => { haptic.tick(); st.set({ qhPerDay: Math.max(1, Math.min(30, n)) }) }
@@ -84,6 +94,15 @@ export default function QuranHifz() {
           </div>
         )}
       </section>
+
+      <button className="qh-cur" style={{ marginTop: 8 }} onClick={() => { haptic.tap(); setKnownOpen(true) }}>
+        <span className="si" style={{ background: 'var(--emerald)', width: 36, height: 36, borderRadius: 12, display: 'grid', placeItems: 'center', color: '#fff' }}><Icon id="check" /></span>
+        <div className="t">
+          <b>Заучено сур: {learnedIds.length} из 114</b>
+          <span>Отметьте суры, которые вы уже знаете наизусть</span>
+        </div>
+        <Icon id="right" />
+      </button>
 
       {st.qhRecent.length > 0 && surahs && (
         <>
@@ -198,6 +217,7 @@ export default function QuranHifz() {
       {gear && <GearSheet onClose={() => setGear(false)} />}
       {goal && surahs && <GoalSheet surahs={surahs} onClose={() => setGoal(false)} />}
       {open && <SurahSheet sr={open} onClose={() => setOpen(null)} />}
+      {knownOpen && surahs && <KnownSurahsSheet surahs={surahs} initial={learnedIds} onClose={() => setKnownOpen(false)} onSave={saveKnown} />}
     </div>
   )
 }

@@ -5,6 +5,8 @@ import { ReciterList } from '../../components/ReciterList'
 import { Sheet, SheetHead } from '../../components/ui'
 import { useQuranMeta } from '../../hooks/useQuranMeta'
 import { fontVariant } from '../../lib/fonts'
+import { knownCards } from '../../lib/knownSurahs'
+import { KnownSurahsSheet } from '../hifz/quran/KnownSurahsSheet'
 import { downloadAudio, downloadFonts } from '../../lib/offline'
 import { buildPlan, DEFAULT_ANSWERS, perDay, type Goal, type PlanAnswers } from '../../lib/plan'
 import { resizeAvatar, useProfile } from '../../lib/profile'
@@ -43,6 +45,7 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
   const [tajweed, setTajweed] = useState(isIos)
   const [audio, setAudio] = useState<'j30' | 'plan' | 'none'>('j30')
   const [rec, setRec] = useState(false)
+  const [knownOpen, setKnownOpen] = useState(false)
   const file = useRef<HTMLInputElement>(null)
   const step = STEPS[i]
   const plan = buildPlan(a)
@@ -58,6 +61,9 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
     st.set({ obDone: true, obSeen: true, plan: a, hzPerDay: perDay(a.minutes), profName: name.trim().slice(0, 40), profPhoto: photo })
     // скачивание идёт в фоне, прогресс — в Настройки → Загрузки
     const jobs: (() => Promise<unknown>)[] = []
+    // суры, которые человек отметил как заученные, становятся карточками заучивания
+    const known = a.quran === 'custom' ? a.known ?? [] : []
+    if (known.length) jobs.push(() => knownCards(known).then((c) => st.qhMarkKnown(known, c)))
     if (tajweed) jobs.push(() => downloadFonts(fontVariant(true, theme)))
     if (audio !== 'none' && meta) {
       const ids = new Set(audio === 'j30' ? meta.surahs.filter((s) => s.id >= 78).map((s) => s.id) : plan.flatMap((p) => p.surahs ?? []))
@@ -120,6 +126,7 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
                   <Opt icon={<Icon id="check" />} title="Короткие суры" sub="Аль-Фатиха, Аль-Ихлас…" on={a.quran === 'short'} onClick={() => setA({ ...a, quran: 'short' })} />
                   <Opt icon="30" title="Часть джуза 30" sub="Несколько сур для намаза" on={a.quran === 'j30'} onClick={() => setA({ ...a, quran: 'j30' })} />
                   <Opt icon="+" title="Больше" sub="Продолжу с того места" on={a.quran === 'more'} onClick={() => setA({ ...a, quran: 'more' })} />
+                  <Opt icon={<Icon id="rows" />} title="Выберу сам" sub={a.quran === 'custom' && a.known?.length ? `Отмечено сур: ${a.known.length}` : 'Отмечу суры, которые знаю наизусть'} on={a.quran === 'custom'} onClick={() => setKnownOpen(true)} />
                 </div>
               </>
             )}
@@ -201,6 +208,10 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
             {step === 'download' ? <button className="ob-btn" onClick={finish}>Готово</button> : <button className="ob-btn" onClick={next}>Далее</button>}
           </div>
         </>
+      )}
+      {knownOpen && meta && (
+        <KnownSurahsSheet surahs={meta.surahs} initial={a.known ?? []} onClose={() => setKnownOpen(false)}
+          onSave={(ids) => { setA({ ...a, quran: ids.length ? 'custom' : 'none', known: ids }); setKnownOpen(false) }} />
       )}
       {rec && (
         <Sheet onClose={() => setRec(false)} tall>

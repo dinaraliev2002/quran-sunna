@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
+import { ReciterList } from '../components/ReciterList'
 import { Sheet, SheetHead, TabBar } from '../components/ui'
 import { useQuranMeta } from '../hooks/useQuranMeta'
 import { Tour } from '../components/Tour'
@@ -77,7 +78,11 @@ function Storage({ surahs, version, busy }: { surahs: Surah[]; version: number; 
 export default function Downloads() {
   const nav = useNavigate()
   const meta = useQuranMeta()
-  const { tajweed, reciter, bitrates } = useStore()
+  const { tajweed, reciter: playReciter, bitrates } = useStore()
+  // чтец для загрузки выбирается здесь и не меняет того, кого вы слушаете
+  const [dlReciter, setDlReciter] = useState<string | null>(null)
+  const [pickRec, setPickRec] = useState(false)
+  const reciter = dlReciter ?? playReciter
   const kbps = bitrateOf(reciter, bitrates)
   setBitrates(bitrates) // загрузка пойдёт в выбранном качестве
   const theme = useUi((s) => s.theme)
@@ -156,12 +161,15 @@ export default function Downloads() {
           <Card icon="sound" id={'audio:' + reciter} title={`Аудио · ${recName}`} sub={`Весь Коран по аятам · ${kbps} кбит/с · ≈ ${kbps <= 64 ? '0,5' : kbps <= 128 ? '1' : '1,4'} ГБ. Качество — в настройках, в выборе чтеца`}
             done={status.audio.done} total={status.audio.total}
             onDownload={() => meta && downloadAudio(reciter, meta.surahs, 'Весь Коран')} onDelete={() => deleteDownloads('audio', reciter)}>
-            <button className="srow2" style={{ marginTop: 10, marginBottom: 0 }} disabled={busy} onClick={() => setPickSurahs(true)}>
+            <button className="srow2" style={{ marginTop: 10, marginBottom: 0 }} disabled={busy} onClick={() => setPickRec(true)}>
+              <div>Другой чтец<span>Сейчас: {recName}. Выберите, чьё чтение скачать</span></div><Icon id="right" className="icon" />
+            </button>
+            <button className="srow2" style={{ marginTop: 8, marginBottom: 0 }} disabled={busy} onClick={() => setPickSurahs(true)}>
               <div>Скачать отдельные суры<span>Скачано полностью: {status.audio.fullSurahs.length} из 114</span></div><Icon id="right" className="icon" />
             </button>
           </Card>
           <p className="dl-note small">
-            Чтеца можно сменить в настройках — у каждого чтеца свои загрузки.
+            У каждого чтеца свои загрузки: выберите чтеца кнопкой «Другой чтец» и скачайте весь Коран или отдельные суры.
             {appleWebKit && tajweed && ' На iPhone для светлой и тёмной темы — разные файлы страниц с таджвидом.'}
           </p>
           {usage && <p className="dl-note small">Занято на телефоне: {mb(usage.used)}</p>}
@@ -190,6 +198,12 @@ export default function Downloads() {
               )
             })}
           </div>
+        </Sheet>
+      )}
+      {pickRec && (
+        <Sheet onClose={() => setPickRec(false)} tall>
+          <SheetHead title="Чтец для загрузки" sub="Тот, кого вы слушаете, не меняется" onClose={() => setPickRec(false)} />
+          <div className="body"><ReciterList current={reciter} onPick={(id) => { setDlReciter(id); setPickRec(false) }} /></div>
         </Sheet>
       )}
       <TabBar />

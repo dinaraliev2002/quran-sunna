@@ -68,6 +68,8 @@ interface Store extends Settings, Progress {
   qhGrade: (key: string, grade: Grade) => void
   /** убрать отрывки суры из заучивания (все или один) */
   qhReset: (s: number, key?: string) => void
+  /** Суры, которые человек уже знает: прежние карточки этих сур заменяются новыми (на ступени «выучено») */
+  qhMarkKnown: (ids: number[], cards: Record<string, HifzCard>) => void
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -350,6 +352,14 @@ export const useStore = create<Store>((set, get) => ({
   qhReset: (s, key) => {
     const h = { ...get().qhifz }
     for (const k of Object.keys(h)) if (key ? k === key : k.startsWith(s + ':')) delete h[k]
+    const keep = (k: string) => k in h
+    set({ qhifz: h, qhRecent: get().qhRecent.filter(keep), qhWeak: get().qhWeak.filter(keep) })
+    persist(get())
+  },
+  qhMarkKnown: (ids, cards) => {
+    const h = { ...get().qhifz }
+    for (const k of Object.keys(h)) if (ids.includes(+k.split(':')[0])) delete h[k]
+    Object.assign(h, cards)
     const keep = (k: string) => k in h
     set({ qhifz: h, qhRecent: get().qhRecent.filter(keep), qhWeak: get().qhWeak.filter(keep) })
     persist(get())

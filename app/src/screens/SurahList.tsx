@@ -13,6 +13,7 @@ import { setStoryMode, useStoryMode, type StoryMode } from '../lib/storyMode'
 import { useKulievIndex } from './reader/Kuliev'
 import { MODE_LABEL, modeSurahs } from './Stories'
 import { useStore } from '../store/settings'
+import { learnedSurahs } from '../lib/knownSurahs'
 
 type Place = 'all' | 'mk' | 'md'
 
@@ -27,6 +28,7 @@ export default function SurahList() {
   const mode = useStoryMode(!!kx)
   const lastRead = useStore((s) => s.lastRead)
   const storyLast = useStore((s) => s.storyLast)
+  const qhifz = useStore((s) => s.qhifz)
   const [sort, setSortState] = useState(memory.sort)
   const [place, setPlaceState] = useState<Place>(memory.place)
   const [query, setQuery] = useState<string | null>(null)
@@ -42,6 +44,7 @@ export default function SurahList() {
   const setSort = (v: typeof sort) => { memory.sort = v; setSortState(v) }
   const setPlace = (v: Place) => { memory.place = v; setPlaceState(v) }
 
+  const learnedSet = useMemo(() => new Set(meta ? learnedSurahs(qhifz, meta.surahs) : []), [qhifz, meta]) // заученные суры — с отметкой
   const list = useMemo(() => {
     if (!meta) return []
     let l = meta.surahs.filter((s) => place === 'all' || (place === 'mk') === s.mk)
@@ -201,7 +204,7 @@ export default function SurahList() {
       )}
       {meta && list.length === 0 && !page && <div className="empty">Ничего не найдено</div>}
       {sort !== 'stories' && list.map((s) => (
-        <SurahRow key={s.id} s={s} sort={sort} current={lastRead?.s === s.id} onClick={() => nav(`/read/${s.id}`)} onPlay={() => { haptic.tap(); listenSurah(meta!.surahs, s.id) }} />
+        <SurahRow key={s.id} s={s} sort={sort} current={lastRead?.s === s.id} learned={learnedSet.has(s.id)} onClick={() => nav(`/read/${s.id}`)} onPlay={() => { haptic.tap(); listenSurah(meta!.surahs, s.id) }} />
       ))}
       {/* «Истории»: только суры, у которых есть истории ниспослания, — читать их подряд */}
       {sort === 'stories' && list.map((s) => {

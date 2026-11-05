@@ -3,11 +3,13 @@ import { bitrateOf, RECITERS, setBitrates } from '../store/player'
 import { useStore } from '../store/settings'
 
 /** Список чтецов. Если у чтеца есть несколько вариантов качества (кбит/с) — рядом с именем маленький выбор: 64 — вдвое легче, 128 — чуть чище. */
-export function ReciterList({ onDone }: { onDone?: () => void }) {
+export function ReciterList({ onDone, current, onPick }: { onDone?: () => void; /** какого чтеца отметить (по умолчанию — слушаемого) */ current?: string; /** выбор не для прослушивания (например, для загрузки): слушаемый чтец не меняется */ onPick?: (id: string) => void }) {
   const st = useStore()
+  const sel = current ?? st.reciter
   const pick = (id: string, kbps?: number) => {
     const bitrates = kbps ? { ...st.bitrates, [id]: kbps } : st.bitrates
     setBitrates(bitrates)
+    if (onPick) { if (kbps) st.set({ bitrates }); onPick(id); return }
     st.set({ reciter: id, bitrates })
     if (!kbps) onDone?.()
   }
@@ -23,11 +25,11 @@ export function ReciterList({ onDone }: { onDone?: () => void }) {
             {opts.length > 1 && (
               <div className="rec-q" onClick={(e) => e.stopPropagation()}>
                 {opts.map((k) => (
-                  <button key={k} className={st.reciter === id && cur === k ? 'on' : ''} onClick={() => pick(id, k)}>{k}</button>
+                  <button key={k} className={sel === id && cur === k ? 'on' : ''} onClick={() => pick(id, k)}>{k}</button>
                 ))}
               </div>
             )}
-            {st.reciter === id && <Icon id="check" />}
+            {sel === id && <Icon id="check" />}
           </div>
         )
       })}

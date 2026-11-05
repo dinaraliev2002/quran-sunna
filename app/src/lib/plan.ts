@@ -1,9 +1,10 @@
 // Личный план обучения: ответы опросника → список шагов «по очереди» (правила, без ИИ). См. docs/06-personal-plan.md
 
-export type QuranLevel = 'none' | 'short' | 'j30' | 'more'
+export type QuranLevel = 'none' | 'short' | 'j30' | 'more' | 'custom'
 export type HadithLevel = 'none' | 'few' | 'nawawi'
 export type Goal = 'quran' | 'hadith' | 'names' | 'azkar'
-export interface PlanAnswers { quran: QuranLevel; hadith: HadithLevel; goals: Goal[]; minutes: 5 | 10 | 20 | 30 }
+/** known — суры, которые человек отметил как заученные (при quran: 'custom') */
+export interface PlanAnswers { quran: QuranLevel; hadith: HadithLevel; goals: Goal[]; minutes: 5 | 10 | 20 | 30; known?: number[] }
 export interface PlanStep { title: string; sub: string; to: string; surahs?: number[] }
 
 export const DEFAULT_ANSWERS: PlanAnswers = { quran: 'none', hadith: 'none', goals: ['quran', 'hadith'], minutes: 10 }
@@ -25,6 +26,11 @@ export function buildPlan(a: PlanAnswers): PlanStep[] {
       out.push({ title: 'Продолжить джуз 30', sub: 'Ад-Духа, Аш-Шарх, Ат-Тин', to: learn(93), surahs: [93, 94, 95] })
     } else if (a.quran === 'j30') {
       out.push({ title: 'Дальше по джузу 30', sub: 'С того места, где вы остановились', to: learn(91), surahs: [91, 92, 93] })
+    } else if (a.quran === 'custom') {
+      const known = new Set(a.known ?? [])
+      const next = Array.from({ length: 37 }, (_, i) => 114 - i).find((s) => !known.has(s))
+      out.push({ title: 'Закрепить заученные суры', sub: `Отмечено сур: ${known.size}. Они сами вернутся на повтор`, to: '/hifz/quran' })
+      if (next) out.push({ title: 'Учить дальше', sub: 'Следующая сура 30-го джуза, которую вы ещё не знаете', to: learn(next), surahs: [next] })
     } else {
       out.push({ title: 'Продолжить заучивание Корана', sub: 'Следующая сура на выбор', to: '/hifz/quran', surahs: [67] })
     }
