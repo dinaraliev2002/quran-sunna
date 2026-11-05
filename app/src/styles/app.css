@@ -1632,3 +1632,14 @@ div.srow { cursor: pointer; }
 .fwl-btns button.good { background: var(--emerald-bright); color: #fff; }
 .cn-kv { background: var(--surface-2); border-radius: 14px; padding: 10px 14px; margin: 8px 0; text-align: left; }
 .cn-kv p { font-size: 13.5px; line-height: 1.45; margin: 4px 0 0; }
+
+/* темы Корана */
+.tp-node { margin-bottom: 6px; }
+.tp-head { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; background: var(--surface); border-radius: 16px; padding: 12px 14px; }
+.tp-head b { flex: 1; font-size: 15px; font-weight: 700; }
+.tp-head span { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.tp-head .chev-s { color: var(--text-2); transition: transform .2s; }
+.tp-head.open .chev-s { transform: rotate(90deg); }
+.tp-body { padding: 6px 0 2px 12px; border-left: 2px solid var(--line); margin: 6px 0 6px 10px; }
+.tp-node.sub .tp-head { background: var(--surface-2); padding: 10px 12px; }
+.tp-node.sub .tp-head b { font-size: 14px; font-weight: 600; }
