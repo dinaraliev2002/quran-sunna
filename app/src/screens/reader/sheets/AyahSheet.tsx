@@ -9,6 +9,8 @@ import { QpcText } from '../views'
 import { TafsirText } from '../TafsirText'
 import { AsbabBlock } from '../Asbab'
 import { KulievBlock, SajdaBlock } from '../Kuliev'
+import { AyahConcepts } from './AyahConcepts'
+import { WORD_PARSE } from '../../../store/wordSheet'
 import { LearnMenu } from './LearnMenu'
 import { TRANSLATIONS } from './translations'
 import { useScrollThumb } from '../../../hooks/useScrollThumb'
@@ -107,6 +109,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
             </div>
             <div className="as-label">Перевод · {TRANSLATIONS[st.translation]}</div>
             <div className="as-tr">{st.translation === 'aa' ? a.aa : a.ku}</div>
+            {WORD_PARSE && <AyahConcepts key={'cn' + key} surah={surah.id} ayah={cur} />}
             <AsbabBlock key={key} surah={surah.id} ayah={cur} />
             <SajdaBlock key={'sj' + key} surah={surah.id} ayah={cur} />
             <KulievBlock key={'kv' + key} surah={surah.id} ayah={cur} />
