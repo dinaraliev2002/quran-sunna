@@ -13,3 +13,8 @@ export type RootIndex = Record<string, RootInfo>
 
 /** Какое слово открыто в окне разбора */
 export interface WordTarget { s: number; a: number; w: number }
+
+/** Частое слово: [лемма, корень, часть речи (V/N/P), сколько раз в Коране, русский перевод, пример «сура:аят:слово», написание в примере] */
+export type FreqWord = [string, string, 'N' | 'V' | 'P', number, string, string, string]
+/** Частые слова: сколько всего слов в Коране и список по убыванию частоты */
+export interface FreqData { total: number; w: FreqWord[] }

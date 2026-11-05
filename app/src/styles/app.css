@@ -1559,3 +1559,27 @@ div.srow { cursor: pointer; }
 .wd-roman { min-width: 44px; text-align: center; font-size: 17px; font-weight: 800; color: var(--gold-ink); align-self: center; }
 .wd-form.cur { background: var(--highlight); box-shadow: inset 0 0 0 1.5px var(--gold-ink); }
 .qpc [data-w] { cursor: pointer; border-radius: 6px; }
+
+/* слова Корана: частые слова и поиск по грамматике */
+.fw-stat { display: flex; align-items: baseline; gap: 10px; background: var(--surface); border-radius: 18px; padding: 12px 16px; margin-bottom: 8px; }
+.fw-stat b { font-size: 28px; font-weight: 400; color: var(--gold-ink); }
+.fw-stat span { font-size: 13px; color: var(--text-2); font-weight: 600; }
+.fw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.fw-chips button { font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 99px; background: var(--surface-2); color: var(--text-2); }
+.fw-chips button.on { background: var(--gold-ink); color: var(--surface); }
+.fw-row { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 16px; padding: 8px 8px 8px 12px; margin-bottom: 6px; }
+.fw-rank { min-width: 30px; font-size: 12px; font-weight: 700; color: var(--text-2); }
+.fw-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; text-align: left; }
+.fw-ar { font-size: 26px; color: var(--gold-ink); min-width: 78px; text-align: center; }
+.fw-tr { font-size: 14.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.fw-n { font-size: 12px; font-weight: 700; color: var(--text-2); }
+.fw-ok { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-2); color: var(--text-2); display: grid; place-items: center; flex: none; }
+.fw-ok .icon { width: 18px; height: 18px; }
+.fw-row.known .fw-ok { background: var(--emerald-bright); color: #fff; }
+.fw-row.known .fw-tr { color: var(--text-2); }
+.gs-hit { background: var(--surface); border-radius: 16px; margin-bottom: 6px; padding: 4px 12px; }
+.gs-main { width: 100%; display: flex; align-items: center; gap: 12px; padding: 6px 0; text-align: left; }
+.gs-main > .ar { font-size: 24px; color: var(--gold-ink); min-width: 84px; text-align: center; }
+.gs-main .mid { flex: 1; font-size: 12.5px; color: var(--text-2); }
+.gs-main .mid .ar { font-size: 16px; color: var(--gold-ink); }
+.gs-hit .wd-refs { padding: 2px 0 8px; }
