@@ -7,6 +7,7 @@ import { dayNum, hadithProgress, SETS } from '../lib/hifz'
 import { haptic } from '../lib/telegram'
 import { useProfile } from '../lib/profile'
 import { ProfileEdit } from './ProfileEdit'
+import { QuranStats } from './profile/QuranStats'
 import { useStore, type Activity } from '../store/settings'
 import { useHifzToday } from './hifz/parts'
 
@@ -69,6 +70,8 @@ export default function Profile() {
         <div><Icon id="scroll" /><b>{learnedAll}</b><span>{plural(learnedAll, 'хадис выучен', 'хадиса выучено', 'хадисов выучено')}</span>{all.started > learnedAll && <small>{all.started - learnedAll} в повторении</small>}</div>
         <div><Icon id="book" /><b>{st.totalPages}</b><span>{plural(st.totalPages, 'страница', 'страницы', 'страниц')} прочитано</span></div>
       </div>
+
+      <QuranStats />
 
       <Heatmap act={st.act} today={today} />
 
