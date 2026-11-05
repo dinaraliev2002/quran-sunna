@@ -42,7 +42,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
   const [surahId, setSurahId] = useState(initSurah)
   const [target, setTarget] = useState({ ayah: initAyah, nonce: 0 }) // куда прокрутить в режиме «Сура»
   const [page, setPage] = useState(Number(search.get('p')) || surahs[initSurah - 1].pages[0])
-  const [overlay, setOverlay] = useState<Overlay>(search.get('memo') ? 'memo' : null) // ?memo=1 — сразу окно заучивания (кнопка на главной)
+  const [overlay, setOverlay] = useState<Overlay>(search.get('memo') ? 'memo' : search.get('sheet') ? { tafsir: [initSurah, initAyah] } : null) // ?sheet=1 — сразу окно этого аята (возврат из «Слов Корана») // ?memo=1 — сразу окно заучивания (кнопка на главной)
   const [enter, setEnter] = useState<'' | 'from-left' | 'from-right'>('') // анимация появления соседней суры
   // режим «чистого чтения»: панели спрятаны, пока не тапнешь по экрану
   const [bare, setBare] = useState(false)

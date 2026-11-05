@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { conceptsOfAyah, loadConcepts } from '../../../lib/concepts'
+import { rememberReaderSpot } from '../../../lib/readerSpot'
 import type { Concept } from '../../../types/concepts'
 
 /** «О ком и о чём в аяте»: понятия (люди, места, существа…) из этого аята; нажатие открывает их в разделе «Слова Корана» */
@@ -13,7 +14,7 @@ export function AyahConcepts({ surah, ayah }: { surah: number; ayah: number }) {
     <>
       <div className="as-label">О ком и о чём в аяте</div>
       <div className="fw-chips">
-        {list.slice(0, 12).map((c) => <button key={c.i} onClick={() => nav('/words', { state: { concept: c.i } })}>{c.ru}</button>)}
+        {list.slice(0, 12).map((c) => <button key={c.i} onClick={() => { rememberReaderSpot(surah, ayah, true); nav('/words', { state: { concept: c.i } }) }}>{c.ru}</button>)}
       </div>
     </>
   )

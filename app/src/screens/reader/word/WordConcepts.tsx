@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadConceptWords, loadConcepts } from '../../../lib/concepts'
+import { rememberReaderSpot } from '../../../lib/readerSpot'
 import { useWordSheet } from '../../../store/wordSheet'
 import type { Concept } from '../../../types/concepts'
 import type { WordTarget } from '../../../types/morph'
@@ -21,7 +22,7 @@ export function WordConcepts({ target }: { target: WordTarget }) {
   if (!list.length) return null
   return (
     <div className="wd-concept">
-      {list.map((c) => <button key={c.i} onClick={() => { close(); nav('/words', { state: { concept: c.i } }) }}>Понятие: {c.ru}</button>)}
+      {list.map((c) => <button key={c.i} onClick={() => { rememberReaderSpot(target.s, target.a, false); close(); nav('/words', { state: { concept: c.i } }) }}>Понятие: {c.ru}</button>)}
     </div>
   )
 }

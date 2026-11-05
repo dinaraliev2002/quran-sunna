@@ -1610,3 +1610,11 @@ div.srow { cursor: pointer; }
 .cn-verse .ar { display: block; font-size: 22px; line-height: 1.9; color: var(--text); }
 .cn-verse p { font-size: 13.5px; line-height: 1.45; color: var(--text-2); margin: 4px 0 0; }
 .cn-verse .wd-dim { display: block; margin-bottom: 2px; }
+
+/* слова Корана: закреплённая шапка со сворачиванием разделов */
+.screen.words { padding-top: 0; }
+.words-head { position: sticky; top: 0; z-index: 6; background: var(--bg); margin: 0 -18px 8px; padding: calc(var(--content-top) + 12px) 18px 4px; }
+.words-head .topbar { margin-bottom: 10px; }
+.words-head .wd-tabs { margin: 0 0 6px; }
+.icon-btn.fold .icon { transition: transform .2s; }
+.icon-btn.fold.on .icon { transform: rotate(180deg); }

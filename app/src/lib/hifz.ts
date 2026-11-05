@@ -10,7 +10,7 @@ export type { HifzItem, HifzCard, Grade, MyHifz, SetId, Split }
 
 interface SetFile { id: string; name: string; items: Omit<HifzItem, 'key' | 'audio'>[] }
 
-export const INTERVALS = [1, 3, 7, 14, 30, 60]
+export const INTERVALS = [1, 3, 7, 14, 30, 60, 90, 180] // дни до следующего повторения; после последнего — снова каждые 180 дней
 /** С этой ступени хадис считается выученным (прошёл повтор через 2 недели) */
 export const LEARNED_STAGE = 4
 /** Больше стольких новых хадисов в день — предупреждение */
