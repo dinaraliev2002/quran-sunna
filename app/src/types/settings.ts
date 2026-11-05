@@ -56,6 +56,9 @@ export interface Settings {
   plSleepSuras: number
   plFollow: boolean // листать страницы вслед за звуком
   plResume: boolean // продолжать суру с места остановки
+  obDone: boolean // опросник и личный план пройдены
+  obSeen: boolean // опросник уже показывали (пропустили или прошли)
+  plan: import('../lib/plan').PlanAnswers | null // ответы опросника
   profName: string // своё имя (пусто — из Telegram или «Гость»)
   profPhoto: string // своё фото (сжатый JPEG в виде data-ссылки)
   hapAll: boolean // вибрация в приложении из магазина

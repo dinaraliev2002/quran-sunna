@@ -55,6 +55,10 @@ export default function Settings() {
         <button className="sitem" onClick={() => st.set({ tajweed: !st.tajweed })}><span className="si" style={{ background: '#E0663A' }}><Icon id="eye" /></span><span className="t">Цветной таджвид</span><span className={'switch' + (st.tajweed ? ' on' : '')} /></button>
       </div>
 
+      <div className="group">
+        <button className="sitem" onClick={() => nav('/plan')}><span className="si" style={{ background: '#D9A441' }}><Icon id="star" /></span><span className="t">Личный план</span><span className="v">{st.plan ? 'Ваши шаги по очереди' : 'Пройти опрос'}</span><Icon id="right" className="icon chev" /></button>
+      </div>
+
       <div className="group-t">Аудио</div>
       <div className="group">
         <button className="sitem" onClick={() => setOpen('rec')}><span className="si" style={{ background: '#C08A2E' }}><Icon id="sound" /></span><span className="t">Чтец</span><span className="v">{(RECITERS[st.reciter] ?? RECITERS.alafasy).name} · {bitrateOf(st.reciter, st.bitrates)}</span><Icon id="right" className="icon chev" /></button>

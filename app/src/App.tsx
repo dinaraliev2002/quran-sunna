@@ -28,6 +28,8 @@ import SurahList from './screens/SurahList'
 import Stories from './screens/Stories'
 import { Glossary, SajdaList } from './screens/Reference'
 import { hydrateStore, useStore } from './store/settings'
+import { OnboardingGate } from './screens/onboarding/Gate'
+import Plan from './screens/Plan'
 import { useUi } from './store/ui'
 
 // разделы, где на телефоне можно читать в горизонтальном положении
@@ -76,6 +78,7 @@ export default function App() {
       <IconSprite />
       <TelegramBack />
       <MiniPlayer />
+      {hydrated && <OnboardingGate />}
       <div className="app">
         {hydrated && (
           <Routes>
@@ -106,6 +109,7 @@ export default function App() {
             <Route path="/names/learn" element={<NamesLearn />} />
             <Route path="/names/:n" element={<NameCard />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/plan" element={<Plan />} />
             <Route path="/notifications" element={<Stub title="Уведомления" icon="bell" text="Здесь будут напоминания и сообщения." />} />
             <Route path="*" element={<Home />} />
           </Routes>
