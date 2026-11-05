@@ -22,6 +22,7 @@ export default function Settings() {
   const pr = useProfile()
   const [open, setOpen] = useState<Picker>(null)
   const [playerOpen, setPlayerOpen] = useState(false)
+  const [vibOpen, setVibOpen] = useState(false)
   const close = () => setOpen(null)
 
   const Choice = <T extends string>({ title, items, value, onPick }: { title: string; items: Record<T, string>; value: T; onPick: (v: T) => void }) => (
@@ -61,15 +62,9 @@ export default function Settings() {
       </div>
 
       {isNative && (
-        <>
-          <div className="group-t">Вибрация</div>
-          <div className="group">
-        <button className="sitem" onClick={() => st.set({ hapAll: !st.hapAll })}><span className="si" style={{ background: '#7A5AC8' }}><Icon id="bell" /></span><span className="t">Вибрация</span><span className="v">Общий выключатель</span><span className={'switch' + (st.hapAll ? ' on' : '')} /></button>
-        <button className="sitem" onClick={() => st.set({ hapAzkar: !st.hapAzkar })}><span className="si" style={{ background: '#C08A2E' }}><Icon id="bell" /></span><span className="t">Азкары</span><span className="v">Листание карточек и счётчик</span><span className={'switch' + (st.hapAzkar ? ' on' : '')} /></button>
-        <button className="sitem" onClick={() => st.set({ hapHadith: !st.hapHadith })}><span className="si" style={{ background: '#2F7D6B' }}><Icon id="bell" /></span><span className="t">Хадисы</span><span className="v">Листание карточек</span><span className={'switch' + (st.hapHadith ? ' on' : '')} /></button>
-        <button className="sitem" onClick={() => st.set({ hapQuran: !st.hapQuran })}><span className="si" style={{ background: '#13704B' }}><Icon id="bell" /></span><span className="t">Коран и тафсир</span><span className="v">Страницы, линейка, аяты в тафсире</span><span className={'switch' + (st.hapQuran ? ' on' : '')} /></button>
-          </div>
-        </>
+        <div className="group">
+          <button className="sitem" onClick={() => setVibOpen(true)}><span className="si" style={{ background: '#7A5AC8' }}><Icon id="bell" /></span><span className="t">Вибрация</span><span className="v">{st.hapAll ? 'Включена' : 'Выключена'}</span><Icon id="right" className="icon chev" /></button>
+        </div>
       )}
 
       <div className="group-t">Без интернета</div>
@@ -98,6 +93,18 @@ export default function Settings() {
 
       {open === 'tr' && <Choice title="Перевод смыслов" items={TRANSLATIONS} value={st.translation} onPick={(v) => st.set({ translation: v })} />}
       {playerOpen && <PlayerSettings onClose={() => setPlayerOpen(false)} />}
+      {vibOpen && (
+        <Sheet onClose={() => setVibOpen(false)}>
+          <SheetHead title="Вибрация" sub="Отклик при листании и нажатиях" onClose={() => setVibOpen(false)} />
+          <div className="body">
+            <button className="srow2" onClick={() => st.set({ hapAll: !st.hapAll })}><div>Вибрация<span>Общий выключатель</span></div><span className={'switch' + (st.hapAll ? ' on' : '')} /></button>
+            <div className="as-label">Где вибрировать</div>
+            <button className="srow2" disabled={!st.hapAll} onClick={() => st.set({ hapAzkar: !st.hapAzkar })}><div>Азкары<span>Листание карточек и счётчик</span></div><span className={'switch' + (st.hapAll && st.hapAzkar ? ' on' : '')} /></button>
+            <button className="srow2" disabled={!st.hapAll} onClick={() => st.set({ hapHadith: !st.hapHadith })}><div>Хадисы<span>Листание карточек</span></div><span className={'switch' + (st.hapAll && st.hapHadith ? ' on' : '')} /></button>
+            <button className="srow2" disabled={!st.hapAll} onClick={() => st.set({ hapQuran: !st.hapQuran })}><div>Коран и тафсир<span>Страницы, линейка, аяты в тафсире</span></div><span className={'switch' + (st.hapAll && st.hapQuran ? ' on' : '')} /></button>
+          </div>
+        </Sheet>
+      )}
       {open === 'rec' && (
         <Sheet onClose={close}>
           <SheetHead title="Чтец" sub="Цифры справа — качество звука в кбит/с: 64 занимает вдвое меньше места" onClose={close} />
