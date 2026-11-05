@@ -84,6 +84,8 @@ def surahs_only(ar):
 AR_FIX = {74: dua_only_istikhara, 119: surahs_only}
 # точечные правки перевода: номер азкара → (что заменить, на что)
 RU_FIX = {130: [(' (Ас-Саджда, 32)', ''), (' (Аль-Мульк, 67)', '')]}
+# число повторов, когда в тексте прямо сказано «по семь раз», а источник даёт 1: номер азкара → сколько раз
+REP_FIX = {83: 7, 106: 7, 168: 7}
 
 
 REPEAT_WORDS = [('مائة مرة', 100), ('مئة مرة', 100), ('عشر مرات', 10), ('سبع مرات', 7), ('أربع مرات', 4),
@@ -137,6 +139,8 @@ def main():
             item['audio'] = best[1]['AUDIO'].replace('http://', 'https://')
         if ratio < 0.8:
             weak += 1
+        if iid in REP_FIX:
+            item['rep'] = REP_FIX[iid]
         for old, new in RU_FIX.get(iid, []):
             item['ru'] = item['ru'].replace(old, new)
         if iid in AR_FIX:
