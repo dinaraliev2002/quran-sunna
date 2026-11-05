@@ -11,11 +11,8 @@ import { Icon } from './Icon'
 interface Item { to: string; icon: string; label: string; color: string; show?: boolean }
 
 const ITEMS: Item[] = [
-  { to: '/names', icon: 'star', label: 'Имена Аллаха', color: '#C9A24B' },
-  { to: '/hifz', icon: 'brain', label: 'Заучивание', color: '#13704B' },
   { to: '/meaning', icon: 'book', label: 'Смысл Корана', color: '#C9A24B', show: WORD_PARSE },
   { to: '/words', icon: 'words', label: 'Слова Корана', color: '#2F7FD8', show: WORD_PARSE },
-  { to: '/profile', icon: 'users', label: 'Профиль', color: '#9B59D0' },
   { to: '/settings', icon: 'gear', label: 'Настройки', color: '#6B7280' },
 ]
 
@@ -31,7 +28,7 @@ export function QuickMenu() {
 
   if (!SHOW_ON.includes(loc.pathname)) return null
   const items = ITEMS.filter((i) => i.show !== false)
-  const R = items.length > 4 ? 185 : 140
+  const R = items.length > 4 ? 185 : items.length > 2 ? 130 : 100
   // веер: от «влево» (самая нижняя, настройки) до «вверх» (самая верхняя)
   const pos = (i: number) => {
     const a = Math.PI - (Math.PI / 2) * ((items.length - 1 - i) / (items.length - 1)) // i=последний → 180°
@@ -42,7 +39,7 @@ export function QuickMenu() {
   return (
     <>
       {open && <div className="qm-dim" onClick={() => setOpen(false)} />}
-      <div className={'qm' + (open ? ' open' : '') + (playing ? ' up' : '')}>
+      <div className={'qm' + (open ? ' open' : '') + (loc.pathname === '/' ? ' home' : playing ? ' up' : '')}>
         {items.map((it, i) => {
           const p = pos(i)
           return (

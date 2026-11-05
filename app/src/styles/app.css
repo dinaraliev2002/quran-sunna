@@ -1674,3 +1674,4 @@ div.srow { cursor: pointer; }
 .qm.open .qm-item { opacity: 1; transform: translate(var(--x), var(--y)) scale(1); pointer-events: auto; }
 .qm-item .icon { width: 22px; height: 22px; }
 .qm-lbl { position: absolute; left: 50%; top: 50%; transform: translate(calc(-50% + var(--ux) * 50% + var(--ux) * 30px), calc(-50% - var(--uy) * 50% - var(--uy) * 22px)); font-size: 12px; font-weight: 700; color: #fff; background: rgba(20, 20, 20, .72); padding: 3px 9px; border-radius: 999px; white-space: nowrap; pointer-events: none; }
+.qm.home { bottom: calc(var(--safe-bottom) + 18px); }
