@@ -28,13 +28,13 @@ export function AyahConcepts({ surah, ayah }: { surah: number; ayah: number }) {
         <>
           <div className="as-label">Темы аята</div>
           <div className="fw-chips">
-            {topics.map(({ t, path }) => <button key={t.i} onClick={() => { rememberReaderSpot(surah, ayah, true); nav('/words', { state: { topic: t.i } }) }}>{path}</button>)}
+            {topics.map(({ t, path }) => <button key={t.i} onClick={() => { rememberReaderSpot(surah, ayah, true); nav('/meaning', { state: { topic: t.i } }) }}>{path}</button>)}
           </div>
         </>
       )}
       {!!list?.length && <div className="as-label">О ком и о чём в аяте</div>}
       <div className="fw-chips">
-        {(list ?? []).slice(0, 12).map((c) => <button key={c.i} onClick={() => { rememberReaderSpot(surah, ayah, true); nav('/words', { state: { concept: c.i } }) }}>{c.ru}</button>)}
+        {(list ?? []).slice(0, 12).map((c) => <button key={c.i} onClick={() => { rememberReaderSpot(surah, ayah, true); nav('/meaning', { state: { concept: c.i } }) }}>{c.ru}</button>)}
       </div>
     </>
   )

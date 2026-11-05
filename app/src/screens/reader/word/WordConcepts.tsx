@@ -22,7 +22,7 @@ export function WordConcepts({ target }: { target: WordTarget }) {
   if (!list.length) return null
   return (
     <div className="wd-concept">
-      {list.map((c) => <button key={c.i} onClick={() => { rememberReaderSpot(target.s, target.a, false); close(); nav('/words', { state: { concept: c.i } }) }}>Понятие: {c.ru}</button>)}
+      {list.map((c) => <button key={c.i} onClick={() => { rememberReaderSpot(target.s, target.a, false); close(); nav('/meaning', { state: { concept: c.i } }) }}>Понятие: {c.ru}</button>)}
     </div>
   )
 }
