@@ -12,6 +12,7 @@ import { cancelDownload, deleteAudioSurah, deleteDownloads, downloadAudio, downl
 import { RECITERS, bitrateOf, setBitrates } from '../store/player'
 import { useStore } from '../store/settings'
 import { useUi } from '../store/ui'
+import { isNative } from '../lib/telegram'
 
 type Status = Awaited<ReturnType<typeof offlineStatus>>
 const mb = (bytes: number) => (bytes >= 1e9 ? (bytes / 1e9).toFixed(1) + ' ГБ' : Math.round(bytes / 1e6) + ' МБ')
@@ -153,8 +154,10 @@ export default function Downloads() {
       {!status && <div className="loading">Проверяю…</div>}
       {status && (
         <>
-          <Card icon="book" id="data" title="Текст Корана" sub="Аяты, 2 перевода, тафсир, раскладка страниц · ≈ 23 МБ"
-            done={status.data.done} total={status.data.total} onDownload={downloadData} />
+          {!isNative && ( // в приложении из магазина текст Корана уже внутри — карточка не нужна
+            <Card icon="book" id="data" title="Текст Корана" sub="Аяты, 2 перевода, тафсир, раскладка страниц · ≈ 23 МБ"
+              done={status.data.done} total={status.data.total} onDownload={downloadData} />
+          )}
           <Card icon="open" id={'fonts:' + variant} title="Страницы мусхафа"
             sub={`Шрифты 604 страниц ${tajweed ? 'с таджвидом' : 'без таджвида'}${appleWebKit && tajweed ? (theme === 'dark' ? ' (тёмная тема)' : ' (светлая тема)') : ''} · ${fontsSize}`}
             done={status.fonts.done} total={status.fonts.total} onDownload={() => downloadFonts(variant)} onDelete={() => deleteDownloads('fonts', variant)} />
