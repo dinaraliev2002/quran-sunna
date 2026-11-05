@@ -101,8 +101,8 @@ export default function App() {
             <Route path="/sajda" element={<SajdaList />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/reminders" element={<Reminders />} />
-            <Route path="/words" element={<Words section="words" />} />
-            <Route path="/meaning" element={<Words section="meaning" />} />
+            <Route path="/words" element={<Words key="words" section="words" />} />
+            <Route path="/meaning" element={<Words key="meaning" section="meaning" />} />
             <Route path="/downloads" element={<Downloads />} />
             <Route path="/azkar" element={<Azkar />} />
             <Route path="/azkar/ch/:id" element={<AzkarChapter />} />

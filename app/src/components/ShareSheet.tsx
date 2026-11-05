@@ -4,8 +4,13 @@ import { haptic } from '../lib/telegram'
 import { Icon } from './Icon'
 import { Sheet, SheetHead } from './ui'
 
+/** Выбор фона листанием (25 видов) пока выключен: остаётся один вид «как в приложении». Включить: true */
+const SHARE_BACKGROUNDS = false
+
 const KEY = 'share_style_v1'
-const readIdx = () => { try { return Math.min(Math.max(Number(localStorage.getItem(KEY)) || 0, 0), SHARE_STYLES - 1) } catch { return 0 } }
+const readIdx = () => {
+  if (!SHARE_BACKGROUNDS) return 0
+  try { return Math.min(Math.max(Number(localStorage.getItem(KEY)) || 0, 0), SHARE_STYLES - 1) } catch { return 0 } }
 
 /** Окно «Поделиться картинкой»: видно, как будет выглядеть картинка; стрелками (или свайпом) листаются фоны */
 export function ShareSheet({ card, caption, onClose }: { card: ShareCard; caption: string; onClose: () => void }) {
@@ -29,7 +34,7 @@ export function ShareSheet({ card, caption, onClose }: { card: ShareCard; captio
       render((idx + 1) % SHARE_STYLES).catch(() => {})
       render((idx - 1 + SHARE_STYLES) % SHARE_STYLES).catch(() => {})
     }).catch(() => {})
-    try { localStorage.setItem(KEY, String(idx)) } catch { /* ignore */ }
+    if (SHARE_BACKGROUNDS) try { localStorage.setItem(KEY, String(idx)) } catch { /* ignore */ }
     return () => { live = false }
   }, [idx, card])
   useEffect(() => { const c = cache.current; return () => c.forEach((u) => URL.revokeObjectURL(u)) }, [])
@@ -38,20 +43,21 @@ export function ShareSheet({ card, caption, onClose }: { card: ShareCard; captio
 
   return (
     <Sheet onClose={onClose} tall>
-      <SheetHead title="Картинка для отправки" sub="Листайте виды стрелками или свайпом" onClose={onClose} />
+      <SheetHead title="Картинка для отправки" sub={SHARE_BACKGROUNDS ? 'Листайте виды стрелками или свайпом' : 'Так она будет выглядеть'} onClose={onClose} />
       <div className="shr-wrap"
-        onTouchStart={(e) => { swipe.current = e.touches[0].clientX }}
+        onTouchStart={(e) => { if (SHARE_BACKGROUNDS) swipe.current = e.touches[0].clientX }}
         onTouchEnd={(e) => {
+          if (!SHARE_BACKGROUNDS) return
           const x0 = swipe.current; swipe.current = null
           if (x0 !== null && Math.abs(e.changedTouches[0].clientX - x0) > 50) go(e.changedTouches[0].clientX < x0 ? 1 : -1)
         }}>
         {url ? <img className="shr-img" src={url} alt="Предпросмотр" draggable={false} /> : <div className="loading">Рисую…</div>}
       </div>
-      <div className="shr-nav">
+      {SHARE_BACKGROUNDS && <div className="shr-nav">
         <button className="sq" onClick={() => go(-1)} aria-label="Предыдущий вид"><Icon id="back" /></button>
         <span>{idx === 0 ? 'Как в приложении' : `Вид ${idx + 1} из ${SHARE_STYLES}`}</span>
         <button className="sq" onClick={() => go(1)} aria-label="Следующий вид"><Icon id="right" /></button>
-      </div>
+      </div>}
       <button className="bigbtn" onClick={() => { haptic.tap(); shareCardImage(card, caption, idx).catch(() => {}).finally(onClose) }}><Icon id="share" />Отправить</button>
     </Sheet>
   )

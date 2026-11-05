@@ -117,7 +117,7 @@ export default function WordsHifz() {
         {WORDS_PER_DAY.map((n) => <button key={n} className={perDay === n ? 'on' : ''} onClick={() => { setPerDay(n); saveWordsPerDay(n) }}>{n}</button>)}
       </div>
       <button className="srow2" style={{ marginTop: 10 }} onClick={() => nav('/words')}>
-        <div>Все частые слова<span>Список с переводом, грамматика, понятия</span></div><Icon id="right" className="icon" />
+        <div>Все частые слова<span>Список с переводом и грамматика</span></div><Icon id="right" className="icon" />
       </button>
     </div>
   )
