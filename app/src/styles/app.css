@@ -1668,12 +1668,18 @@ div.srow { cursor: pointer; }
 @keyframes qmfade { from { opacity: 0 } to { opacity: 1 } }
 .qm-tab { position: fixed; right: 0; touch-action: none; margin-top: -32px; width: 22px; height: 64px; z-index: 19; border-radius: 14px 0 0 14px; background: color-mix(in srgb, var(--gold) 80%, transparent); color: var(--on-gold); display: grid; place-items: center; box-shadow: -2px 4px 14px rgba(0, 0, 0, .18); padding: 0; }
 .qm-tab .icon { width: 14px; height: 14px; }
-.qm-panel { position: fixed; top: 0; bottom: 0; right: 0; width: min(300px, 82vw); z-index: 41; background: var(--surface); box-shadow: -10px 0 30px rgba(0, 0, 0, .25); border-radius: 24px 0 0 24px; padding: calc(var(--content-top) + 6px) 14px calc(var(--safe-bottom) + 16px); display: flex; flex-direction: column; gap: 6px; overflow-y: auto; transform: translateX(105%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
-.qm-panel.open { transform: none; }
-.qm-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; }
-.qm-head b { font-size: 18px; font-weight: 800; }
-.qm-head button { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; }
-.qm-row { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 16px; background: var(--surface-2); text-align: left; }
-.qm-ic { width: 38px; height: 38px; border-radius: 12px; color: #fff; display: grid; place-items: center; flex: none; }
-.qm-ic .icon { width: 20px; height: 20px; }
-.qm-t { flex: 1; font-size: 15px; font-weight: 700; }
+.qm-panel { position: fixed; right: 0; width: 84px; max-height: 84vh; z-index: 41; background: var(--surface); box-shadow: -8px 0 26px rgba(0, 0, 0, .3); border-radius: 22px 0 0 22px; padding: 10px 6px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; transform: translate(105%, -50%); transition: transform .28s cubic-bezier(.2, .8, .2, 1), width .2s; }
+.qm-panel.open { transform: translate(0, -50%); }
+.qm-panel.edit { width: min(250px, 80vw); padding: 10px; }
+.qm-head { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 0 0 4px; }
+.qm-panel.edit .qm-head { justify-content: space-between; }
+.qm-head b { font-size: 15px; font-weight: 800; padding-left: 4px; }
+.qm-head button { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; }
+.qm-head .icon { width: 16px; height: 16px; }
+.qm-row { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border-radius: 14px; text-align: center; }
+.qm-ic { width: 44px; height: 44px; border-radius: 14px; color: #fff; display: grid; place-items: center; flex: none; }
+.qm-ic .icon { width: 22px; height: 22px; }
+.qm-t { font-size: 11px; font-weight: 700; line-height: 1.15; color: var(--text); }
+.qm-panel.edit .qm-row { flex-direction: row; gap: 10px; padding: 6px; background: var(--surface-2); text-align: left; }
+.qm-panel.edit .qm-ic { width: 34px; height: 34px; border-radius: 11px; }
+.qm-panel.edit .qm-t { flex: 1; font-size: 14px; }

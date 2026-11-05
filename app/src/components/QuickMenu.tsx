@@ -65,9 +65,9 @@ export function QuickMenu() {
     <>
       {!open && <button className="qm-tab" onClick={() => { haptic.tap(); setOpen(true) }} style={{ top: `${liveY ?? tabY}%` }} onTouchStart={down} onTouchMove={move} onTouchEnd={(e) => up(e, 'open')} aria-label="Меню разделов"><Icon id="back" /></button>}
       {open && <div className="qm-dim" onClick={close} />}
-      <aside className={'qm-panel' + (open ? ' open' : '')} onTouchStart={down} onTouchEnd={(e) => up(e, 'close')} aria-hidden={!open}>
+      <aside className={'qm-panel' + (open ? ' open' : '') + (edit ? ' edit' : '')} style={{ top: `${Math.min(70, Math.max(30, tabY))}%` }} onTouchStart={down} onTouchEnd={(e) => up(e, 'close')} aria-hidden={!open}>
         <div className="qm-head">
-          <b>{edit ? 'Что показывать' : 'Разделы'}</b>
+          {edit && <b>Что показывать</b>}
           <button onClick={() => { haptic.tap(); setEdit((v) => !v) }} aria-label="Настроить пункты"><Icon id={edit ? 'check' : 'gear'} /></button>
         </div>
         {edit ? avail.filter((i) => i.to !== '/settings').map((it) => (
@@ -80,7 +80,6 @@ export function QuickMenu() {
           <button key={it.to} className="qm-row" onClick={() => go(it.to)} tabIndex={open ? 0 : -1}>
             <span className="qm-ic" style={{ background: it.color }}><Icon id={it.icon} /></span>
             <span className="qm-t">{it.label}</span>
-            <Icon id="right" className="icon chev" />
           </button>
         ))}
       </aside>
