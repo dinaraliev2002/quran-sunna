@@ -25,6 +25,35 @@ if '--out' in sys.argv:
     OUT = os.path.abspath(os.path.join(ROOT, sys.argv[sys.argv.index('--out') + 1]))
 
 
+# Падежные окончания, с которыми термин может встретиться в русском тексте перевода
+ENDINGS = '(?:а|у|е|ом|ы|и|ов|ам|ами|ах|я|ю|ем|ей|ь)?'
+HIT_LIMIT = 60  # сколько аятов с термином хранить для показа (остальные — только счётчик)
+
+
+def glossary_hits(terms):
+    """Для каждого термина — в каких аятах он встречается в русском переводе: (сколько, первые HIT_LIMIT «сура:аят»)"""
+    import glob
+    import re
+    texts = []
+    for fn in sorted(glob.glob(os.path.join(ROOT, 'public', 'data', 'quran', '*.json'))):
+        d = json.load(io.open(fn, encoding='utf-8'))
+        for a in d['ayahs']:
+            texts.append((f"{d['id']}:{a['n']}", (a['ku'] + ' ' + a['aa']).replace('ё', 'е').replace('Ё', 'Е')))
+    out = []
+    for t in terms:
+        name = re.sub(r'\(.*?\)', '', t['term']).strip().replace('ё', 'е')
+        name = re.sub(r'^(Аль|Ал|Ар|Ас|Ат|Ан|Ад|Аш|Аз)[- ]', '', name)
+        stem = name[:-1] if len(name) > 4 and name[-1] in 'аяьйыи' else name
+        # очень короткие слова («Ад», «Нар») ищем с учётом заглавной буквы — иначе совпадут с обычными словами
+        short = len(stem) <= 3
+        rx = re.compile(r'(?<![А-Яа-я])' + re.escape(stem) + ('' if short else ENDINGS) + r'(?![А-Яа-я])', 0 if short else re.I)
+        hits = [k for k, txt in texts if rx.search(txt)]
+        if short and len(hits) > 40:
+            hits = []  # слишком общее слово («Ад» — и народ, и преисподняя): число было бы неверным
+        out.append((len(hits), hits[:HIT_LIMIT]))
+    return out
+
+
 def load(name):
     return json.load(io.open(os.path.join(SRC, name), encoding='utf-8'))
 
@@ -44,7 +73,8 @@ def main():
         data = {'s': c['surah'], 'intro': c['intro'], 'notes': notes}
         json.dump(data, io.open(os.path.join(OUT, f"{c['surah']:03d}.json"), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
         index['s'][str(c['surah'])] = {'n': sorted(int(a) for a in notes), 'intro': bool(c['intro'])}
-    json.dump([{'ar': g['ar'], 'tr': g['term'], 'mean': g['mean']} for g in glossary],
+    hits = glossary_hits(glossary)
+    json.dump([{'ar': g['ar'], 'tr': g['term'], 'mean': g['mean'], **({'n': n, 'h': h} if n else {})} for g, (n, h) in zip(glossary, hits)],
               io.open(os.path.join(OUT, 'glossary.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     json.dump(sajda, io.open(os.path.join(OUT, 'sajda.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     index['v'] = hashlib.md5(json.dumps(index, ensure_ascii=False).encode()).hexdigest()[:8]

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { plural } from '../lib/plural'
 import { loadGlossary, loadSajda, surahGlyph, type GlossaryItem, type SajdaData } from '../lib/data'
+import { TermItem } from './glossary/TermItem'
 
 /** Откуда открыли справочник: сура и страница, чтобы показать их в верхней плашке */
 export interface RefFrom { id: number; name: string; sub: string }
@@ -42,6 +43,7 @@ export function Glossary() {
   const swipe = useBackSwipe()
   const [items, setItems] = useState<GlossaryItem[] | null>(null)
   const [q, setQ] = useState('')
+  const [open, setOpen] = useState<string | null>(null) // какой термин раскрыт (по одному)
   useEffect(() => { loadGlossary().then((g) => setItems(g ?? [])) }, [])
   const list = useMemo(() => {
     if (!items) return []
@@ -59,12 +61,7 @@ export function Glossary() {
       <p className="az-sub">Арабские выражения и термины · {items ? items.length : '…'} {plural(items?.length ?? 0, 'запись', 'записи', 'записей')}</p>
       {!items && <div className="loading">Загрузка…</div>}
       {items && list.length === 0 && <div className="empty">Ничего не найдено</div>}
-      {list.map((x, i) => (
-        <div key={i} className="ref-row">
-          <div className="ref-ar">{x.ar}</div>
-          <div className="t"><b>{x.tr}</b><span>{x.mean}</span></div>
-        </div>
-      ))}
+      {list.map((x) => <TermItem key={x.tr} x={x} open={open === x.tr} onToggle={() => setOpen(open === x.tr ? null : x.tr)} />)}
       <div className="kv-src" style={{ padding: '14px 4px' }}>Словарь арабских выражений и терминов — приложение к переводу смыслов Корана Э. Кулиева (издание Комплекса короля Фахда).</div>
     </div>
     <RefTop title="Словарь" sub="Арабские термины" />

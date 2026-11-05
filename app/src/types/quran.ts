@@ -35,7 +35,8 @@ export interface MushafPage {
   starts: [number, number][] // [сура, строка первого аята]
 }
 
-export interface GlossaryItem { ar: string; tr: string; mean: string }
+/** Запись словаря; n — в скольких аятах термин встречается в переводе, h — первые из них («сура:аят») */
+export interface GlossaryItem { ar: string; tr: string; mean: string; n?: number; h?: string[] }
 
 export interface SajdaData {
   places: { n: number; juz: number; surah: number; name: string; ayah: number; disputed: boolean }[]
