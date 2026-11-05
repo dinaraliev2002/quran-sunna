@@ -9,7 +9,8 @@ import { EVENING, loadAzkar, MORNING, nowIsMorning, type AzkarData } from '../li
 import { loadSurah, surahGlyph, type Ayah } from '../lib/data'
 import { hadithOfDay, type EncHadith } from '../lib/hadith'
 import { pageFontFamily } from '../lib/fonts'
-import { shareCardImage } from '../lib/shareImage'
+import { ShareSheet } from '../components/ShareSheet'
+import type { ShareCard } from '../lib/shareImage'
 import { APP_LINK, haptic, shareText } from '../lib/telegram'
 import { useProfile } from '../lib/profile'
 import { useUi } from '../store/ui'
@@ -128,6 +129,7 @@ export default function Home() {
   ]
   const doneCount = tasks.filter((t) => today.done.includes(t.id)).length
   const [memo, setMemo] = useState(false)
+  const [share, setShare] = useState<{ card: ShareCard; caption: string } | null>(null)
 
   return (
     <div className="screen home">
@@ -252,7 +254,7 @@ export default function Home() {
             <button onClick={() => shareText(`${aod.a.ku}\n— ${meta.surahs[Number(aod.key.split(':')[0]) - 1].name}, ${aod.key}`)}><Icon id="share" />Текстом</button>
             <button onClick={() => {
               const ref = `${meta.surahs[Number(aod.key.split(':')[0]) - 1].name} · ${aod.key}`
-              shareCardImage({ kind: 'ayah', arabic: aod.a.g, arabicFont: pageFontFamily(aod.a.p, tajweed, useUi.getState().theme), text: aod.a.ku, ref }, `${ref}\n\n${APP_LINK}`).catch(() => {})
+              setShare({ card: { kind: 'ayah', page: aod.a.p, arabic: aod.a.g, arabicFont: pageFontFamily(aod.a.p, tajweed, useUi.getState().theme), text: aod.a.ku, ref }, caption: `${ref}\n\n${APP_LINK}` })
             }}><Icon id="share" />Картинкой</button>
           </div>
         </section>
@@ -270,12 +272,13 @@ export default function Home() {
 — ${hod.src}`)}><Icon id="share" />Текстом</button>
             <button onClick={() => {
               const ref = `${hod.src}${hod.grade ? ` · ${hod.grade}` : ''}`
-              shareCardImage({ kind: 'hadith', intro: hod.in || undefined, text: hod.in ? hod.ru.slice(hod.in.length).trim() : hod.ru, ref }, `${hod.src}\n\n${APP_LINK}`).catch(() => {})
+              setShare({ card: { kind: 'hadith', intro: hod.in || undefined, text: hod.in ? hod.ru.slice(hod.in.length).trim() : hod.ru, ref }, caption: `${hod.src}\n\n${APP_LINK}` })
             }}><Icon id="share" />Картинкой</button>
           </div>
         </section>
       )}
       <div className="h-foot">Коран и Сунна</div>
+      {share && <ShareSheet card={share.card} caption={share.caption} onClose={() => setShare(null)} />}
 
       {memo && (
         <Sheet onClose={() => setMemo(false)}>

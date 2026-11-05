@@ -1471,3 +1471,9 @@ div.srow { cursor: pointer; }
 .pe-name { width: 100%; height: 48px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); padding: 0 14px; font: 600 16px var(--font-ui); }
 
 .srow2:disabled { opacity: .45; }
+
+/* окно «Поделиться картинкой» */
+.shr-wrap { display: flex; justify-content: center; align-items: center; min-height: 240px; max-height: 52vh; overflow: hidden; margin: 6px 0 12px; touch-action: pan-y; }
+.shr-img { max-width: 100%; max-height: 52vh; border-radius: 14px; box-shadow: 0 8px 28px rgba(0, 0, 0, .35); }
+.shr-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--text-2); }
+.shr-nav .sq { width: 48px; height: 48px; border-radius: 16px; background: var(--surface-2); display: grid; place-items: center; color: var(--text); }
