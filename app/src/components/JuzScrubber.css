@@ -1,0 +1,11 @@
+/* шкала джузов у правого края списка сур; выше боковой панели (z 19) и нижней панели (z 20) */
+.js { position: fixed; z-index: 30; right: var(--safe-right); top: calc(var(--content-top) + 150px); bottom: calc(var(--safe-bottom) + 108px); width: 34px; opacity: 0; pointer-events: none; transition: opacity .22s ease; }
+.js.on { opacity: 1; pointer-events: auto; }
+.js-track { position: absolute; inset: 0; touch-action: none; background: color-mix(in srgb, var(--surface) 88%, transparent); border-radius: 17px; box-shadow: 0 6px 22px rgba(0, 0, 0, .16); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.js-mark { position: absolute; right: 0; left: 0; text-align: center; transform: translateY(-50%); font-size: 10px; font-weight: 800; color: var(--text-2); pointer-events: none; }
+.js-mark.cur { opacity: 0; }
+.js-thumb { position: absolute; left: 2px; right: 2px; height: 28px; transform: translateY(-50%); border-radius: 14px; background: var(--gold); color: var(--on-gold); display: grid; place-items: center; font-size: 13px; font-weight: 800; box-shadow: 0 3px 10px rgba(0, 0, 0, .25); }
+.js-bubble { position: absolute; right: 42px; transform: translateY(-50%); background: var(--surface); border-radius: 16px; padding: 8px 14px; box-shadow: var(--shadow); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s ease; }
+.js-bubble b { display: block; font-size: 14px; font-weight: 800; }
+.js-bubble span { font-size: 12px; color: var(--text-2); }
+.js.held .js-bubble { opacity: 1; }

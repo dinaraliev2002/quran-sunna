@@ -3,6 +3,7 @@ import { haptic } from '../lib/telegram'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Tour } from '../components/Tour'
+import { JuzScrubber } from '../components/JuzScrubber'
 import { listenSurah } from '../lib/listen'
 import { SurahRow, TabBar } from '../components/ui'
 import { plural } from '../lib/plural'
@@ -231,6 +232,7 @@ export default function SurahList() {
         )
       })}
       <TabBar />
+      {meta && <JuzScrubber scroll={screen} surahs={list} juzPages={meta.juzPages} enabled={sort === 'mushaf' && query === null} />}
       {query === null && <Tour id="quran" ready={!!meta} steps={[
         { el: '.sl .continue', title: 'Продолжить чтение', text: 'Открывает Коран там, где вы остановились.' },
         { el: '.sl .sortseg', title: 'Порядок сур', text: 'По порядку мусхафа или по ниспосланию. «Истории» — читать подряд истории ниспослания и комментарии. Зажмите эту кнопку (или нажмите на неё ещё раз) — можно выбрать: всё вместе, только истории или только комментарии.' },
