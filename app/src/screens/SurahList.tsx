@@ -39,6 +39,7 @@ export default function SurahList() {
   const wrap = useRef<HTMLDivElement>(null)
   const offset = useRef(0) // на сколько пикселей уехал верхний блок
   const settle = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const scrubbing = useRef(false) // бегунок джузов зажат — верхний блок остаётся спрятанным при любой прокрутке
   const [modeMenu, setModeMenu] = useState(false)
   const press = useRef<ReturnType<typeof setTimeout>>(undefined)
   const longPressed = useRef(false)
@@ -104,6 +105,7 @@ export default function SurahList() {
     lastTop.current = top
     if (query !== null) return
     const h = sub.current?.offsetHeight ?? 0
+    if (scrubbing.current) { apply(top <= 0 ? 0 : h); return }
     const v = Math.min(h, Math.max(0, offset.current + d))
     apply(top <= 0 ? 0 : v)
     // палец остановился на полпути — мягко доводим до открытого или закрытого положения
@@ -232,7 +234,7 @@ export default function SurahList() {
         )
       })}
       <TabBar />
-      {meta && <JuzScrubber scroll={screen} surahs={list} juzPages={meta.juzPages} enabled={sort === 'mushaf' && query === null} />}
+      {meta && <JuzScrubber scroll={screen} surahs={list} juzPages={meta.juzPages} enabled={sort === 'mushaf' && query === null} onHold={(on) => { scrubbing.current = on; if (on && (screen.current?.scrollTop ?? 0) > 0) apply(sub.current?.offsetHeight ?? 0, true) }} />}
       {query === null && <Tour id="quran" ready={!!meta} steps={[
         { el: '.sl .continue', title: 'Продолжить чтение', text: 'Открывает Коран там, где вы остановились.' },
         { el: '.sl .sortseg', title: 'Порядок сур', text: 'По порядку мусхафа или по ниспосланию. «Истории» — читать подряд истории ниспослания и комментарии. Зажмите эту кнопку (или нажмите на неё ещё раз) — можно выбрать: всё вместе, только истории или только комментарии.' },

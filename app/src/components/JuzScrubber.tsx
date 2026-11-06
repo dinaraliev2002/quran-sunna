@@ -9,8 +9,11 @@ import './JuzScrubber.css'
 // Лежит выше боковой панели разделов (QuickMenu), поэтому во время прокрутки перекрывает её язычок.
 
 const MARKS = [1, 5, 10, 15, 20, 25, 30]
+const PAD = 22 // отступ от краёв шкалы, чтобы бегунок и цифры 1 и 30 не выходили за её рамки
+/** положение джуза на шкале: от верхнего до нижнего отступа */
+const place = (j: number) => `calc(${PAD}px + (100% - ${PAD * 2}px) * ${(j - 1) / 29})`
 
-export function JuzScrubber({ scroll, surahs, juzPages, enabled }: { scroll: RefObject<HTMLDivElement | null>; surahs: Surah[]; juzPages: number[]; enabled: boolean }) {
+export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scroll: RefObject<HTMLDivElement | null>; surahs: Surah[]; juzPages: number[]; enabled: boolean; /** бегунок зажали / отпустили — список в это время не должен показывать верхние кнопки */ onHold?: (on: boolean) => void }) {
   const [on, setOn] = useState(false) // шкала видна
   const [juz, setJuz] = useState(1) // джуз сура наверху списка (или выбранный бегунком)
   const [name, setName] = useState('')
@@ -64,29 +67,32 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled }: { scroll: Ref
     const row = el.querySelectorAll<HTMLElement>('.srow')[i < 0 ? 0 : i]
     if (!row) return
     setName(surahs[i < 0 ? 0 : i].name)
+    el.querySelectorAll('.juz-flash').forEach((x) => x.classList.remove('juz-flash'))
+    row.classList.add('juz-flash') // первая сура джуза чуть подсвечивается
+    setTimeout(() => row.classList.remove('juz-flash'), 1600)
     el.scrollTop += row.getBoundingClientRect().top - tr.getBoundingClientRect().top
   }
 
   const at = (e: React.PointerEvent) => {
     const r = track.current!.getBoundingClientRect()
-    const f = Math.min(0.9999, Math.max(0, (e.clientY - r.top) / r.height))
-    const j = Math.floor(f * 30) + 1
+    const f = Math.min(1, Math.max(0, (e.clientY - r.top - PAD) / (r.height - PAD * 2)))
+    const j = Math.round(f * 29) + 1
     setJuz(j)
     if (j !== last.current) { last.current = j; haptic.tick(); jump(j) }
   }
-  const down = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; setHeld(true); keepVisible(); at(e) }
+  const down = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; setHeld(true); onHold?.(true); keepVisible(); at(e) }
   const move = (e: React.PointerEvent<HTMLDivElement>) => { if (dragging.current) at(e) }
-  const up = () => { dragging.current = false; setHeld(false); last.current = 0; keepVisible(900) }
+  const up = () => { dragging.current = false; setHeld(false); onHold?.(false); last.current = 0; keepVisible(900) }
 
   if (!enabled) return null
-  const pos = ((juz - 0.5) / 30) * 100 // положение бегунка в процентах высоты шкалы
+  const pos = place(juz)
   // выносим в <body>: контейнер экрана создаёт свой «слой», и шкала оказалась бы под боковой панелью
   return createPortal(
     <div className={'js' + (on ? ' on' : '') + (held ? ' held' : '')} aria-hidden={!on}>
       <div className="js-track" ref={track} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
-        {MARKS.map((m) => <span key={m} className={'js-mark' + (m === juz ? ' cur' : '')} style={{ top: `${((m - 0.5) / 30) * 100}%` }}>{m}</span>)}
-        <div className="js-thumb" style={{ top: `${pos}%` }}><b>{juz}</b></div>
-        <div className="js-bubble" style={{ top: `${pos}%` }}><b>Джуз {juz}</b>{name && <span>{name}</span>}</div>
+        {MARKS.map((m) => <span key={m} className={'js-mark' + (m === juz ? ' cur' : '')} style={{ top: place(m) }}>{m}</span>)}
+        <div className="js-thumb" style={{ top: pos }}><b>{juz}</b></div>
+        <div className="js-bubble" style={{ top: pos }}><b>Джуз {juz}</b>{name && <span>{name}</span>}</div>
       </div>
     </div>,
     document.body,

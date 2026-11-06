@@ -9,3 +9,6 @@
 .js-bubble b { display: block; font-size: 14px; font-weight: 800; }
 .js-bubble span { font-size: 12px; color: var(--text-2); }
 .js.held .js-bubble { opacity: 1; }
+/* первая сура джуза после прыжка бегунком — мягкая подсветка */
+.srow.juz-flash { animation: juz-flash 1.6s ease-out; border-radius: 16px; }
+@keyframes juz-flash { 0%, 55% { background: var(--highlight); box-shadow: 0 0 0 6px var(--highlight); } 100% { background: transparent; box-shadow: 0 0 0 6px transparent; } }
