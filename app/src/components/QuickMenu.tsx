@@ -40,7 +40,9 @@ export function QuickMenu() {
   const [liveY, setLiveY] = useState<number | null>(null) // пока тянем
   useEffect(() => { setOpen(false); setEdit(false) }, [loc.pathname])
 
-  if (!SHOW_ON.includes(loc.pathname)) return null
+  // Telegram при запуске дописывает в адрес свои параметры (#tgWebAppData=…): роутер видит это как «неизвестный путь» и показывает главную, а язычок раньше пропадал
+  const path = loc.pathname.startsWith('/') ? loc.pathname : '/'
+  if (!SHOW_ON.includes(path)) return null
   const avail = ITEMS.filter((i) => i.show !== false)
   const items = avail.filter((i) => !hidden.includes(i.to) || i.to === '/settings')
   const close = () => { setOpen(false); setEdit(false) }
