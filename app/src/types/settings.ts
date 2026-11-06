@@ -81,7 +81,8 @@ export interface Settings {
   qhRepeat: number // сколько раз чтец повторяет каждый аят при прослушивании
   qhPos: { s: number; a: number } | null // откуда учить дальше (выбранная сура); null — 30-й джуз с конца
   hzRate: number // скорость озвучки хадисов
-  rem: Record<RemindKey, RemindCfg> // напоминания (локальные уведомления)
+  rem: Record<RemindKey, RemindCfg> // напоминания (в магазинах — уведомления телефона, в Telegram — сообщения бота)
+  remAsked: boolean // окошко «Включить напоминания?» в Telegram уже показывали
 }
 
 /** Блоки окна аята, которые можно скрыть (шестерёнка в окне аята) */

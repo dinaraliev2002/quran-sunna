@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { TabBar } from '../components/ui'
 import { ensureRemindPermission, REMIND_ENABLED, REMIND_INFO, REMIND_KEYS } from '../lib/reminders'
+import { BOT_REMIND } from '../lib/remindBot'
 import { haptic } from '../lib/telegram'
 import { useStore } from '../store/settings'
 import type { RemindKey } from '../types/settings'
@@ -29,11 +30,13 @@ export default function Reminders() {
     <div className="screen">
       <div className="topbar">
         <button className="icon-btn" onClick={() => nav(-1)} aria-label="Назад"><Icon id="back" /></button>
-        <div className="ttl"><b>Напоминания</b><span>Без интернета и без сервера</span></div>
+        <div className="ttl"><b>Напоминания</b><span>{BOT_REMIND ? 'Придут сообщением от бота' : 'Без интернета и без сервера'}</span></div>
         <span style={{ width: 44 }} />
       </div>
-      {!REMIND_ENABLED && <p className="hint" style={{ marginBottom: 14 }}>Напоминания работают в приложении из App Store и Google Play. В Telegram и в браузере уведомления показать нельзя.</p>}
-      {denied && <p className="hint" style={{ marginBottom: 14 }}>Уведомления выключены для приложения. Разрешите их в настройках телефона и включите напоминание ещё раз.</p>}
+      {!REMIND_ENABLED && <p className="hint" style={{ marginBottom: 14 }}>Напоминания работают в Telegram и в приложении из App Store и Google Play. В обычном браузере показать их нельзя.</p>}
+      {denied && <p className="hint" style={{ marginBottom: 14 }}>{BOT_REMIND
+        ? 'Telegram не разрешил боту писать вам. Нажмите «Разрешить», когда Telegram спросит, или откройте чат с ботом и нажмите «Запустить», затем включите напоминание ещё раз.'
+        : 'Уведомления выключены для приложения. Разрешите их в настройках телефона и включите напоминание ещё раз.'}</p>}
       <p className="hint" style={{ marginBottom: 14 }}>Все напоминания выключены, пока вы их не включите. Время можно выбрать любое.</p>
       <div className="group">
         {REMIND_KEYS.map((k) => (

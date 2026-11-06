@@ -24,7 +24,7 @@ export const setHapticPolicy = (fn: (area?: HapticArea) => boolean) => { hapticA
 
 type HapticStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'
 
-interface TgUser { id: number; first_name: string; last_name?: string; username?: string; photo_url?: string }
+interface TgUser { id: number; first_name: string; last_name?: string; username?: string; photo_url?: string; allows_write_to_pm?: boolean }
 
 interface TgWebApp {
   initData: string
@@ -42,6 +42,7 @@ interface TgWebApp {
   setBackgroundColor?(c: string): void
   setBottomBarColor?(c: string): void
   openTelegramLink?(url: string): void
+  requestWriteAccess?(cb: (allowed: boolean) => void): void
   onEvent(e: string, cb: () => void): void
   offEvent(e: string, cb: () => void): void
   BackButton: { show(): void; hide(): void; onClick(cb: () => void): void; offClick(cb: () => void): void }
@@ -92,6 +93,21 @@ export function paintChrome(bg: string) {
 export const telegramScheme = (): 'light' | 'dark' | null => (inTelegram ? wa!.colorScheme : null)
 
 export const tgUser = (): TgUser | undefined => (inTelegram ? wa!.initDataUnsafe.user : undefined)
+
+/** Подписанные данные запуска — по ним наш сервер узнаёт, кто пишет (пусто вне Telegram) */
+export const tgInitData = () => (inTelegram ? wa!.initData : '')
+
+let writeGranted = false
+/** Разрешил ли человек боту писать ему (без запроса) */
+export const tgCanWrite = () => inTelegram && (writeGranted || !!wa!.initDataUnsafe.user?.allows_write_to_pm)
+
+/** Спросить у человека разрешение боту писать ему (системное окно Telegram); если уже разрешено — сразу «да» */
+export function tgWriteAccess(): Promise<boolean> {
+  if (!inTelegram) return Promise.resolve(false)
+  if (tgCanWrite()) return Promise.resolve(true)
+  if (!at('6.9') || !wa!.requestWriteAccess) return Promise.resolve(false)
+  return new Promise((done) => wa!.requestWriteAccess!((ok) => { writeGranted = !!ok; done(!!ok) }))
+}
 
 const feel = (kind: 'tap' | 'tick' | 'page' | 'success') => Feedback.perform({ kind }).catch(() => {})
 

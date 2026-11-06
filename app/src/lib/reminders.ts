@@ -1,14 +1,19 @@
-// Напоминания (локальные уведомления): работают в приложении из магазина, без сервера.
-// Заранее ставим в расписание телефона несколько ближайших дней и обновляем расписание при каждом заходе в приложение
+// Напоминания. В приложении из магазина — локальные уведомления телефона, без сервера.
+// В Telegram — сообщения от бота (настройки уходят на сервер, см. lib/remindBot.ts).
+// Дальше — про уведомления телефона. Заранее ставим в расписание телефона несколько ближайших дней и обновляем расписание при каждом заходе в приложение
 // и при выходе из него — так в тексте всегда актуальные числа.
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications'
 import { plural } from './plural'
 import { dayNum } from './hifz'
-import { isNative } from './telegram'
+import { isNative, tgWriteAccess } from './telegram'
+import { BOT_REMIND } from './remindBot'
 import { dayStr, useStore } from '../store/settings'
 import type { RemindCfg, RemindKey } from '../types/settings'
 
-export const REMIND_ENABLED = isNative
+/** Уведомления телефона (приложение из магазина) */
+export const REMIND_NATIVE = isNative
+/** Напоминания вообще доступны: в магазинном приложении или в Telegram (через бота) */
+export const REMIND_ENABLED = isNative || BOT_REMIND
 
 /** Названия и пояснения для экрана настроек */
 export const REMIND_INFO: Record<RemindKey, { title: string; sub: string }> = {
@@ -36,7 +41,7 @@ const at = (t: string, day: number) => {
 
 /** Разрешено ли показывать уведомления; при необходимости спрашивает у человека */
 export async function ensureRemindPermission(): Promise<boolean> {
-  if (!REMIND_ENABLED) return false
+  if (!isNative) return tgWriteAccess() // Telegram: разрешить боту писать вам
   try {
     let p = await LocalNotifications.checkPermissions()
     if (p.display !== 'granted') p = await LocalNotifications.requestPermissions()
@@ -52,7 +57,7 @@ const dueBy = (day: number) => {
 
 /** Перестроить расписание: убрать наши прежние уведомления и поставить новые по настройкам */
 export async function syncReminders() {
-  if (!REMIND_ENABLED) return
+  if (!REMIND_NATIVE) return
   try {
     const { rem, streak, lastDay } = useStore.getState()
     const pending = await LocalNotifications.getPending()

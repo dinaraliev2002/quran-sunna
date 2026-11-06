@@ -74,6 +74,7 @@ function TelegramBack() {
 import { initPlayerSettings } from './lib/listen'
 import { MiniPlayer } from './components/MiniPlayer'
 import { QuickMenu } from './components/QuickMenu'
+import { RemindAsk } from './components/RemindAsk'
 import { WordSheet } from './screens/reader/word/WordSheet'
 
 export default function App() {
@@ -92,6 +93,7 @@ export default function App() {
       <WordSheet />
       <TermPop />
       {hydrated && <OnboardingGate />}
+      {hydrated && <RemindAsk />}
       <div className="app">
         {hydrated && (
           <Routes>
