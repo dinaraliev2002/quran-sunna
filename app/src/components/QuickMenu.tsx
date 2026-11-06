@@ -20,8 +20,8 @@ const ITEMS: Item[] = [
   { to: '/settings', icon: 'gear', label: 'Настройки', color: '#6B7280' },
 ]
 
-/** Только на главных экранах: внутри чтения и занятий язычок мешал бы */
-const SHOW_ON = ['/', '/quran', '/azkar', '/hadith', '/names']
+/** Все остальные известные разделы (там язычка нет). Любой другой адрес роутер показывает как главную — значит, язычок нужен */
+const INNER = /^\/(read|stories|glossary|sajda|settings|reminders|words|meaning|downloads|profile|plan|notifications|hifz|names\/|azkar\/|hadith\/)/
 
 export function QuickMenu() {
   const loc = useLocation()
@@ -41,8 +41,7 @@ export function QuickMenu() {
   useEffect(() => { setOpen(false); setEdit(false) }, [loc.pathname])
 
   // Telegram при запуске дописывает в адрес свои параметры (#tgWebAppData=…): роутер видит это как «неизвестный путь» и показывает главную, а язычок раньше пропадал
-  const path = loc.pathname.startsWith('/') ? loc.pathname : '/'
-  if (!SHOW_ON.includes(path)) return null
+  if (INNER.test(loc.pathname)) return null
   const avail = ITEMS.filter((i) => i.show !== false)
   const items = avail.filter((i) => !hidden.includes(i.to) || i.to === '/settings')
   const close = () => { setOpen(false); setEdit(false) }
