@@ -15,7 +15,11 @@ const isIos = Capacitor.getPlatform() === 'ios'
 const isAndroid = Capacitor.getPlatform() === 'android'
 const impact = (style: ImpactStyle) => isNative && Haptics.impact({ style }).catch(() => {})
 // Android: свой модуль с системным откликом касания (мягче, чем вибромотор плагина Haptics)
-const Feedback = registerPlugin<{ perform: (o: { kind: string }) => Promise<void> }>('Feedback')
+const Feedback = registerPlugin<{ perform: (o: { kind: string }) => Promise<void>; excludeEdge: (o: { top: number; height: number }) => Promise<void> }>('Feedback')
+
+/** Android-приложение: не даёт системному жесту «назад» (свайп от правого края) перехватить полоску с язычком панели.
+ *  top/height — CSS-пиксели; height = 0 снимает исключение. В Telegram и браузере ничего не делает (там жесты не отключить). */
+export const excludeRightEdge = (top: number, height: number) => { if (isNative && isAndroid) Feedback.excludeEdge({ top, height }).catch(() => {}) }
 
 /** Где вибрация разрешена: пользователь выключает её в настройках по разделам (store/settings подключает правило) */
 export type HapticArea = 'azkar' | 'hadith' | 'quran'

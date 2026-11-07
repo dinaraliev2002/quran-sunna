@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { haptic } from '../lib/telegram'
+import { excludeRightEdge, haptic } from '../lib/telegram'
 import { useStore } from '../store/settings'
 import { WORD_PARSE } from '../store/wordSheet'
 import { Icon } from './Icon'
@@ -39,6 +39,15 @@ export function QuickMenu() {
   const tabY = useStore((s) => s.quickTabY)
   const [liveY, setLiveY] = useState<number | null>(null) // пока тянем
   useEffect(() => { setOpen(false); setEdit(false) }, [loc.pathname])
+  // язычок виден (на экране без него — INNER — исключение снимаем) и панель закрыта: освобождаем полосу у края от системного жеста «назад»
+  const shown = !INNER.test(loc.pathname)
+  useEffect(() => {
+    if (!shown) { excludeRightEdge(0, 0); return }
+    const apply = () => excludeRightEdge(Math.max(0, innerHeight * ((liveY ?? tabY) / 100) - 90), 180)
+    apply()
+    addEventListener('resize', apply)
+    return () => { removeEventListener('resize', apply); excludeRightEdge(0, 0) }
+  }, [shown, tabY, liveY])
 
   // Telegram при запуске дописывает в адрес свои параметры (#tgWebAppData=…): роутер видит это как «неизвестный путь» и показывает главную, а язычок раньше пропадал
   if (INNER.test(loc.pathname)) return null
