@@ -5,7 +5,7 @@ import type { AzkarItem, AzkarChapter, AzkarCategory, AzkarData } from '../types
 export type { AzkarItem, AzkarChapter, AzkarCategory, AzkarData }
 
 // версия файла азкаров — увеличиваем при пересборке azkar.json, чтобы телефоны не держали старую копию
-const AZKAR_VERSION = 5
+const AZKAR_VERSION = 6
 let cache: Promise<AzkarData> | null = null
 export function loadAzkar(): Promise<AzkarData> {
   cache ??= cachedJson<AzkarData>(dataKey(`azkar.json?v=${AZKAR_VERSION}`), `${DATA_BASE}azkar.json?v=${AZKAR_VERSION}`)
