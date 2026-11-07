@@ -13,6 +13,10 @@
   • слова хадиса, которые лишь похожи на аят (например, «وجهت وجهي…» в дуа аль-истифтах), не трогаем —
     так они приведены и в самой книге.
 
+Аяты не хранятся в азкаре буквами: в поле «ap» азкар разбит на части — обычный текст хадиса и ссылки на мусхаф
+(страница + глифы шрифта страницы из public/data/quran, поле «g»). Приложение рисует их тем же шрифтом мусхафа,
+что и раздел Корана, — без перекодировки огласовок. Поле «ar» (буквами) остаётся для копирования и поиска.
+
 Если какой-то отрывок не нашёлся в тексте азкара — скрипт останавливается с ошибкой (ничего не пропускаем молча).
 Повторный запуск ничего не портит.  Запуск после build-azkar.py:  python scripts/azkar-quran.py
 """
@@ -70,10 +74,43 @@ def skel(w):
 _cache = {}
 
 
-def ayah_words(s, n):
+def ayah(s, n):
     if s not in _cache:
-        _cache[s] = {a['n']: a['w'] for a in json.load(open(os.path.join(ROOT, 'quran', f'{s:03}.json'), encoding='utf8'))['ayahs']}
+        _cache[s] = {a['n']: a for a in json.load(open(os.path.join(ROOT, 'quran', f'{s:03}.json'), encoding='utf8'))['ayahs']}
     return _cache[s][n]
+
+
+def ayah_words(s, n):
+    return ayah(s, n)['w']
+
+
+def glyphs(p, mark=True):
+    """Тот же отрывок глифами мусхафа: [[страница, глифы], …] — по аяту"""
+    s, a1, w1, a2, w2 = p
+    out = []
+    for n in range(a1, a2 + 1):
+        a = ayah(s, n)
+        page, g = mushaf_glyphs(a['p'], f'{s}:{n}')
+        if len(g) != len(a['w']) + 1:
+            sys.exit(f'{s}:{n}: глифов {len(g)}, слов {len(a["w"])} — данные мусхафа не сходятся')
+        lo = w1 if n == a1 else 0
+        hi = (len(a['w']) - 1 if w2 is None else w2) if n == a2 else len(a['w']) - 1
+        part = g[lo:hi + 1]
+        if lo == 0 and hi == len(a['w']) - 1 and mark and p != BASM: part.append(g[-1])  # знак конца аята с номером
+        out.append([page, ' '.join(part)])
+    return out
+
+
+_pages = {}
+
+
+def mushaf_glyphs(p, key):
+    """Глифы аята со страницы мусхафа (public/data/mushaf): слова по порядку и последним — знак конца аята"""
+    if p not in _pages:
+        d = json.load(open(os.path.join(ROOT, 'mushaf', f'{p:03}.json'), encoding='utf8'))
+        _pages[p] = [e for ln in sorted(d['lines'], key=int) for e in d['lines'][ln] if isinstance(e, list)]
+    g = [e[0] for e in _pages[p] if e[1] == key]
+    return p, g
 
 
 def passage(p, mark=True):
@@ -106,7 +143,8 @@ def apply(ar, k, spec, wrap, mark, start):
             b += re.match(r'(\s*[ۖ-ۜ])?(\s*۝[٠-٩]+)*', ar[b:]).end()  # знаки от прошлого запуска
             if a and ar[a - 1] in '﴿(': a -= 1
             if b < len(ar) and ar[b] in '﴾)': b += 1
-            new = f'﴿{text}﴾' if wrap else text
+            new = '' + text + ''  # метки границ отрывка — потом здесь будет ссылка на мусхаф
+            new = f'﴿{new}﴾' if wrap else new
             return ar[:a] + new + ar[b:], a + len(new)
     sys.exit(f'Азкар {k}: не нашёлся отрывок {spec} — проверьте текст азкара')
 
@@ -120,12 +158,26 @@ def main():
         # в базе «وَ النَّاسِ» (114:6) раздельно, в мусхафе — одним словом
         ar = re.sub('(?<=\\s)وَ\\s+(?=النَّاسِ)', 'وَ', ar)
         pos = 0
+        qs = []
         for sp in specs:
             spec, opts = (sp[0], sp[1:]) if isinstance(sp[0], tuple) else (sp, ())
             ar, pos = apply(ar, k, spec, 'wrap' in opts, 'nomark' not in opts, pos)
+            q = {'q': glyphs(spec, 'nomark' not in opts)}
+            if spec == BASM: q['b'] = 1  # басмала — отдельной строкой
+            qs.append(q)
         if k in ISTIADHA_ITEMS and not ar.startswith(ISTIADHA):
             ar = ISTIADHA + ' ' + ar
-        v['ar'] = re.sub(r'(۝[٠-٩]+)\s*[*.]', r'\1', re.sub(r'[ \t]+', ' ', ar)).strip()
+        ar = re.sub(r'(۝[٠-٩]+?)\s*[*.]', r'\1', re.sub(r'[ \t]+', ' ', ar)).strip()
+        # части по порядку: текст хадиса и ссылки на мусхаф (между метками … — отрывок буквами)
+        bits = re.split(r'[^]*', ar)
+        if len(bits) != len(qs) + 1:
+            sys.exit(f'Азкар {k}: части не сошлись')
+        ap = []
+        for i, b in enumerate(bits):
+            if b.strip(): ap.append(b.strip(' '))
+            if i < len(qs): ap.append(qs[i])
+        v['ap'] = ap
+        v['ar'] = ar.replace('', '').replace('', '')
         print(k, 'готово')
     json.dump(az, open(path, 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
 

@@ -504,6 +504,8 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .az-fonts button.on { border-color: var(--emerald-bright); background: var(--highlight); }
 .az-fonts button.on b { color: var(--emerald-bright); }
 .azt-ar p + p { margin-top: .6em; }
+.azt-ar .azt-q { font-size: .92em; word-spacing: .05em; }
+.azt-ar .azt-q.loading { color: transparent; }
 .azt-arnote { font-size: .62em; color: var(--text-2); }
 .azt-sep { color: var(--gold-ink); font-size: .8em; margin: 0 .15em; }
 .azc-divider { display: flex; align-items: center; gap: 10px; color: var(--gold-ink); margin: 16px 0; font-size: 14px; }

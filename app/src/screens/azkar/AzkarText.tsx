@@ -1,5 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import type { Surah } from '../../lib/data'
+import type { AzkarPart } from '../../types/azkar'
+import { QuranPart } from './AzkarQuran'
 
 // Оформление текстов азкаров для удобного чтения:
 //  • вводная фраза («Передают, что Пророк сказал:») — отдельной строкой, обычным шрифтом;
@@ -103,8 +105,8 @@ const BISM = /(بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّ
 // номер аята: «۝» + арабские цифры
 const AYAH_NO = /(۝[٠-٩]+)/
 
-/** Арабский текст. hafsDigits: шрифт сам рисует цифры в кружке — знак «۝» перед ними не нужен (иначе два кружка) */
-export function ArText({ text, hafsDigits }: { text: string; hafsDigits?: boolean }) {
+/** Знаки остановки — к предыдущему слову; для шрифта Хафс — его кодировка сукуна и запятой */
+function cleanAr(text: string, hafsDigits?: boolean) {
   // знаки остановки (ۖ ۗ ۚ …) стоят в тексте через пробел — без буквы под собой браузер рисует
   // пунктирный кружок; прикрепляем их к предыдущему слову, как в мусхафе
   let clean = text.replace(/\s+([ۖ-ۜ])/g, '$1')
@@ -113,18 +115,52 @@ export function ArText({ text, hafsDigits }: { text: string; hafsDigits?: boolea
   if (hafsDigits) clean = clean.replace(/ْ/g, 'ۡ').replace(/۟/g, 'ْ')
   // арабская «؛» шрифт Хафс рисует кружком с точкой — заменяем на обычную запятую, как в остальном тексте
   if (hafsDigits) clean = clean.replace(/؛/g, ',')
-  const paras = clean.split(/\n{2,}/).flatMap((p) => p.split(BISM)).map((p) => p.trim()).filter(Boolean)
-  const inline = (t: string, k: number) =>
-    t.split(/(\([^()]*\)|\*|۝[٠-٩]+)/).map((part, j) =>
-      part === '*' ? <span key={k + '-' + j} className="azt-sep">۝</span>
-        : AYAH_NO.test(part) ? <span key={k + '-' + j} className="azt-ayn">{hafsDigits ? part.slice(1) : part}</span>
-          // мелко — только служебные пометки о числе повторов («ثلاث مرات»), а не цитаты
-          : /^\(/.test(part) && /مر(ات|ة|تين)|ثلاث|سبع|عشر|مائة/.test(part) ? <span key={k + '-' + j} className="azt-arnote">{part}</span>
-            : <Fragment key={k + '-' + j}>{part}</Fragment>,
-    )
+  return clean
+}
+
+/** Строка арабского текста: номера аятов, разделители «*», мелкие пометки о повторах */
+function inline(t: string, k: string, hafsDigits?: boolean) {
+  return t.split(/(\([^()]*\)|\*|۝[٠-٩]+)/).map((part, j) =>
+    part === '*' ? <span key={k + '-' + j} className="azt-sep">۝</span>
+      : AYAH_NO.test(part) ? <span key={k + '-' + j} className="azt-ayn">{hafsDigits ? part.slice(1) : part}</span>
+        // мелко — только служебные пометки о числе повторов («ثلاث مرات»), а не цитаты
+        : /^\(/.test(part) && /مر(ات|ة|تين)|ثلاث|سبع|عشر|مائة/.test(part) ? <span key={k + '-' + j} className="azt-arnote">{part}</span>
+          : <Fragment key={k + '-' + j}>{part}</Fragment>,
+  )
+}
+
+/** Арабский текст. hafsDigits: шрифт сам рисует цифры в кружке — знак «۝» перед ними не нужен (иначе два кружка) */
+export function ArText({ text, parts, hafsDigits }: { text: string; parts?: AzkarPart[]; hafsDigits?: boolean }) {
+  if (parts) return <ArParts parts={parts} hafsDigits={hafsDigits} />
+  const paras = cleanAr(text, hafsDigits).split(/\n{2,}/).flatMap((p) => p.split(BISM)).map((p) => p.trim()).filter(Boolean)
   return (
     <div className="azt-ar" dir="rtl">
-      {paras.map((p, i) => <p key={i} className={BISM.test(p) && p.length < 60 ? 'azt-bism' : undefined}>{inline(p, i)}</p>)}
+      {paras.map((p, i) => <p key={i} className={BISM.test(p) && p.length < 60 ? 'azt-bism' : undefined}>{inline(p, String(i), hafsDigits)}</p>)}
+    </div>
+  )
+}
+
+/** Азкар с аятами: слова хадиса — обычным шрифтом, аяты — глифами мусхафа; басмала — отдельной строкой */
+function ArParts({ parts, hafsDigits }: { parts: AzkarPart[]; hafsDigits?: boolean }) {
+  const paras: { bism?: boolean; nodes: ReactNode[] }[] = [{ nodes: [] }]
+  const cur = () => paras[paras.length - 1]
+  parts.forEach((part, i) => {
+    if (typeof part === 'string') {
+      cleanAr(part, hafsDigits).split(/\n{2,}/).forEach((t, j) => {
+        if (j > 0) paras.push({ nodes: [] })
+        if (t.trim()) cur().nodes.push(<Fragment key={i + '-' + j}>{inline(t, i + '-' + j, hafsDigits)}</Fragment>)
+      })
+    } else if (part.b) {
+      paras.push({ bism: true, nodes: [<QuranPart key={i} part={part} />] }, { nodes: [] })
+    } else {
+      const c = cur()
+      if (c.nodes.length) c.nodes.push(' ')
+      c.nodes.push(<QuranPart key={i} part={part} />)
+    }
+  })
+  return (
+    <div className="azt-ar" dir="rtl">
+      {paras.filter((p) => p.nodes.length).map((p, i) => <p key={i} className={p.bism ? 'azt-bism' : undefined}>{p.nodes}</p>)}
     </div>
   )
 }
