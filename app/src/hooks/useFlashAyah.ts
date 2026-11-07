@@ -3,12 +3,13 @@ import type { ReadMode } from '../types/settings'
 
 /**
  * «Продолжить чтение»: аят, на котором остановились, на пару секунд подсвечивается (в любом режиме).
- * hl — подсветить; без hl в «Странице» только докручиваем до аята. appScrollUntil — отметка, что прокрутку делает приложение.
+ * hl — подсветить; без hl в «Странице» только докручиваем до аята. Первый аят суры, которая начинается посередине страницы
+ * (86 и 87 на стр. 591), докручиваем к заголовку суры — иначе открываешь «Аль-Аля», а видишь начало «Ат-Тарик». appScrollUntil — отметка, что прокрутку делает приложение.
  */
 export function useFlashAyah(hl: boolean, mode: ReadMode, surah: number, ayah: number, appScrollUntil: RefObject<number>) {
   const flashed = useRef(false)
   useEffect(() => {
-    if (flashed.current || (!hl && !(mode === 'page' && ayah > 1))) return
+    if (flashed.current || (!hl && mode !== 'page')) return
     const key = `${surah}:${ayah}`
     let tries = 0, seen = 0
     const t = setInterval(() => {
@@ -19,7 +20,15 @@ export function useFlashAyah(hl: boolean, mode: ReadMode, surah: number, ayah: n
       if (++seen < 2) return // дали странице устояться
       clearInterval(t)
       flashed.current = true
-      if (mode !== 'mushaf') { appScrollUntil.current = Date.now() + 1200; shown[0].scrollIntoView({ block: 'center' }) }
+      if (mode === 'page' && ayah === 1) {
+        // сура начинается с заголовка (баннер, «О суре») — показываем его сверху, если он не уже наверху страницы
+        const box = shown[0].closest<HTMLElement>('.pscroll')
+        const head = shown[0].parentElement
+        if (box && head) {
+          const delta = head.getBoundingClientRect().top - box.getBoundingClientRect().top
+          if (delta > 150) { appScrollUntil.current = Date.now() + 1200; box.scrollTop += delta - 130 }
+        }
+      } else if (mode !== 'mushaf') { appScrollUntil.current = Date.now() + 1200; shown[0].scrollIntoView({ block: 'center' }) }
       if (!hl) return
       shown.forEach((e) => e.classList.add('flash'))
       // страница могла перерисоваться — пока подсветка идёт, возвращаем её на новые элементы
