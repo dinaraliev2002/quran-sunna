@@ -39,6 +39,15 @@ export function QuickMenu() {
   const tabY = useStore((s) => s.quickTabY)
   const [liveY, setLiveY] = useState<number | null>(null) // пока тянем
   useEffect(() => { setOpen(false); setEdit(false) }, [loc.pathname])
+  // пока экран прокручивают — язычок прячется (не мешает шкале джузов и тексту), остановилась прокрутка — плавно возвращается.
+  // scroll не всплывает, поэтому слушаем в фазе перехвата: ловим прокрутку любого контейнера на странице
+  const [moving, setMoving] = useState(false)
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined
+    const on = () => { setMoving(true); clearTimeout(t); t = setTimeout(() => setMoving(false), 1200) } // шкала джузов гаснет через 1,1 с после остановки — язычок возвращается чуть позже неё
+    addEventListener('scroll', on, { capture: true, passive: true })
+    return () => { removeEventListener('scroll', on, { capture: true }); clearTimeout(t) }
+  }, [])
   // язычок виден (на экране без него — INNER — исключение снимаем) и панель закрыта: освобождаем полосу у края от системного жеста «назад»
   const shown = !INNER.test(loc.pathname)
   useEffect(() => {
@@ -83,7 +92,7 @@ export function QuickMenu() {
 
   return (
     <>
-      {!open && <button className="qm-tab" style={{ top: `${liveY ?? tabY}%` }} onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={() => { pid.current = null; setLiveY(null) }} onClick={(e) => { if (e.detail === 0) setOpen(true) }} aria-label="Меню разделов"><Icon id="back" /></button>}
+      {!open && <button className={'qm-tab' + (moving ? ' away' : '')} style={{ top: `${liveY ?? tabY}%` }} onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={() => { pid.current = null; setLiveY(null) }} onClick={(e) => { if (e.detail === 0) setOpen(true) }} aria-label="Меню разделов"><Icon id="back" /></button>}
       {open && <div className="qm-dim" onClick={close} />}
       <aside className={'qm-panel' + (open ? ' open' : '') + (edit ? ' edit' : '')} style={{ top: `${Math.min(70, Math.max(30, tabY))}%` }} onTouchStart={down} onTouchEnd={(e) => up(e, 'close')} aria-hidden={!open}>
         <div className="qm-head">

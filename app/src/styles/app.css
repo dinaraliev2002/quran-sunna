@@ -1668,6 +1668,9 @@ div.srow { cursor: pointer; }
 @keyframes qmfade { from { opacity: 0 } to { opacity: 1 } }
 /* Язычок отодвинут от края на 14px: у Samsung и других жест «назад» живёт в узкой полоске у самого края, и язычок на краю его вызывал */
 .qm-tab { position: fixed; right: 14px; touch-action: none; margin-top: -32px; width: 26px; height: 64px; z-index: 19; border-radius: 14px; opacity: .92; background: color-mix(in srgb, var(--gold) 85%, transparent); color: var(--on-gold); display: grid; place-items: center; box-shadow: -2px 4px 14px rgba(0, 0, 0, .22); padding: 0; }
+.qm-tab { transition: opacity .3s ease, transform .3s ease; }
+/* пока идёт прокрутка — язычок уезжает за край и гаснет; когда остановилась — плавно возвращается */
+.qm-tab.away { opacity: 0; transform: translateX(14px); pointer-events: none; transition-duration: .15s; }
 .qm-tab .icon { width: 12px; height: 12px; }
 .qm-panel { position: fixed; right: 0; width: 84px; max-height: 84vh; z-index: 41; background: var(--surface); box-shadow: -8px 0 26px rgba(0, 0, 0, .3); border-radius: 22px 0 0 22px; padding: 10px 6px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; transform: translate(105%, -50%); transition: transform .28s cubic-bezier(.2, .8, .2, 1), width .2s; }
 .qm-panel.open { transform: translate(0, -50%); }
