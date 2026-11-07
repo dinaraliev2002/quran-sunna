@@ -1,4 +1,5 @@
 import { arDigits } from '../../../lib/data'
+import { wordCaption } from '../../../lib/wbwPhrases'
 import { pageFont, pagePalette, useFontReady } from '../../../lib/fonts'
 import { useUi } from '../../../store/ui'
 import type { Ayah } from '../../../types/quran'
@@ -23,7 +24,7 @@ export function AyahWords({ a, tajweed, hide, onPeek, tr, after }: { a: Ayah; ta
     <div className={'wbw a-wbw qw-wbw' + (glyph && !ready ? ' loading-font' : '')}>
       {a.w.map((w, i) => {
         const word = glyph ? <GlyphWord glyph={gl[i]} family={family} ready={ready} style={st!} /> : colored ? <span className="wa" dangerouslySetInnerHTML={{ __html: parts[i] }} /> : <span className="wa">{w}</span>
-        const t = <span className="wt">{tr ? tr[i] || '·' : ' '}</span>
+        const t = <span className="wt">{wordCaption(tr, i)}</span>
         return hide?.(i)
           ? <button key={i} className="w gap" onClick={() => onPeek?.(i)} aria-label="Показать слово">{word}{t}</button>
           : <div key={i} className="w">{word}{t}</div>

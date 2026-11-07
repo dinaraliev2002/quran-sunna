@@ -1,3 +1,4 @@
+import { phraseGroups } from '../../../lib/wbwPhrases'
 import { pageFont, pagePalette, useFontReady } from '../../../lib/fonts'
 import { useWordOf } from '../../../lib/wordSync'
 import { useWordSheet, WORD_PARSE } from '../../../store/wordSheet'
@@ -25,14 +26,13 @@ export function WbwText({ sid, a, tajweed, hidden }: { sid: number; a: Ayah; taj
     ? <GlyphWord glyph={gl[i]} family={family} ready={ready} style={st!} />
     : colored ? <span className="wa" dangerouslySetInnerHTML={{ __html: parts[i] }} /> : <span className="wa">{a.w[i]}</span>
   // в источнике фраза («من قبلك» — «до тебя») бывает переведена целиком: у следующих слов подписи нет — собираем их в один блок
-  const groups: number[][] = []
-  a.w.forEach((_, i) => { if (tr && i > 0 && !tr[i] && groups.length) groups[groups.length - 1].push(i); else groups.push([i]) })
+  const groups = phraseGroups(tr, a.w.length)
   return (
     <div className={'wbw a-wbw' + (glyph && !ready ? ' loading-font' : '') + (hidden ? ' hidden' : '')}>
       {groups.map((g) => g.length === 1 ? (
         <div className={'w' + (word === g[0] + 1 ? ' wl' : '')} key={g[0]} onClick={open(g[0])}>
           {arWord(g[0])}
-          <span className="wt">{tr ? tr[g[0]] || '·' : ' '}</span>
+          <span className="wt">{tr?.[g[0]] || ' '}</span>
         </div>
       ) : (
         <div className="w phrase" key={g[0]}>
