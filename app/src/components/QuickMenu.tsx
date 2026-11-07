@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { excludeRightEdge, haptic } from '../lib/telegram'
+import { excludeRightEdge, haptic, isNative } from '../lib/telegram'
 import { useStore } from '../store/settings'
 import { WORD_PARSE } from '../store/wordSheet'
 import { Icon } from './Icon'
@@ -92,7 +92,7 @@ export function QuickMenu() {
 
   return (
     <>
-      {!open && <button className={'qm-tab' + (moving ? ' away' : '')} style={{ top: `${liveY ?? tabY}%` }} onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={() => { pid.current = null; setLiveY(null) }} onClick={(e) => { if (e.detail === 0) setOpen(true) }} aria-label="Меню разделов"><Icon id="back" /></button>}
+      {!open && <button className={'qm-tab' + (isNative ? ' native' : '') + (moving ? ' away' : '')} style={{ top: `${liveY ?? tabY}%` }} onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={() => { pid.current = null; setLiveY(null) }} onClick={(e) => { if (e.detail === 0) setOpen(true) }} aria-label="Меню разделов"><Icon id="back" /></button>}
       {open && <div className="qm-dim" onClick={close} />}
       <aside className={'qm-panel' + (open ? ' open' : '') + (edit ? ' edit' : '')} style={{ top: `${Math.min(70, Math.max(30, tabY))}%` }} onTouchStart={down} onTouchEnd={(e) => up(e, 'close')} aria-hidden={!open}>
         <div className="qm-head">
