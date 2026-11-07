@@ -24,6 +24,7 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
   const [ready, setReady] = useState(false)
   const [pressed, setPressed] = useState<string | null>(null)
   const [tall, setTall] = useState(false) // страница не помещается по высоте — листается вниз
+  const tallKey = useRef('') // страница и размер окна, при которых включили прокрутку
   const box = useRef<HTMLDivElement>(null)
   const hold = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null)
   const tap = useRef<{ t: number; el: HTMLElement } | null>(null)
@@ -86,9 +87,12 @@ export const MushafView = memo(function MushafView({ page, tajweed, playing, onA
         lines.querySelectorAll<HTMLElement>(':scope > .ln').forEach((c) => {
           need += c.classList.contains('head') ? c.offsetHeight : c.classList.contains('w') ? kw * byWidth : c.classList.contains('bism') ? kb * byWidth : 0
         })
-        // из прокрутки возвращаемся в целую страницу только с запасом — чтобы не «мигало» на границе
-        const over = need > avail - (tall ? 12 : 0)
-        setTall((t) => (t === over ? t : over))
+        // В режиме прокрутки у страницы другие отступы — она уже, и замер даёт меньшую высоту. Без защиты
+        // на границе получался бесконечный цикл «прокрутка ↔ целая страница» и белый экран (ошибка React #185).
+        // Поэтому раз страница ушла в прокрутку — остаётся в ней, пока не изменится размер окна.
+        const key = `${page}:${mus.offsetWidth}x${mus.offsetHeight}` // offset — с полосой прокрутки, не меняется при её появлении
+        if (need > avail) { tallKey.current = key; setTall(true) }
+        else if (tallKey.current !== key) setTall(false)
       }
       // короткие строки (конец суры) не растягиваем на всю ширину — иначе между словами огромные пробелы
       lines.querySelectorAll<HTMLElement>('.ln.w').forEach((ln) => {
