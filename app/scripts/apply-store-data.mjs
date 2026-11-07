@@ -14,9 +14,6 @@ function copyDir(from, to) {
     else copyFileSync(join(from, e.name), join(to, e.name))
   }
 }
-// разбор слов (Quranic Arabic Corpus) пока только для Telegram и сайта
-rmSync(join(root, 'dist', 'data', 'morph'), { recursive: true, force: true })
-rmSync(join(root, 'dist', 'data', 'syntax'), { recursive: true, force: true })
 
 for (const name of ['asbab', 'kuliev']) {
   const from = join(root, 'store-data', name)
