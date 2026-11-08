@@ -8,7 +8,8 @@
 Без --write только сравнивает с текущей разметкой в public/data/recite/<чтец>/ и печатает расхождения.
 Нужен ffmpeg. Совпадение ниже 0.8 — запись другая; такой аят не трогаем и сообщаем.
 """
-import json, os, subprocess, sys, tempfile, urllib.request
+import json, os, subprocess, sys, tempfile, urllib.request, zlib
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
 SR = 8000
@@ -84,14 +85,31 @@ def align(full, clips):
             continue
         res.append([at, at + len(core), score])
         pos = at + len(core)
-    # одиночный ненайденный аят между найденными (на everyayah другой дубль) — от конца прошлого до начала следующего
-    for i, r in enumerate(res):
-        if r is None and (i == 0 or res[i - 1]) and (i + 1 >= len(res) or res[i + 1]):
-            lo = res[i - 1][1] if i else 0
-            hi = res[i + 1][0] if i + 1 < len(res) else len(full)
-            if hi > lo:
-                res[i] = [lo, hi, 0.0]
-                print(f'   аят {i + 1}: не нашёлся, взят промежуток между соседями')
+    # ненайденные аяты между найденными (на everyayah этот кусок — другой дубль): промежуток между соседями
+    # делим пропорционально длинам аятов, а каждую границу подтягиваем к самому тихому месту рядом (±1,5 с)
+    hop = int(0.02 * SR)
+    energy = np.convolve((full[:len(full) // hop * hop].reshape(-1, hop) ** 2).mean(1), np.ones(10) / 10, 'same')
+    i = 0
+    while i < len(res):
+        if res[i] is not None:
+            i += 1
+            continue
+        j = i
+        while j < len(res) and res[j] is None:
+            j += 1
+        lo = res[i - 1][1] if i else 0
+        hi = res[j][0] if j < len(res) else len(full)
+        lens = np.array([len(c) for c in clips[i:j]], float)
+        if hi > lo:
+            cuts = lo + np.concatenate([[0], np.cumsum(lens)]) / lens.sum() * (hi - lo)
+            for k in range(1, len(cuts) - 1):
+                f = int(cuts[k] / hop)
+                a, b = max(0, f - 75), min(len(energy), f + 76)
+                cuts[k] = (a + int(np.argmin(energy[a:b]))) * hop
+            for k in range(i, j):
+                res[k] = [int(cuts[k - i]), int(cuts[k - i + 1]), 0.0]
+            print(f'   аяты {i + 1}–{j}: не нашлись, разделены по длине и паузам')
+        i = j
     out = []
     for i, r in enumerate(res):
         if r is None:
@@ -119,13 +137,24 @@ def main():
     os.makedirs(os.path.join(cache, rec), exist_ok=True)
     for s in surahs:
         d = os.path.join(cache, rec)
-        full = pcm(fetch(index[rec]['u'][s - 1], os.path.join(d, f'full{s:03d}.mp3')))
-        clips = [pcm(fetch(f'https://everyayah.com/data/{folder}/{s:03d}{a:03d}.mp3', os.path.join(d, f'{s:03d}{a:03d}.mp3')))
-                 for a in range(1, counts[s - 1] + 1)]
+        # файлы скачиваем параллельно (их тысячи, по одному — часы); имя цельной записи — с хэшем адреса,
+        # чтобы в кэше не перепутать записи разных источников
+        url = index[rec]['u'][s - 1]
+        full_path = os.path.join(d, f'full{s:03d}-{zlib.crc32(url.encode())}.mp3')
+        jobs = [(url, full_path)] + [(f'https://everyayah.com/data/{folder}/{s:03d}{a:03d}.mp3', os.path.join(d, f'{s:03d}{a:03d}.mp3'))
+                                     for a in range(1, counts[s - 1] + 1)]
+        with ThreadPoolExecutor(16) as ex:
+            list(ex.map(lambda j: fetch(*j), jobs))
+        full = pcm(full_path)
+        clips = [pcm(p) for _, p in jobs[1:]]
         got = align(full, clips)
         path = os.path.join(OUT, rec, f'{s:03d}.json')
         cur = json.load(open(path, encoding='utf-8')) if os.path.exists(path) else None
         missing = [i + 1 for i, g in enumerate(got) if g is None]
+        # больше четверти аятов не нашлось — скорее всего, это вообще другая запись: не размечаем
+        guessed = sum(1 for g in got if g and g[2] == 0.0)
+        if guessed > len(got) / 4:
+            missing = missing or [f'угадано {guessed} из {len(got)}']
         diffs = []
         if cur:
             for i, g in enumerate(got):
