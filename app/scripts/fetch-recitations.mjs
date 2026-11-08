@@ -13,14 +13,21 @@ const root = resolve(import.meta.dirname, '..')
 const OUT = join(root, 'public', 'data', 'recite')
 const pad = (n) => String(n).padStart(3, '0')
 
-// qdc — Quran.com (разметка аятов и слов), mp3q — mp3quran.net (разметка аятов)
+// qdc — Quran.com (разметка аятов и слов), mp3q — mp3quran.net (разметка аятов).
+// ВАЖНО: часть записей Quran.com — не сплошное чтение, а склейка файлов аятов: на каждом стыке 20–40 мс цифровой
+// тишины, на слух — микропрерывы. Склеены: Афаси 7, Хусари 6, Шурайм 10, Шатри 4. Сплошные: Судайс 3, Даусари 97,
+// Хусари-муаллим 12, Афаси 173. Проверка: на стыках аятов нет участков нулей (см. docs / память).
+// audio — играть сплошную запись (mp3quran), а разметку Quran.com взять как заготовку: align-recitation.py
+// --shift-words находит в сплошной записи каждый аят (та же запись, что на everyayah) и переносит туда слова.
 const SOURCES = {
-  alafasy: { qdc: 7 }, // та же запись, что на everyayah; ошибки границ в разметке исправляет align-recitation.py
-  husary: { qdc: 6 },
+  // Афаси 173 — сплошная запись с разметкой слов (другое исполнение, чем на everyayah). В её Фатихе нет басмалы —
+  // Фатиху берём из сплошной записи mp3quran
+  alafasy: { qdc: 173, surah1: { mp3q: 123, folder: 'https://cdn.mp3quran.net/audio/mishary-alafasy/r1/' } },
+  husary: { qdc: 6, audio: 'https://cdn.mp3quran.net/audio/mahmoud-husary/r1/' },
   husary_m: { qdc: 12 },
   sudais: { qdc: 3 },
-  shuraym: { qdc: 10 },
-  shatri: { qdc: 4 },
+  shuraym: { qdc: 10, audio: 'https://cdn.mp3quran.net/audio/saud-shuraim/r1/' },
+  shatri: { qdc: 4, audio: 'https://cdn.mp3quran.net/audio/abubakr-shatri/r1/' },
   dosari: { qdc: 97 },
   qatami: { mp3q: 86, folder: 'https://cdn.mp3quran.net/audio/nasser-qatami/r1/' },
   // без готовой разметки: только адреса. Джухани (quranicaudio) и Аймен Сувейд — те же записи, что на everyayah
@@ -110,7 +117,10 @@ for (const [key, src] of Object.entries(SOURCES)) {
     const batch = []
     for (let k = s; k < Math.min(s + 6, 115); k++) {
       batch.push((async () => {
-        const r = src.qdc ? await qdc(src.qdc, k) : src.mp3q ? await mp3q(src, k) : { url: src.folder + pad(k) + '.mp3' }
+        const r = k === 1 && src.surah1 ? await mp3q(src.surah1, k)
+          : src.qdc ? await qdc(src.qdc, k) : src.mp3q ? await mp3q(src, k) : { url: src.folder + pad(k) + '.mp3' }
+        // сплошная запись вместо склейки: разметка склейки — заготовка, суру ещё нужно разметить (align --shift-words)
+        if (src.audio && !(k === 1 && src.surah1)) { r.url = src.audio + pad(k) + '.mp3'; r.pending = true }
         if (r.a) {
           const bad = check(key, k, r.a, r.w)
           if (bad.length) issues.push(...bad)
@@ -118,7 +128,7 @@ for (const [key, src] of Object.entries(SOURCES)) {
           if (r.w?.some((x) => x.length)) { out.w = r.w; words += r.w.reduce((n, x) => n + x.length, 0) }
           writeFileSync(join(dir, `${pad(k)}.json`), JSON.stringify(out))
         }
-        else noTiming.push(k)
+        if (!r.a || r.pending) noTiming.push(k)
         if (r.missing) issues.push('нет разметки ' + r.missing)
         u[k - 1] = r.url
         b[k - 1] = await size(r.url)

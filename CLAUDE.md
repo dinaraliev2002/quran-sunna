@@ -28,7 +28,7 @@
 ## Данные
 - `app/public/data/` — готовые JSON (quran, mushaf, wbw, tafsir, hadith, azkar, names, hifz, narrators, asbab, kuliev). Собираются скриптами из `app/scripts/` (`fetch-data.mjs`, `build-*.py`). Руками JSON не править — править скрипт и пересобрать.
 - `asbab` и `kuliev` в git не попадают (авторские права) — см. `.gitignore`.
-- Аудио чтецов — цельные записи сур (без пауз на стыках аятов) + разметка `public/data/recite/` (`lib/recite.ts`, плеер `store/player.ts`). Пересборка: `node scripts/fetch-recitations.mjs [чтец]`, затем **обязательно** `python -I scripts/align-recitation.py` для исправленных сур (Афаси 14, 60; Даусари 36) и для Джухани и Сувейда (`all --write --clean`) — иначе исправления затрутся. Без разметки (Муайкли) сура играет целиком с начала, а с середины и в заучивании — файлы аятов everyayah.
+- Аудио чтецов — цельные записи сур (без пауз на стыках аятов) + разметка `public/data/recite/` (`lib/recite.ts`, плеер `store/player.ts`). Пересборка: `node scripts/fetch-recitations.mjs [чтец]`, затем **обязательно** `python -I scripts/align-recitation.py` для Даусари 36, для Джухани и Сувейда (`all --write --clean`) и для Шатри, Хусари, Шурайма (`all --write --clean --shift-words`: играют сплошные записи mp3quran, слова переносятся из разметки Quran.com) — иначе разметка затрётся. Записи-«склейки» из файлов аятов (тишина на стыках = микропрерывы) не брать: проверять, что на стыках аятов нет участков нулей. Без разметки (Муайкли) сура играет целиком с начала, а с середины и в заучивании — файлы аятов everyayah.
 - На телефоне: кэш в IndexedDB (`lib/idb.ts`, `lib/net.ts`), загрузки для офлайна — `lib/offline.ts`.
 
 ## Команды (в `app/`)

@@ -5,6 +5,9 @@
 
   python -I scripts/align-recitation.py <чтец> <папка everyayah> <суры: 14,60 | all> [--write] [--cache DIR]
 
+all — только суры без разметки (список n), так прерванную разметку можно продолжить.
+--shift-words: в public/data/recite/<чтец>/ лежит разметка склейки Quran.com (аяты и слова) — слова переносятся
+в сплошную запись (адрес в index.json), по месту каждого файла аята.
 Без --write только сравнивает с текущей разметкой в public/data/recite/<чтец>/ и печатает расхождения.
 Нужен ffmpeg. Совпадение ниже 0.8 — запись другая; такой аят не трогаем и сообщаем.
 """
@@ -83,7 +86,7 @@ def align(full, clips):
         if score < 0.6:
             res.append(None)
             continue
-        res.append([at, at + len(core), score])
+        res.append([at, at + len(core), score, at - on])  # последнее — где в записи начало файла аята
         pos = at + len(core)
     # ненайденные аяты между найденными (на everyayah этот кусок — другой дубль): промежуток между соседями
     # делим пропорционально длинам аятов, а каждую границу подтягиваем к самому тихому месту рядом (±1,5 с)
@@ -107,7 +110,7 @@ def align(full, clips):
                 a, b = max(0, f - 75), min(len(energy), f + 76)
                 cuts[k] = (a + int(np.argmin(energy[a:b]))) * hop
             for k in range(i, j):
-                res[k] = [int(cuts[k - i]), int(cuts[k - i + 1]), 0.0]
+                res[k] = [int(cuts[k - i]), int(cuts[k - i + 1]), 0.0, None]
             print(f'   аяты {i + 1}–{j}: не нашлись, разделены по длине и паузам')
         i = j
     out = []
@@ -119,7 +122,7 @@ def align(full, clips):
         # конец — начало следующего аята (пауза-вдох остаётся в этом аяте), у последнего — +0,4 с
         nxt = res[i + 1] if i + 1 < len(res) else None
         end = nxt[0] - int(0.05 * SR) if nxt else min(len(full), r[1] + int(0.4 * SR))
-        out.append([round(start * 1000 / SR), round(end * 1000 / SR), round(r[2], 3)])
+        out.append([round(start * 1000 / SR), round(end * 1000 / SR), round(r[2], 3), None if r[3] is None else round(r[3] * 1000 / SR)])
     return out
 
 
@@ -133,7 +136,8 @@ def main():
     rec, folder, which = args[0], args[1], args[2]
     counts = [s['ayahs'] for s in json.load(open(os.path.join(ROOT, 'public', 'data', 'surahs.json'), encoding='utf-8'))]
     index = json.load(open(os.path.join(OUT, 'index.json'), encoding='utf-8'))
-    surahs = range(1, 115) if which == 'all' else [int(x) for x in which.split(',')]
+    # all — суры, ещё не размеченные (список n в index.json): прерванную разметку можно продолжить
+    surahs = list(index[rec]['n']) if which == 'all' else [int(x) for x in which.split(',')]
     os.makedirs(os.path.join(cache, rec), exist_ok=True)
     for s in surahs:
         d = os.path.join(cache, rec)
@@ -168,13 +172,19 @@ def main():
                 continue
             a = [[g[0], g[1]] for g in got]
             new = {'a': a}
-            if cur and cur.get('w'):
+            if cur and cur.get('w') and '--shift-words' in sys.argv:
+                # слова из разметки склейки Quran.com (там аят начинается ровно с файла аята):
+                # сдвигаем на то, где этот файл аята звучит в сплошной записи
+                new['w'] = [[[n_, f + g[3] - cur['a'][i][0], t + g[3] - cur['a'][i][0]] for n_, f, t in w] if g[3] is not None else []
+                            for i, (w, g) in enumerate(zip(cur['w'], got))]
+            elif cur and cur.get('w'):
                 # слова оставляем только у аятов, где граница не сдвинулась
                 new['w'] = [w if abs(a[i][0] - cur['a'][i][0]) <= 400 else [] for i, w in enumerate(cur['w'])]
             json.dump(new, open(path, 'w', encoding='utf-8'), separators=(',', ':'))
-            n = index[rec].get('n', [])
-            if s in n:
-                n.remove(s)
+            # список читаем заново: его могли поменять другие скрипты, пока шла разметка
+            index = json.load(open(os.path.join(OUT, 'index.json'), encoding='utf-8'))
+            if s in index[rec]['n']:
+                index[rec]['n'].remove(s)
             json.dump(index, open(os.path.join(OUT, 'index.json'), 'w', encoding='utf-8'), separators=(',', ':'))
         if '--clean' in sys.argv:  # скачанное больше не нужно — освобождаем диск
             for f in os.listdir(d):
