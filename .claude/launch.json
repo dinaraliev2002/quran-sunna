@@ -4,9 +4,27 @@
     {
       "name": "app-preview",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "preview", "--port", "4178", "--strictPort"],
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--port",
+        "4178",
+        "--strictPort"
+      ],
       "cwd": "app",
       "port": 4178
+    },
+    {
+      "name": "app-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "4179",
+        "--strictPort"
+      ],
+      "cwd": "app",
+      "port": 4179
     }
   ]
 }

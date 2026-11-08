@@ -6,7 +6,7 @@ import { useQuranMeta } from '../../hooks/useQuranMeta'
 import { juzByPage, loadMushafPage, loadSurah, surahByPage, surahGlyph, type Surah } from '../../lib/data'
 import { haptic } from '../../lib/telegram'
 import { setSurahCounts } from '../../lib/listen'
-import { RECITERS, setBitrates, setMediaTitle, setReciter, usePlayer, type MemoOptions } from '../../store/player'
+import { RECITERS, setMediaTitle, setReciter, usePlayer, type MemoOptions } from '../../store/player'
 import { useStore, type ReadMode } from '../../store/settings'
 import { Dial } from './Dial'
 import { Pager } from './Pager'
@@ -73,7 +73,7 @@ function ReaderInner({ surahs, juzPages }: { surahs: Surah[]; juzPages: number[]
     })
   }, [])
 
-  useEffect(() => { setBitrates(st.bitrates); setReciter(st.reciter) }, [st.reciter, st.bitrates])
+  useEffect(() => { setReciter(st.reciter) }, [st.reciter])
   useEffect(() => { setSurahCounts(surahs) }, [surahs])
   useEffect(() => { setMediaTitle((k) => { const [s, a] = k.split(':'); return `${surahs[+s - 1].name}, аят ${a}` }) }, [surahs])
 

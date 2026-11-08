@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Icon } from '../../../components/Icon'
 import { Sheet, SheetHead } from '../../../components/ui'
 import { ReciterList } from '../../../components/ReciterList'
-import { RECITERS, bitrateOf } from '../../../store/player'
+import { RECITERS } from '../../../store/player'
 import { useStore } from '../../../store/settings'
 import type { Translation } from '../../../types/settings'
 import { TRANSLATIONS } from './translations'
@@ -24,7 +24,7 @@ export function ReaderSettingsSheet({ onClose }: { onClose: () => void }) {
         {!open && (
           <>
             <button className="srow2" onClick={() => setOpen('tr')}><div>Перевод<span>{TRANSLATIONS[st.translation]}</span></div><Icon id="right" className="icon" /></button>
-            <button className="srow2" onClick={() => setOpen('rec')}><div>Чтец<span>{(RECITERS[st.reciter] ?? RECITERS.alafasy).name} · {bitrateOf(st.reciter, st.bitrates)} кбит/с</span></div><Icon id="right" className="icon" /></button>
+            <button className="srow2" onClick={() => setOpen('rec')}><div>Чтец<span>{(RECITERS[st.reciter] ?? RECITERS.alafasy).name}</span></div><Icon id="right" className="icon" /></button>
             <button className="srow2" onClick={() => st.set({ tajweed: !st.tajweed })}><div>Цветной таджвид<span>Как в печатном мусхафе с таджвидом</span></div><span className={'switch' + (st.tajweed ? ' on' : '')} /></button>
             {/* в «Мусхафе» размер текста подстраивается под страницу сам — эти настройки там ни на что не влияют */}
             {st.mode !== 'mushaf' && <>

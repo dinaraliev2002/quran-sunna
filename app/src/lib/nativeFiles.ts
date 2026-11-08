@@ -4,7 +4,8 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem } from '@capacitor/filesystem'
 
 const DIR = 'downloads'
-const BIG = ['audio:', 'font:']
+// audio: — старые загрузки по аятам (больше не используются, удаляются при запуске); sura: — записи сур целиком
+const BIG = ['audio:', 'font:', 'sura:']
 export const useFiles = Capacitor.isNativePlatform()
 export const isBig = (key: string) => useFiles && BIG.some((p) => key.startsWith(p))
 const name = (key: string) => key.replace(/:/g, '__')
@@ -40,6 +41,29 @@ export async function fileGet<T>(key: string): Promise<T | undefined> {
   } catch { return undefined }
 }
 
+/** Скачать файл сразу на диск (запись суры — до 200 МБ, через память её не пропустить). onBytes — сколько скачано */
+export async function downloadToFile(key: string, url: string, onBytes?: (n: number) => void): Promise<number> {
+  const tmp = path(key) + '.part'
+  const sub = onBytes ? await Filesystem.addListener('progress', (p) => { if (p.url === url) onBytes(p.bytes) }) : null
+  try {
+    await Filesystem.downloadFile({ url, path: tmp, directory: Directory.Library, recursive: true, progress: !!onBytes })
+    await Filesystem.rename({ from: tmp, to: path(key), directory: Directory.Library, toDirectory: Directory.Library })
+    const st = await Filesystem.stat({ path: path(key), directory: Directory.Library })
+    return st.size
+  } finally {
+    await sub?.remove()
+  }
+}
+
+/** Адрес скачанного файла для плеера (встроенный сервер приложения отдаёт его кусками — перемотка работает) */
+export async function localFileUrl(key: string): Promise<string | null> {
+  try {
+    const { uri } = await Filesystem.getUri({ path: path(key), directory: Directory.Library })
+    await Filesystem.stat({ path: path(key), directory: Directory.Library })
+    return Capacitor.convertFileSrc(uri)
+  } catch { return null }
+}
+
 export async function fileHas(key: string): Promise<boolean> {
   try { await Filesystem.stat({ path: path(key), directory: Directory.Library }); return true } catch { return false }
 }
@@ -47,7 +71,7 @@ export async function fileHas(key: string): Promise<boolean> {
 export async function fileList(prefix: string): Promise<{ key: string; size: number }[]> {
   try {
     const r = await Filesystem.readdir({ path: DIR, directory: Directory.Library })
-    return r.files.map((f) => ({ key: unname(f.name), size: f.size ?? 0 })).filter((f) => f.key.startsWith(prefix))
+    return r.files.map((f) => ({ key: unname(f.name), size: f.size ?? 0 })).filter((f) => f.key.startsWith(prefix) && !f.key.endsWith('.part'))
   } catch { return [] }
 }
 

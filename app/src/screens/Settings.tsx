@@ -7,7 +7,7 @@ import { PlayerSettings } from '../components/PlayerSettings'
 import { Sheet, SheetHead, TabBar } from '../components/ui'
 import { isNative, openBot, openSupport } from '../lib/telegram'
 import { useProfile } from '../lib/profile'
-import { RECITERS, bitrateOf } from '../store/player'
+import { RECITERS } from '../store/player'
 import { ReciterList } from '../components/ReciterList'
 import { NewsHistory } from '../components/WhatsNew'
 import { useStore, type ThemePref, type Translation } from '../store/settings'
@@ -66,7 +66,7 @@ export default function Settings() {
 
       <div className="group-t">Аудио</div>
       <div className="group">
-        <button className="sitem" onClick={() => setOpen('rec')}><span className="si" style={{ background: '#C08A2E' }}><Icon id="sound" /></span><span className="t">Чтец</span><span className="v">{(RECITERS[st.reciter] ?? RECITERS.alafasy).name} · {bitrateOf(st.reciter, st.bitrates)}</span><Icon id="right" className="icon chev" /></button>
+        <button className="sitem" onClick={() => setOpen('rec')}><span className="si" style={{ background: '#C08A2E' }}><Icon id="sound" /></span><span className="t">Чтец</span><span className="v">{(RECITERS[st.reciter] ?? RECITERS.alafasy).name}</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => setPlayerOpen(true)}><span className="si" style={{ background: '#2F7D6B' }}><Icon id="play" /></span><span className="t">Плеер</span><span className="v">Скорость, таймер сна, пауза</span><Icon id="right" className="icon chev" /></button>
       </div>
 
@@ -146,7 +146,7 @@ export default function Settings() {
             <p>• Текст Корана и шрифты мусхафа — Комплекс короля Фахда по изданию Корана (Медина), через Quran.com / QUL.</p>
             <p>• Переводы смыслов: Эльмир Кулиев; Абу Адель.</p>
             <p>• Тафсир ас-Саади (русский перевод) — Quran.com.</p>
-            <p>• Аудио: everyayah.com, зеркало quranicaudio.com.</p>
+            <p>• Аудио: цельные записи сур — Quran.com (quranicaudio.com) и mp3quran.net; отдельные аяты — everyayah.com.</p>
             <p>• Азкары «Крепость мусульманина» (Саид аль-Кахтани): тексты и перевод — открытая библиотека my-prayers/muslim-data (Apache-2.0); число повторов и аудио — hisnmuslim.com.</p>
             <p>• Комментарии к аятам, словарь арабских терминов и сведения о земных поклонах — из книги «Перевод смыслов Священного Корана» Э. Кулиева (издание Комплекса короля Фахда); краткое пояснение «История аята» — из книг по асбаб ан-нузуль, переведено с арабского с помощью ИИ.</p>
             <p>• Грамматический разбор слов (корни, формы, части речи) — Quranic Arabic Corpus (Kais Dukes), <a href="https://corpus.quran.com" target="_blank" rel="noreferrer">corpus.quran.com</a>; открытая копия с исправленными леммами — github.com/mustafa0x/quran-morphology. На нём построены «Слова Корана», разбор слова и частые слова.</p>

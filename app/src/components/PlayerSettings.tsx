@@ -25,7 +25,7 @@ export function PlayerSettings({ onClose }: { onClose: () => void }) {
     <Sheet onClose={onClose} tall>
       <SheetHead title="Настройки плеера" sub="Для обычного прослушивания" onClose={onClose} />
       <div className="body">
-        <button className="srow2" onClick={() => setRec(true)}><div>Чтец и качество<span>{(RECITERS[st.reciter] ?? RECITERS.alafasy).name}</span></div><Icon id="right" className="icon" /></button>
+        <button className="srow2" onClick={() => setRec(true)}><div>Чтец<span>{(RECITERS[st.reciter] ?? RECITERS.alafasy).name}</span></div><Icon id="right" className="icon" /></button>
 
         <div className="fld"><label>Когда сура закончилась</label>
           <Pills<'stop' | 'next' | 'repeat'> items={[['stop', 'Остановиться'], ['next', 'Следующая сура'], ['repeat', 'Повторить']]} value={st.plNext} set={(v) => st.set({ plNext: v })} />

@@ -77,7 +77,6 @@ const DEFAULT_SETTINGS: Settings = {
   mode: 'sura',
   translation: 'ku',
   reciter: 'alafasy',
-  bitrates: {},
   storyMarks: [],
   tajweed: true,
   wbw: false,

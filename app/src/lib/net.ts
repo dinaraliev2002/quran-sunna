@@ -42,17 +42,32 @@ export function cachedBuffer(key: string, url: string, signal?: AbortSignal): Pr
   })
 }
 
-/** Аудио: сохраняется только при скачивании из «Загрузок» (иначе быстро съест память телефона) */
-export async function downloadBlob(key: string, url: string, signal?: AbortSignal): Promise<number> {
-  const blob = await (await net(url, signal)).blob()
+/** Аудио: сохраняется только при скачивании из «Загрузок» (иначе быстро съест память телефона). onBytes — сколько скачано */
+export async function downloadBlob(key: string, url: string, signal?: AbortSignal, onBytes?: (n: number) => void): Promise<number> {
+  const res = await net(url, signal)
+  let blob: Blob
+  if (onBytes && res.body) {
+    const reader = res.body.getReader()
+    const parts: Uint8Array[] = []
+    let n = 0
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      parts.push(value)
+      n += value.length
+      onBytes(n)
+    }
+    blob = new Blob(parts as BlobPart[], { type: 'audio/mpeg' })
+  } else blob = await res.blob()
   await idbPut(key, blob)
   return blob.size
 }
 export const cachedBlob = (key: string) => idbGet<Blob>(key)
 
-/** Удалить копии данных старых версий */
+/** Удалить копии данных старых версий и аудио по аятам (с ноября 2026 чтец звучит цельными записями сур) */
 export async function cleanupOldData() {
   const keys = await idbKeys('data:')
   const stale = new Set(keys.filter((k) => !k.startsWith(`data:${DATA_VERSION}:`)).map((k) => k.split(':').slice(0, 2).join(':') + ':'))
   for (const prefix of stale) await idbDeletePrefix(prefix)
+  if ((await idbKeys('audio:')).length) await idbDeletePrefix('audio:')
 }

@@ -9,10 +9,11 @@ import { appleWebKit, fontVariant } from '../lib/fonts'
 import { TOTAL_PAGES, type Surah } from '../lib/data'
 import { idbSizes, storageUsage } from '../lib/idb'
 import { cancelDownload, deleteAudioSurah, deleteDownloads, downloadAudio, downloadData, downloadFonts, offlineStatus, useDownloads } from '../lib/offline'
-import { RECITERS, bitrateOf, setBitrates } from '../store/player'
+import { RECITERS } from '../store/player'
 import { useStore } from '../store/settings'
 import { useUi } from '../store/ui'
 import { isNative } from '../lib/telegram'
+import { plural } from '../lib/plural'
 
 type Status = Awaited<ReturnType<typeof offlineStatus>>
 const mb = (bytes: number) => (bytes >= 1e9 ? (bytes / 1e9).toFixed(1) + ' ГБ' : Math.round(bytes / 1e6) + ' МБ')
@@ -27,11 +28,11 @@ function Storage({ surahs, version, busy }: { surahs: Surah[]; version: number; 
   const [confirm, setConfirm] = useState('')
   const [open, setOpen] = useState<string | null>(null) // чтец, у которого правим суры
   useEffect(() => {
-    idbSizes('audio:').then(setAudio)
+    idbSizes('sura:').then(setAudio)
     idbSizes('font:').then(setFonts)
   }, [version])
   if (!audio || !fonts) return null
-  // аудио по чтецам: ключ «audio:чтец:ССС ААА»
+  // аудио по чтецам: ключ «sura:чтец:ССС» — запись суры целиком
   const byRec = new Map<string, { n: number; size: number }>()
   for (const it of audio) { const r = it.key.split(':')[1]; const o = byRec.get(r) ?? { n: 0, size: 0 }; o.n++; o.size += it.size; byRec.set(r, o) }
   const byVar = new Map<string, { n: number; size: number }>()
@@ -43,7 +44,7 @@ function Storage({ surahs, version, busy }: { surahs: Surah[]; version: number; 
       <div className="group-t">Что занимает место</div>
       {[...byRec].map(([r, v]) => (
         <div key={r} className="dl-card">
-          <div className="dl-head"><span className="dl-ic"><Icon id="sound" /></span><div className="t"><b>Аудио · {(RECITERS[r] ?? { name: r }).name}</b><span>{v.n} {v.n === 1 ? 'аят' : 'аятов'} · {mbs(v.size)}</span></div></div>
+          <div className="dl-head"><span className="dl-ic"><Icon id="sound" /></span><div className="t"><b>Аудио · {(RECITERS[r] ?? { name: r }).name}</b><span>{v.n} {plural(v.n, 'сура', 'суры', 'сур')} · {mbs(v.size)}</span></div></div>
           <div className="dl-row"><button className="dl-link" disabled={busy} onClick={() => setOpen(r)}>По сурам</button>{ask('a:' + r, () => deleteDownloads('audio', r))}</div>
         </div>
       ))}
@@ -59,12 +60,12 @@ function Storage({ surahs, version, busy }: { surahs: Surah[]; version: number; 
           <SheetHead title="Аудио по сурам" sub={(RECITERS[open] ?? { name: open }).name} onClose={() => setOpen(null)} />
           <div className="body">
             {surahs.map((s) => {
-              const its = audio.filter((x) => x.key.startsWith(`audio:${open}:${String(s.id).padStart(3, '0')}`))
-              if (!its.length) return null
+              const it = audio.find((x) => x.key === `sura:${open}:${String(s.id).padStart(3, '0')}`)
+              if (!it) return null
               return (
                 <div key={s.id} className="opt-row">
                   <div className="num-badge"><span>{s.id}</span></div>
-                  <span>{s.name}<small>{its.length} из {s.ayahs} · {mbs(its.reduce((a, x) => a + x.size, 0))}</small></span>
+                  <span>{s.name}<small>{mbs(it.size)}</small></span>
                   <button className="dl-link danger" disabled={busy} onClick={() => deleteAudioSurah(open, s.id)}>Удалить</button>
                 </div>
               )
@@ -79,13 +80,11 @@ function Storage({ surahs, version, busy }: { surahs: Surah[]; version: number; 
 export default function Downloads() {
   const nav = useNavigate()
   const meta = useQuranMeta()
-  const { tajweed, reciter: playReciter, bitrates } = useStore()
+  const { tajweed, reciter: playReciter } = useStore()
   // чтец для загрузки выбирается здесь и не меняет того, кого вы слушаете
   const [dlReciter, setDlReciter] = useState<string | null>(null)
   const [pickRec, setPickRec] = useState(false)
   const reciter = dlReciter ?? playReciter
-  const kbps = bitrateOf(reciter, bitrates)
-  setBitrates(bitrates) // загрузка пойдёт в выбранном качестве
   const theme = useUi((s) => s.theme)
   const { job, version } = useDownloads()
   const [status, setStatus] = useState<Status | null>(null)
@@ -106,7 +105,7 @@ export default function Downloads() {
     job?.id === id ? (
       <div className="dl-progress">
         <div className="bar2"><i style={{ width: `${(job.done / Math.max(1, job.total)) * 100}%` }} /></div>
-        <div className="dl-row"><span>{job.done} из {job.total}{job.failed ? ` · ошибок ${job.failed}` : ''}</span><button className="dl-link" onClick={cancelDownload}>Отменить</button></div>
+        <div className="dl-row"><span>{job.kind === 'audio' ? `${mbs(job.done)} из ${mbs(job.total)}` : `${job.done} из ${job.total}`}{job.failed ? ` · ошибок ${job.failed}` : ''}</span><button className="dl-link" onClick={cancelDownload}>Отменить</button></div>
       </div>
     ) : null
 
@@ -161,14 +160,14 @@ export default function Downloads() {
           <Card icon="open" id={'fonts:' + variant} title="Страницы мусхафа"
             sub={`Шрифты 604 страниц ${tajweed ? 'с таджвидом' : 'без таджвида'}${appleWebKit && tajweed ? (theme === 'dark' ? ' (тёмная тема)' : ' (светлая тема)') : ''} · ${fontsSize}`}
             done={status.fonts.done} total={status.fonts.total} onDownload={() => downloadFonts(variant)} onDelete={() => deleteDownloads('fonts', variant)} />
-          <Card icon="sound" id={'audio:' + reciter} title={`Аудио · ${recName}`} sub={`Весь Коран по аятам · ${kbps} кбит/с · ≈ ${kbps <= 64 ? '0,5' : kbps <= 128 ? '1' : '1,4'} ГБ. Качество — в настройках, в выборе чтеца`}
+          <Card icon="sound" id={'audio:' + reciter} title={`Аудио · ${recName}`} sub={`Весь Коран, 114 сур${status.audio.bytes ? ` · ≈ ${mb(status.audio.bytes)}` : ''}`}
             done={status.audio.done} total={status.audio.total}
             onDownload={() => meta && downloadAudio(reciter, meta.surahs, 'Весь Коран')} onDelete={() => deleteDownloads('audio', reciter)}>
             <button className="srow2" style={{ marginTop: 10, marginBottom: 0 }} disabled={busy} onClick={() => setPickRec(true)}>
               <div>Другой чтец<span>Сейчас: {recName}. Выберите, чьё чтение скачать</span></div><Icon id="right" className="icon" />
             </button>
             <button className="srow2" style={{ marginTop: 8, marginBottom: 0 }} disabled={busy} onClick={() => setPickSurahs(true)}>
-              <div>Скачать отдельные суры<span>Скачано полностью: {status.audio.fullSurahs.length} из 114</span></div><Icon id="right" className="icon" />
+              <div>Скачать отдельные суры<span>Скачано: {status.audio.fullSurahs.length} из 114</span></div><Icon id="right" className="icon" />
             </button>
           </Card>
           <p className="dl-note small">
@@ -187,13 +186,12 @@ export default function Downloads() {
           <p className="hz-how" style={{ margin: '0 16px 8px' }}>Нажимайте «Скачать» у любого числа сур подряд — они встанут в очередь и скачаются одна за другой.</p>
           <div className="body">
             {meta.surahs.map((s) => {
-              const have = status.audio.perSurah.get(s.id) ?? 0
-              const full = have >= s.ayahs
+              const full = status.audio.fullSurahs.includes(s.id)
               const queued = job?.id === 'audio:' + reciter && !!job.queued?.includes(s.id)
               return (
                 <div key={s.id} className="opt-row">
                   <div className="num-badge"><span>{s.id}</span></div>
-                  <span>{s.name}<small>{s.ayahs} аятов{have && !full ? ` · скачано ${have}` : ''}</small></span>
+                  <span>{s.name}<small>{s.ayahs} {plural(s.ayahs, 'аят', 'аята', 'аятов')}{status.audio.sizes[s.id - 1] ? ` · ${mbs(status.audio.sizes[s.id - 1])}` : ''}</small></span>
                   {full ? <Icon id="check" /> : queued ? <small>В очереди…</small> : (
                     <button className="dl-link" onClick={() => downloadAudio(reciter, [s], s.name)}>Скачать</button>
                   )}

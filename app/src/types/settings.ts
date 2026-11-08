@@ -18,8 +18,6 @@ export interface Settings {
   mode: ReadMode
   translation: Translation
   reciter: string
-  /** качество аудио по чтецам, кбит/с: { alafasy: 64 } (нет записи — как у чтеца по умолчанию) */
-  bitrates: Record<string, number>
   /** закладки в «Историях»: отрывки «сура:первый аят» */
   storyMarks: string[]
   tajweed: boolean

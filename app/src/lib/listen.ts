@@ -1,6 +1,6 @@
-// Запуск аудио суры из любого места приложения (главная, список сур): чтец, качество и настройки плеера — из настроек
+// Запуск аудио суры из любого места приложения (главная, список сур): чтец и настройки плеера — из настроек
 import { useStore } from '../store/settings'
-import { playerCfg, setBitrates, setMediaTitle, setReciter, usePlayer } from '../store/player'
+import { playerCfg, setMediaTitle, setReciter, usePlayer } from '../store/player'
 import type { Surah } from './data'
 
 let counts: number[] = []
@@ -20,7 +20,6 @@ export function listenSurah(surahs: Surah[], sid: number, from?: number) {
   if (!sr) return
   counts = surahs.map((s) => s.ayahs)
   const st = useStore.getState()
-  setBitrates(st.bitrates)
   setReciter(st.reciter)
   setMediaTitle((k) => { const [a, b] = k.split(':'); return `${surahs[+a - 1].name}, аят ${b}` })
   const f = from ?? resumeAyah(sid, sr.ayahs)

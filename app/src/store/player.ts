@@ -1,41 +1,30 @@
 import { create } from 'zustand'
 import { cachedBlob } from '../lib/net'
-import type { Reciter, PauseMode, MemoOptions, Sleep } from '../types/player'
+import { localFileUrl, useFiles } from '../lib/nativeFiles'
+import { loadReciteIndex, loadTiming, suraKey, surahUrl, timingNow } from '../lib/recite'
+import type { Reciter, PauseMode, MemoOptions, Sleep, SurahTiming } from '../types/player'
 export type { Reciter, PauseMode, MemoOptions, Sleep }
 
-// Чтецы: аудио по аятам (everyayah.com) + зеркало (quranicaudio). Если источник не отвечает — берём следующий.
-// У большинства чтецов на everyayah есть несколько вариантов качества (кбит/с) — 64 вдвое легче 128, на слух для речи почти то же.
+// Плеер Корана. Чтец звучит одной цельной записью на всю суру — между аятами нет пауз и щелчков,
+// как в мусхафе-плеерах. По разметке (lib/recite.ts) плеер знает, где какой аят: подсвечивает его,
+// останавливается в конце диапазона, а в заучивании повторяет аят или отрывок перемоткой к его началу.
 
 export const RECITERS: Record<string, Reciter> = {
-  alafasy: { name: 'Мишари аль-Афаси', folders: { 64: 'Alafasy_64kbps', 128: 'Alafasy_128kbps' }, def: 128 },
-  husary_m: { name: 'аль-Хусари (муаллим)', folders: { 128: 'Husary_Muallim_128kbps' }, def: 128 },
-  sudais: { name: 'Абдуррахман ас-Судайс', folders: { 64: 'Abdurrahmaan_As-Sudais_64kbps', 192: 'Abdurrahmaan_As-Sudais_192kbps' }, def: 192 },
-  shuraym: { name: 'Сауд аш-Шурайм', folders: { 64: 'Saood_ash-Shuraym_64kbps', 128: 'Saood_ash-Shuraym_128kbps' }, def: 128 },
-  shatri: { name: 'Абу Бакр аш-Шатри', folders: { 64: 'Abu_Bakr_Ash-Shaatree_64kbps', 128: 'Abu_Bakr_Ash-Shaatree_128kbps' }, def: 128 },
-  dosari: { name: 'Ясир ад-Даусари', folders: { 128: 'Yasser_Ad-Dussary_128kbps' }, def: 128 },
-  muaiqly: { name: 'Махир аль-Муайкли', folders: { 64: 'Maher_AlMuaiqly_64kbps', 128: 'MaherAlMuaiqly128kbps' }, def: 128 },
-  juhani: { name: 'Абдуллах аль-Джухани', folders: { 128: 'Abdullaah_3awwaad_Al-Juhaynee_128kbps' }, def: 128 },
-  qatami: { name: 'Насир аль-Катами', folders: { 128: 'Nasser_Alqatami_128kbps' }, def: 128 },
-  ayman: { name: 'Аймен Сувейд', folders: { 64: 'Ayman_Sowaid_64kbps' }, def: 64 },
+  alafasy: { name: 'Мишари аль-Афаси', ayahs: 'Alafasy_128kbps' },
+  husary: { name: 'Махмуд аль-Хусари', ayahs: 'Husary_128kbps' },
+  husary_m: { name: 'аль-Хусари (учебная, медленно)', ayahs: 'Husary_Muallim_128kbps' },
+  sudais: { name: 'Абдуррахман ас-Судайс', ayahs: 'Abdurrahmaan_As-Sudais_192kbps' },
+  shuraym: { name: 'Сауд аш-Шурайм', ayahs: 'Saood_ash-Shuraym_128kbps' },
+  shatri: { name: 'Абу Бакр аш-Шатри', ayahs: 'Abu_Bakr_Ash-Shaatree_128kbps' },
+  dosari: { name: 'Ясир ад-Даусари', ayahs: 'Yasser_Ad-Dussary_128kbps' },
+  muaiqly: { name: 'Махир аль-Муайкли', ayahs: 'MaherAlMuaiqly128kbps' },
+  juhani: { name: 'Абдуллах аль-Джухани', ayahs: 'Abdullaah_3awwaad_Al-Juhaynee_128kbps' },
+  qatami: { name: 'Насир аль-Катами', ayahs: 'Nasser_Alqatami_128kbps' },
+  ayman: { name: 'Аймен Сувейд', ayahs: 'Ayman_Sowaid_64kbps' },
 }
-/** Какое качество играет у чтеца: выбранное, а если такого у него нет — по умолчанию */
-export const bitrateOf = (reciter: string, chosen?: Record<string, number>) => {
-  const r = RECITERS[reciter] ?? RECITERS.alafasy
-  const c = chosen?.[reciter]
-  return c && r.folders[c] ? c : r.def
-}
-let bitrates: Record<string, number> = {}
-export const setBitrates = (b: Record<string, number>) => { bitrates = b }
-const folderOf = (reciter: string) => { const r = RECITERS[reciter] ?? RECITERS.alafasy; return r.folders[bitrateOf(reciter, bitrates)] }
-const MIRRORS = ['https://everyayah.com/data/', 'https://mirrors.quranicaudio.com/everyayah/']
-
-export const audioFile = (key: string) => {
-  const [s, a] = key.split(':').map(Number)
-  return String(s).padStart(3, '0') + String(a).padStart(3, '0') + '.mp3'
-}
-export const audioUrls = (reciter: string, key: string) => MIRRORS.map((m) => m + folderOf(reciter) + '/' + audioFile(key))
-export const audioKey = (reciter: string, key: string) => `audio:${reciter}:${audioFile(key).slice(0, 6)}`
-const urls = audioUrls
+const pad3 = (n: number) => String(n).padStart(3, '0')
+/** Файл одного аята на everyayah (запасной путь без разметки) */
+const ayahUrl = (rec: string, s: number, a: number) => `https://everyayah.com/data/${(RECITERS[rec] ?? RECITERS.alafasy).ayahs}/${pad3(s)}${pad3(a)}.mp3`
 
 /** Настройки плеера (из «Настройки плеера»); обновляются из lib/listen.ts */
 export const playerCfg = { gap: 0, next: 'stop' as 'stop' | 'next' | 'repeat', rate: 1, surahCount: (_s: number): number => 0 }
@@ -54,104 +43,76 @@ interface PlayerState {
   stop: () => void
 }
 
-// два плеера: пока играет один, второй уже загрузил следующий аят — на стыке нет паузы
-const els = [new Audio(), new Audio()]
-let audio = els[0]
-// короткая тишина: «разблокирует» звук на iPhone в момент нажатия, пока ищем файл аята
+const el = new Audio()
+el.preload = 'auto'
+// короткая тишина: «разблокирует» звук на iPhone в момент нажатия, пока ищем запись суры
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='
-const isSilent = () => audio.src.startsWith('data:')
-els.forEach((e) => { e.preload = 'auto' })
-const blobOf = new Map<HTMLAudioElement, string | null>() // blob-адрес, занятый плеером (чтобы освободить)
-let ready: { key: string; el: HTMLAudioElement } | null = null
-let reciter = 'alafasy'
-let mirror = 0
-let waitTimer: ReturnType<typeof setTimeout> | undefined
-
-export const setReciter = (r: string) => { reciter = r }
-export const currentReciter = () => reciter
-
-/** Что звучит прямо сейчас: аят и место в его файле (мс) — для подсветки слов */
-export function playbackPos(): { key: string; ms: number } | null {
-  if (waOn && ctx) {
-    const now = ctx.currentTime
-    for (let i = timeline.length - 1; i >= 0; i--) {
-      const c = timeline[i]
-      if (c.t <= now) return { key: c.key, ms: ((now - c.t) * c.rate + c.off) * 1000 }
-    }
-    return null
-  }
-  const key = usePlayer.getState().current
-  if (key && !audio.paused && !isSilent()) return { key, ms: audio.currentTime * 1000 }
-  return null
-}
-/** Скорость чтеца (заучивание: 0.5–1.5); при смене файла браузер берёт defaultPlaybackRate */
-let rate = 1
-export const setRate = (r: number) => els.forEach((e) => { rate = r; e.defaultPlaybackRate = r; e.playbackRate = r })
-
-// ---------- обычное прослушивание: Web Audio, аяты встык без пауз ----------
-// Аяты — отдельные файлы; у <audio> между файлами всегда щель. Поэтому декодируем аяты заранее
-// и ставим их в расписание звуковой карты вплотную друг к другу (с точностью до сэмпла).
-// Лишнюю тишину в начале и конце файла обрезаем.
-interface Clip { buf: AudioBuffer; off: number; dur: number }
-const AC: typeof AudioContext | undefined = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-// iPhone/iPad: Web Audio там — «звук игры»: его глушит переключатель беззвучного режима и он замирает,
-// когда экран заблокирован. Поэтому на iOS слушаем через <audio> (как медиа-плеер), на стыке аятов — второй плеер
-const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-// iOS 17+: звук приложения — «медиа», а не «звук игры» (касается и азкаров, и озвучки хадисов)
+// iOS 17+: звук приложения — «медиа», а не «звук игры» (не глушится беззвучным режимом)
 const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
 if (session) try { session.type = 'playback' } catch { /* старая версия */ }
-let ctx: AudioContext | null = null
-let gen = 0 // номер запуска: старые циклы замолкают
-let waOn = false
-let sources: AudioBufferSourceNode[] = []
-// когда какой аят поставлен в расписание звуковой карты — по этому считаем, на каком месте записи мы сейчас
-const timeline: { key: string; t: number; off: number; rate: number }[] = []
-const clips = new Map<string, Promise<Clip>>()
 
-async function fetchClip(r: string, key: string): Promise<Clip> {
-  let data: ArrayBuffer | null = null
-  const blob = await cachedBlob(audioKey(r, key))
-  if (blob) data = await blob.arrayBuffer()
-  else for (const u of urls(r, key)) {
-    try { const res = await fetch(u); if (res.ok) { data = await res.arrayBuffer(); break } } catch { /* следующее зеркало */ }
-  }
-  if (!data) throw new Error('no audio')
-  const buf = await new Promise<AudioBuffer>((ok, bad) => ctx!.decodeAudioData(data!, ok, bad))
-  const ch = buf.getChannelData(0)
-  const sr = buf.sampleRate
-  const trim = (th: number) => {
-    let a = 0, b = ch.length - 1
-    while (a < b && Math.abs(ch[a]) < th) a++
-    while (b > a && Math.abs(ch[b]) < th) b--
-    return { a, b }
-  }
-  let { a, b } = trim(0.004)
-  // у некоторых чтецов (аш-Шатри) в записи постоянный тихий фон выше порога — «тишину» в конце файла не видно,
-  // и между аятами остаётся пауза до полсекунды. Тогда порог берём от громкости самой записи (−34 дБ от пика)
-  if (ch.length - 1 - b < sr * 0.01) {
-    let peak = 0
-    for (let i = 0; i < ch.length; i++) { const v = Math.abs(ch[i]); if (v > peak) peak = v }
-    ;({ a, b } = trim(Math.max(0.004, peak * 0.02)))
-  }
-  const from = Math.max(0, a - Math.round(sr * 0.02)), to = Math.min(ch.length, b + Math.round(sr * 0.06))
-  return { buf, off: from / sr, dur: (to - from) / sr }
+let reciter = 'alafasy'
+export const setReciter = (r: string) => { reciter = RECITERS[r] ? r : 'alafasy' }
+export const currentReciter = () => reciter
+
+/** Скорость чтеца (заучивание: 0.5–1.5, настройки плеера) */
+let rate = 1
+export const setRate = (r: number) => { rate = r; el.defaultPlaybackRate = r; el.playbackRate = r }
+
+/** Что загружено в плеер: чья запись какой суры и откуда (интернет / файл на телефоне); a — файл одного аята (запасной путь) */
+let file: { rec: string; s: number; a?: number; src: string; local: boolean } | null = null
+let timing: SurahTiming | null = null
+let blobUrl: string | null = null
+
+const parse = (key: string) => { const [s, a] = key.split(':').map(Number); return { s, a } }
+
+/** Что звучит прямо сейчас: аят и место в записи суры (мс) — для подсветки слов */
+export function playbackPos(): { key: string; ms: number } | null {
+  const key = usePlayer.getState().current
+  if (!key || !file || el.paused) return null
+  return { key, ms: el.currentTime * 1000 }
 }
-const clipOf = (r: string, key: string) => {
-  const id = r + key
-  let c = clips.get(id)
-  if (!c) { c = fetchClip(r, key); c.catch(() => clips.delete(id)); clips.set(id, c) }
-  return c
+
+/** Откуда играть суру: скачанный файл на телефоне или интернет */
+async function sourceOf(rec: string, s: number): Promise<{ src: string; local: boolean }> {
+  if (file && file.rec === rec && file.s === s && !file.a) return { src: file.src, local: file.local }
+  const key = suraKey(rec, s)
+  if (useFiles) {
+    const u = await localFileUrl(key)
+    if (u) return { src: u, local: true }
+  } else {
+    const blob = await cachedBlob(key)
+    if (blob) {
+      if (blobUrl) URL.revokeObjectURL(blobUrl)
+      blobUrl = URL.createObjectURL(blob)
+      return { src: blobUrl, local: true }
+    }
+  }
+  const url = surahUrl(await loadReciteIndex(), rec, s)
+  if (!url) throw new Error('нет записи')
+  return { src: url, local: false }
 }
-function stopWA() {
-  gen++
-  timeline.length = 0
-  waOn = false
-  for (const s of sources) { try { s.stop() } catch { /* уже закончился */ } }
-  sources = []
-}
+
+/** Дождаться, пока плеер узнает длину записи (до этого перематывать нельзя) */
+const metadata = () => new Promise<void>((ok, bad) => {
+  if (el.readyState >= 1) return ok()
+  const done = () => { el.removeEventListener('loadedmetadata', done); el.removeEventListener('error', fail); ok() }
+  const fail = () => { el.removeEventListener('loadedmetadata', done); el.removeEventListener('error', fail); bad(new Error('audio')) }
+  el.addEventListener('loadedmetadata', done)
+  el.addEventListener('error', fail)
+})
 
 export const usePlayer = create<PlayerState>((set, get) => {
   let sleepTimer: ReturnType<typeof setTimeout> | undefined
+  let waitTimer: ReturnType<typeof setTimeout> | undefined
+  let edgeTimer: ReturnType<typeof setTimeout> | undefined
+  /** отложенное действие (пауза между аятами); если в паузе нажали «стоп/плей» — выполняем сразу */
+  let pending: (() => void) | null = null
+  let gen = 0 // номер запуска: устаревшие загрузки ничего не делают
+  let busy = false // идёт загрузка/перемотка — конец аята пока не проверяем (иначе повтор сработает дважды)
+
+  const clearTimers = () => { clearTimeout(waitTimer); clearTimeout(edgeTimer); pending = null }
+
   /** Конец суры: продолжать ли дальше (следующая сура / повтор) с учётом таймера сна */
   function surahEnd(): boolean {
     const s = get()
@@ -161,7 +122,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (left <= 0) { set({ sleep: null }); return false }
       set({ sleep: { mode: 'suras', left } })
     }
-    const sid = +s.queue[s.queue.length - 1].split(':')[0]
+    const sid = parse(s.queue[s.queue.length - 1]).s
     if (playerCfg.next === 'stop') return false
     const nsid = playerCfg.next === 'repeat' ? sid : sid + 1
     const n = playerCfg.surahCount(nsid)
@@ -169,149 +130,156 @@ export const usePlayer = create<PlayerState>((set, get) => {
     set({ queue: [...s.queue, ...Array.from({ length: n }, (_, i) => `${nsid}:${i + 1}`)] })
     return true
   }
-  const gapMs = (dur: number) => (playerCfg.gap < 0 ? dur * 1000 : playerCfg.gap)
+  const gapMs = (dur: number) => (playerCfg.gap < 0 ? dur : playerCfg.gap)
 
-  async function waRun(start: number) {
-    const g = gen
-    const r = reciter
-    let when = 0
-    let n = 0
+  /** Начать аят очереди с его начала (загрузить запись суры, если другая, и перемотать) */
+  async function startAt(i: number) {
+    const g = ++gen
+    clearTimers()
+    const s0 = get()
+    const key = s0.queue[i]
+    if (!key) return finish()
+    const { s, a } = parse(key)
+    set({ index: i, current: key, status: 'loading', error: null })
+    mediaSession(key)
+    busy = true
     try {
-      for (let i = start; ; i++) {
-        let queue = get().queue
-        if (i >= queue.length) {
-          if (!surahEnd()) break
-          queue = get().queue
-        }
-        const key = queue[i]
-        const c = await clipOf(r, key)
+      const rec = reciter
+      const t = await loadTiming(rec, s).catch(() => null)
+      if (g !== gen) return
+      // с первого аята в обычном прослушивании — с самого начала записи (истиаза и басмала перед сурой)
+      const fromStart = a === 1 && !s0.memo && s0.queue.length > 1
+      timing = t
+      if (!t && !fromStart) {
+        // у суры нет разметки, а нужен отдельный аят (с середины, диапазон, заучивание) — файл этого аята
+        const src = ayahUrl(rec, s, a)
+        if (!file || file.src !== src) { file = { rec, s, a, src, local: false }; el.src = src }
+      } else {
+        const src = await sourceOf(rec, s)
         if (g !== gen) return
-        for (let k = 1; k <= 2; k++) if (queue[i + k]) clipOf(r, queue[i + k]).catch(() => {}) // заранее
-        // не уходим далеко вперёд по расписанию (пауза замораживает часы звуковой карты)
-        while (g === gen && when - ctx!.currentTime > 4) await new Promise((ok) => setTimeout(ok, 250))
-        if (g !== gen) return
-        const t = Math.max(ctx!.currentTime + 0.03, when)
-        const src = ctx!.createBufferSource()
-        src.buffer = c.buf
-        src.playbackRate.value = rate
-        src.connect(ctx!.destination)
-        src.start(t, c.off, c.dur)
-        timeline.push({ key, t, off: c.off, rate }); if (timeline.length > 6) timeline.shift()
-        sources.push(src)
-        src.onended = () => { sources = sources.filter((x) => x !== src) }
-        when = t + c.dur / rate + gapMs(c.dur / rate) / 1000
-        const first = n++ === 0
-        const show = () => { if (g !== gen) return; set({ index: i, current: key, status: ctx!.state === 'running' ? 'playing' : 'paused' }); mediaSession(key) }
-        if (first) show(); else setTimeout(show, Math.max(0, (t - ctx!.currentTime) * 1000))
-        // чистим память: старые аяты не держим
-        const old = queue[i - 3]
-        if (old) clips.delete(r + old)
+        if (!file || file.src !== src.src) { file = { rec, s, ...src }; el.src = src.src }
       }
-      while (g === gen && ctx!.currentTime < when) await new Promise((ok) => setTimeout(ok, 150))
-      if (g === gen) { waOn = false; clearTimeout(sleepTimer); set({ status: 'idle', current: null, memo: null, sleep: null }) }
+      await metadata()
+      if (g !== gen) return
+      const from = !t || fromStart ? 0 : t.a[a - 1][0] / 1000
+      el.playbackRate = rate
+      if (Math.abs(el.currentTime - from) > 0.05) el.currentTime = from
+      if (get().status === 'paused') return // пока загружали, нажали паузу
+      await el.play()
     } catch {
-      if (g === gen) set({ status: 'paused', error: 'Не удалось загрузить аудио. Проверьте интернет.' })
+      if (g === gen && !el.src.startsWith('data:')) set({ status: 'paused', error: 'Не удалось загрузить аудио. Проверьте интернет.' })
+    } finally {
+      if (g === gen) busy = false
     }
   }
 
-  async function load(i: number) {
+  /** Подождать (пауза между аятами / для повторения), потом сделать next */
+  function after(ms: number, next: () => void) {
+    if (ms <= 0) return next()
+    el.pause()
+    set({ status: 'loading' })
+    pending = next
+    waitTimer = setTimeout(() => { pending = null; next() }, ms)
+  }
+
+  /** Перейти к аяту j: если в записи он идёт сразу за звучащим — просто продолжаем, без перемотки (звук не прерывается) */
+  function goNext(j: number) {
     const { queue } = get()
-    const key = queue[i]
-    mirror = 0
-    set({ index: i, current: key, status: 'loading', error: null })
-    // следующий аят уже подготовлен вторым плеером — включаем его без паузы
-    if (ready && ready.key === key && ready.el !== audio) {
-      const old = audio
-      audio = ready.el
-      ready = null
-      audio.currentTime = 0
-      audio.play().catch(() => { /* ошибка обработается в onerror */ })
-      old.pause()
-      prepare(i)
-      mediaSession(key)
+    const prev = parse(queue[j - 1]), nx = queue[j] ? parse(queue[j]) : null
+    if (nx && !el.paused && timing && nx.s === prev.s && nx.a === prev.a + 1 && file?.s === nx.s) {
+      set({ index: j, current: queue[j] })
+      mediaSession(queue[j])
       return
     }
-    ready = null
-    // скачанный аят берём с телефона — мгновенно и без интернета
-    const blob = await cachedBlob(audioKey(reciter, key))
-    if (get().current !== key) return // пока искали, уже переключили
-    release(audio)
-    const obj = blob ? URL.createObjectURL(blob) : null
-    blobOf.set(audio, obj)
-    audio.src = obj ?? urls(reciter, key)[0]
-    audio.play().catch(() => { /* ошибка обработается в onerror */ })
-    prepare(i)
-    mediaSession(key)
+    startAt(j)
   }
 
-  function release(el: HTMLAudioElement) {
-    const u = blobOf.get(el)
-    if (u) URL.revokeObjectURL(u)
-    blobOf.set(el, null)
-  }
-
-  /** Загрузить следующий аят во втором плеере, пока играет текущий */
-  async function prepare(i: number) {
-    const next = get().queue[i + 1]
-    if (!next) return
-    const el = els.find((e) => e !== audio)!
-    const blob = await cachedBlob(audioKey(reciter, next))
-    if (get().queue[i] !== get().current || audio === el) return
-    release(el)
-    const obj = blob ? URL.createObjectURL(blob) : null
-    blobOf.set(el, obj)
-    el.src = obj ?? urls(reciter, next)[0]
-    el.load()
-    ready = { key: next, el }
-  }
-
-  function advance() {
+  /** Аят дозвучал до своего конца */
+  function itemEnd() {
+    clearTimeout(edgeTimer)
     const s = get()
     const m = s.memo
+    const i = s.index
+    const sp = timing?.a[parse(s.queue[i]).a - 1]
+    const dur = sp ? (sp[1] - sp[0]) / rate : file?.a && el.duration ? (el.duration * 1000) / rate : 0
     if (m) {
+      const pause = m.pause === 'len' ? dur : m.pause
       // аяты-связки (первые lead) звучат один раз за круг, остальные — repeatEach раз
-      const reps = s.index < (m.lead ?? 0) ? 1 : m.repeatEach
-      if (m.each < reps) { set({ memo: { ...m, each: m.each + 1 } }); return replay() }
-      const last = s.index >= s.queue.length - 1
-      if (!last) { set({ memo: { ...m, each: 1 } }); return load(s.index + 1) }
-      const endless = m.repeatRange === 0
-      if (endless || m.round < m.repeatRange) { set({ memo: { ...m, each: 1, round: m.round + 1 } }); return load(0) }
+      const reps = i < (m.lead ?? 0) ? 1 : m.repeatEach
+      if (m.each < reps) { set({ memo: { ...m, each: m.each + 1 } }); return after(pause, () => startAt(i)) }
+      if (i < s.queue.length - 1) { set({ memo: { ...m, each: 1 } }); return after(pause, () => goNext(i + 1)) }
+      if (m.repeatRange === 0 || m.round < m.repeatRange) { set({ memo: { ...m, each: 1, round: m.round + 1 } }); return after(pause, () => startAt(0)) }
       return finish()
     }
-    if (s.index < s.queue.length - 1 || surahEnd()) load(s.index + 1)
+    if (i < s.queue.length - 1 || surahEnd()) after(gapMs(dur), () => goNext(i + 1))
     else finish()
   }
 
-  function replay() {
-    audio.currentTime = 0
-    audio.play().catch(() => {})
+  /** Следим за временем записи: где кончается звучащий аят */
+  function check() {
+    if (busy || el.paused || !file || !timing) return
+    const s = get()
+    const key = s.queue[s.index]
+    if (!key) return
+    const { s: sid, a } = parse(key)
+    const sp = timing.a[a - 1]
+    if (!sp || file.s !== sid) return
+    // последний аят суры в обычном прослушивании дослушиваем до конца записи (событие ended)
+    if (!s.memo && a === timing.a.length) return
+    const left = sp[1] - el.currentTime * 1000
+    if (left <= 25) return itemEnd()
+    // точный момент конца аята, чтобы не «зацепить» начало следующего при повторе
+    clearTimeout(edgeTimer)
+    if (left < 400) edgeTimer = setTimeout(check, Math.max(0, left / rate - 15))
   }
 
   function finish() {
+    gen++
+    clearTimers()
     clearTimeout(sleepTimer)
+    el.pause()
     set({ status: 'idle', current: null, memo: null, sleep: null })
   }
 
-  for (const el of els) {
-    el.onplaying = () => { if (el === audio && !isSilent()) set({ status: 'playing' }) }
-    el.onpause = () => { if (el === audio && get().status === 'playing') set({ status: 'paused' }) }
-    el.onerror = () => {
-      if (el !== audio) return
-      const key = get().current
-      if (!key || isSilent()) return
-      const list = urls(reciter, key)
-      if (audio.src.startsWith('blob:')) { audio.src = list[0]; audio.play().catch(() => {}); return }
-      if (++mirror < list.length) { audio.src = list[mirror]; audio.play().catch(() => {}); return }
-      set({ status: 'paused', error: 'Не удалось загрузить аудио. Проверьте интернет.' })
+  el.onplaying = () => { if (!el.src.startsWith('data:')) set({ status: 'playing', error: null }) }
+  el.onwaiting = () => { if (get().status === 'playing') set({ status: 'loading' }) }
+  el.onpause = () => { if (!el.ended && get().status === 'playing') set({ status: 'paused' }) }
+  el.ontimeupdate = check
+  el.onerror = () => {
+    if (!file || el.src.startsWith('data:') || !get().current) return
+    // файл аята не открылся на everyayah — берём зеркало
+    if (file.a && file.src.startsWith('https://everyayah.com/')) {
+      file = { ...file, src: file.src.replace('https://everyayah.com/data/', 'https://mirrors.quranicaudio.com/everyayah/') }
+      el.src = file.src
+      el.play().catch(() => {})
+      return
     }
-    el.onended = () => {
-      if (el !== audio || isSilent()) return
-      const m = get().memo
-      const pause = m ? m.pause : 0
-      const ms = m ? (pause === 'len' ? audio.duration * 1000 : pause) : gapMs(audio.duration / (audio.playbackRate || 1))
-      if (ms > 0) { set({ status: 'loading' }); waitTimer = setTimeout(advance, ms) } else advance()
+    // скачанный файл не открылся — играем из интернета
+    if (file.local) {
+      const f = file
+      loadReciteIndex().then((ix) => {
+        const url = surahUrl(ix, f.rec, f.s)
+        if (!url || file !== f) return
+        file = { ...f, src: url, local: false }
+        startAt(get().index)
+      })
+      return
     }
+    set({ status: 'paused', error: 'Не удалось загрузить аудио. Проверьте интернет.' })
   }
+  el.onended = () => {
+    if (!file || el.src.startsWith('data:')) return
+    const s = get()
+    if (!s.current) return
+    // без разметки сура звучит целиком: перескакиваем на её последний аят в очереди
+    if (!timing && !file.a) {
+      let j = s.index
+      while (j + 1 < s.queue.length && parse(s.queue[j + 1]).s === file.s) j++
+      set({ index: j, current: s.queue[j] })
+    }
+    itemEnd()
+  }
+  setInterval(check, 50)
 
   return {
     sleep: null,
@@ -327,39 +295,47 @@ export const usePlayer = create<PlayerState>((set, get) => {
     memo: null,
     error: null,
     play: (queue, start = 0, memo = null) => {
-      clearTimeout(waitTimer)
-      stopWA()
       if (!memo) setRate(playerCfg.rate)
-      if (!memo && AC && playerCfg.rate === 1 && !IOS) {
-        // без повторов — встык через Web Audio
-        for (const el of els) { el.pause(); el.removeAttribute('src') }
-        ready = null
-        ctx = ctx ?? new AC()
-        ctx.resume().catch(() => {})
-        waOn = true
-        window.dispatchEvent(new Event('quran-play'))
-        set({ queue, memo: null, index: start, current: queue[start], status: 'loading', error: null })
-        waRun(start)
-        return
-      }
-      set({ queue, memo: memo ? { ...memo, each: 1, round: 1 } : null })
       window.dispatchEvent(new Event('quran-play')) // остановить аудио азкара, если играет
-      ready = null
-      for (const el of els) { el.src = SILENT; el.play().catch(() => {}) }
-      load(start)
+      set({ queue, memo: memo ? { ...memo, each: 1, round: 1 } : null })
+      // iPhone: плеер должен впервые зазвучать прямо в момент нажатия — пока ищем запись, играем тишину
+      if (!file) { el.src = SILENT; el.play().catch(() => {}) }
+      startAt(start)
     },
     toggle: () => {
       const s = get()
-      if (waOn && ctx) {
-        if (ctx.state === 'running') { ctx.suspend(); set({ status: 'paused' }) } else { ctx.resume(); set({ status: 'playing' }) }
+      if (s.status === 'playing' || s.status === 'loading') {
+        clearTimeout(waitTimer)
+        el.pause()
+        set({ status: 'paused' })
         return
       }
-      if (s.status === 'playing' || s.status === 'loading') { clearTimeout(waitTimer); audio.pause(); set({ status: 'paused' }) }
-      else if (s.current) { set({ status: 'loading' }); audio.play().catch(() => {}) }
+      if (!s.current) return
+      // нажали «плей» во время паузы между аятами — сразу идём дальше
+      if (pending) { const p = pending; pending = null; return p() }
+      set({ status: 'loading' })
+      el.play().catch(() => startAt(s.index))
     },
-    stop: () => { clearTimeout(waitTimer); clearTimeout(sleepTimer); stopWA(); ctx?.resume().catch(() => {}); ready = null; for (const el of els) { el.pause(); el.removeAttribute('src') }; set({ status: 'idle', current: null, memo: null, queue: [], sleep: null }) },
+    stop: () => {
+      gen++
+      clearTimers()
+      clearTimeout(sleepTimer)
+      el.pause()
+      el.removeAttribute('src')
+      el.load()
+      file = null
+      timing = null
+      if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null }
+      set({ status: 'idle', current: null, memo: null, queue: [], sleep: null })
+    },
   }
 })
+
+/** Разметка звучащей суры (для подсветки слов) */
+export const playingTiming = (key: string) => {
+  const { s } = parse(key)
+  return file?.s === s ? timing ?? timingNow(reciter, s) : null
+}
 
 let titleOf: (key: string) => string = (k) => k
 export const setMediaTitle = (fn: (key: string) => string) => { titleOf = fn }

@@ -7,7 +7,7 @@ import { dayNum } from '../../lib/hifz'
 import { coveredAyahs, loadQItem, nextStart, passageFrom, qKey, qSet } from '../../lib/hifzQuran'
 import { type QItem } from '../../types/hifzQuran'
 import { haptic } from '../../lib/telegram'
-import { setBitrates, setRate, setReciter, usePlayer } from '../../store/player'
+import { setRate, setReciter, usePlayer } from '../../store/player'
 import { useStore } from '../../store/settings'
 import { REVIEW_MAX } from './session/steps'
 import { LearnItem } from './session/LearnItem'
@@ -34,7 +34,6 @@ function QuranSession({ mode }: { mode: 'learn' | 'review' }) {
   useEffect(() => {
     const st = useStore.getState()
     setReciter(st.reciter)
-    setBitrates(st.bitrates)
     return () => { usePlayer.getState().stop(); setRate(1) }
   }, [])
   useEffect(() => { setRate(rate) }, [rate])
