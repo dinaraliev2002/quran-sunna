@@ -11,7 +11,7 @@ all — только суры без разметки (список n), так �
 Без --write только сравнивает с текущей разметкой в public/data/recite/<чтец>/ и печатает расхождения.
 Нужен ffmpeg. Совпадение ниже 0.8 — запись другая; такой аят не трогаем и сообщаем.
 """
-import json, os, subprocess, sys, tempfile, urllib.request, zlib
+import json, os, subprocess, sys, tempfile, time, urllib.request, zlib
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
@@ -22,21 +22,28 @@ UA = {'User-Agent': 'Mozilla/5.0 (quran-sunna build script)'}
 
 
 def fetch(url, path):
+    """Скачать файл. Оборванная загрузка (сеть пропала, сменился Wi-Fi) не считается готовой: сверяем размер"""
     if os.path.exists(path) and os.path.getsize(path) > 0:
         return path
-    for attempt in range(4):
+    for attempt in range(6):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120) as r, open(path + '.part', 'wb') as f:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r, open(path + '.part', 'wb') as f:
+                want = int(r.headers.get('Content-Length') or 0)
+                got = 0
                 while True:
                     b = r.read(1 << 20)
                     if not b:
                         break
                     f.write(b)
+                    got += len(b)
+            if want and got != want:
+                raise IOError(f'скачано {got} из {want}')
             os.replace(path + '.part', path)
             return path
-        except Exception as e:  # noqa: BLE001
-            if attempt == 3:
+        except Exception:  # noqa: BLE001
+            if attempt == 5:
                 raise
+            time.sleep(3 * (attempt + 1))
     return path
 
 
@@ -44,6 +51,18 @@ def pcm(path):
     raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, '-ac', '1', '-ar', str(SR), '-f', 's16le', '-'],
                          capture_output=True, check=True).stdout
     return np.frombuffer(raw, np.int16).astype(np.float32) / 32768
+
+
+def load(url, path):
+    """Скачать и раскодировать; битый файл — скачать заново; не вышло — пустой звук (аят будет «не найден»)"""
+    for attempt in range(2):
+        try:
+            return pcm(fetch(url, path))
+        except Exception:  # noqa: BLE001
+            if os.path.exists(path):
+                os.remove(path)
+    print(f'   не удалось скачать {url}')
+    return np.zeros(SR // 10, np.float32)
 
 
 def ncc_search(full, clip, lo, hi):
@@ -148,9 +167,11 @@ def main():
         jobs = [(url, full_path)] + [(f'https://everyayah.com/data/{folder}/{s:03d}{a:03d}.mp3', os.path.join(d, f'{s:03d}{a:03d}.mp3'))
                                      for a in range(1, counts[s - 1] + 1)]
         with ThreadPoolExecutor(16) as ex:
-            list(ex.map(lambda j: fetch(*j), jobs))
-        full = pcm(full_path)
-        clips = [pcm(p) for _, p in jobs[1:]]
+            pcms = list(ex.map(lambda j: load(*j), jobs))
+        full, clips = pcms[0], pcms[1:]
+        if len(full) < SR:
+            print(f'{rec} {s}: запись суры не скачалась, пропускаю')
+            continue
         got = align(full, clips)
         path = os.path.join(OUT, rec, f'{s:03d}.json')
         cur = json.load(open(path, encoding='utf-8')) if os.path.exists(path) else None
