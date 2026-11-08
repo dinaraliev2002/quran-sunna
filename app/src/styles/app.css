@@ -1676,7 +1676,7 @@ div.srow { cursor: pointer; }
 /* Язычок отодвинут от края на 14px: у Samsung и других жест «назад» живёт в узкой полоске у самого края, и язычок на краю его вызывал */
 .qm-tab { position: fixed; right: 14px; touch-action: none; margin-top: -32px; width: 26px; height: 64px; z-index: 19; border-radius: 14px; opacity: .92; background: color-mix(in srgb, var(--gold) 85%, transparent); color: var(--on-gold); display: grid; place-items: center; box-shadow: -2px 4px 14px rgba(0, 0, 0, .22); padding: 0; }
 /* В установленном приложении (Android/iOS) язычок вплотную к краю, как раньше: жест «назад» там отключён нативным кодом (FeedbackPlugin.excludeEdge) */
-.qm-tab.native { right: 0; margin-top: -28px; width: 14px; height: 56px; border-radius: 10px 0 0 10px; }
+.qm-tab.native { right: 0; margin-top: -40px; width: 14px; height: 80px; border-radius: 10px 0 0 10px; opacity: 1; background: var(--gold); }
 .qm-tab.native .icon { width: 10px; height: 10px; }
 .qm-tab { transition: opacity .45s ease, transform .45s ease; }
 /* пока идёт прокрутка — язычок плавно уезжает за край и гаснет; когда остановилась — плавно возвращается */
