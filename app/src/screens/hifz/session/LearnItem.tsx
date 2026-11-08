@@ -9,12 +9,15 @@ import { type Step, STEP_NAME, headWords } from './steps'
 import { Ayahs } from './Ayahs'
 import { Listen } from './Listen'
 import { Tell } from './Tell'
+import { useLead } from './useLead'
 // Заучивание нового отрывка
 
 export function LearnItem({ item, onDone }: { item: QItem; onDone: () => void }) {
   const drill = useStore((s) => s.qhDrill)
   const contNext = useStore((s) => s.qhNext)
   const learn = useStore((s) => s.qhLearn)
+  const chain = useStore((s) => s.qhChain)
+  const lead = useLead(item)
   const steps: Step[] = useMemo(() => {
     const d: Step[] = drill === 2 ? ['show2'] : drill === 3 ? ['show3'] : drill === 23 ? ['show2', 'show3'] : []
     return ['read', ...d, ...(contNext ? ['next'] as Step[] : []), 'tell']
@@ -35,8 +38,14 @@ export function LearnItem({ item, onDone }: { item: QItem; onDone: () => void })
 
       {step === 'read' && (
         <>
+          {chain && lead && (
+            <div className="hz-card qh-lead">
+              <div className="qh-lead-l">Связка · последний аят прошлого отрывка</div>
+              <Ayahs item={{ ...item, a: lead.n, b: lead.n, ayahs: [lead] }} />
+            </div>
+          )}
           <div className="hz-card"><Ayahs item={item} /></div>
-          <Listen item={item} />
+          <Listen item={item} lead={lead} />
           <div className="hz-act">
             <button className="bigbtn" onClick={() => go(1)}><Icon id="check" />Прочитал</button>
           </div>

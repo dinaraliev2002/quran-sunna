@@ -1349,6 +1349,15 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .qh-rep { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); margin: 8px 0 0; }
 .qh-rep button { min-width: 34px; padding: 5px 8px; border-radius: 10px; background: var(--surface-2); font-weight: 700; }
 .qh-rep button.on { background: var(--gold); color: #fff; }
+.qh-rep-col { flex-direction: column; align-items: flex-start; gap: 6px; }
+.qh-pick .qh-chips button { min-width: 38px; padding: 5px 10px; border-radius: 10px; background: var(--surface-2); font-weight: 700; font-size: 13px; color: var(--text); }
+.qh-pick .qh-chips button.on { background: var(--gold); color: #fff; }
+.qh-step { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.qh-step b { min-width: 44px; text-align: center; font-size: 16px; font-weight: 800; color: var(--text); }
+.qh-step button { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-2); font-size: 20px; font-weight: 700; color: var(--text); }
+.qh-step button:disabled { opacity: .35; }
+.qh-lead { opacity: .8; border: 1px dashed var(--line); }
+.qh-lead-l { font-size: 12px; font-weight: 800; color: var(--gold-ink); margin-bottom: 6px; }
 .qh-cur { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 20px; background: var(--surface); width: 100%; text-align: left; }
 .qh-cur .t { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .qh-cur .t span { font-size: 13px; color: var(--text-2); }

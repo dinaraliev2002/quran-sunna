@@ -79,6 +79,7 @@ export interface Settings {
   qhSet: string // подборка, из которой берутся новые аяты (lib/hifzQuran QSETS)
   qhGoal: { t: string; by: number } | null // цель: «set:juz30» или «s:18» — выучить к дню by (dayNum)
   qhRepeat: number // сколько раз чтец повторяет каждый аят при прослушивании
+  qhRepeatAll: number // сколько раз прослушать весь отрывок целиком
   qhPos: { s: number; a: number } | null // откуда учить дальше (выбранная сура); null — 30-й джуз с конца
   hzRate: number // скорость озвучки хадисов
   rem: Record<RemindKey, RemindCfg> // напоминания (в магазинах — уведомления телефона, в Telegram — сообщения бота)

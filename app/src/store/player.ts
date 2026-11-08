@@ -269,7 +269,9 @@ export const usePlayer = create<PlayerState>((set, get) => {
     const s = get()
     const m = s.memo
     if (m) {
-      if (m.each < m.repeatEach) { set({ memo: { ...m, each: m.each + 1 } }); return replay() }
+      // аяты-связки (первые lead) звучат один раз за круг, остальные — repeatEach раз
+      const reps = s.index < (m.lead ?? 0) ? 1 : m.repeatEach
+      if (m.each < reps) { set({ memo: { ...m, each: m.each + 1 } }); return replay() }
       const last = s.index >= s.queue.length - 1
       if (!last) { set({ memo: { ...m, each: 1 } }); return load(s.index + 1) }
       const endless = m.repeatRange === 0

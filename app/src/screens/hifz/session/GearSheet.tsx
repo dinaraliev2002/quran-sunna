@@ -3,6 +3,7 @@ import { haptic } from '../../../lib/telegram'
 import { useStore } from '../../../store/settings'
 import { type Settings } from '../../../types/settings'
 import { RATES, rateL } from './steps'
+import { RepeatPick } from './RepeatPick'
 
 /** Шестерёнка урока: упражнения, перевод, чтец */
 export function GearSheet({ onClose }: { onClose: () => void }) {
@@ -43,9 +44,13 @@ export function GearSheet({ onClose }: { onClose: () => void }) {
         </div>
         <div>
           <div className="qh-set-l">Каждый аят при прослушивании</div>
-          <div className="qh-chips">{[1, 3, 5].map((n) => chip(n, st.qhRepeat, n + '×', (v) => st.set({ qhRepeat: v })))}</div>
+          <RepeatPick value={st.qhRepeat} onChange={(v) => st.set({ qhRepeat: v })} />
         </div>
-        {sw(st.qhChain, 'Слушать цепочкой', 'Аят 1 → 1–2 → 1–3: каждый новый аят сразу связывается с предыдущими. Пригодится, когда в отрывке несколько аятов', () => st.set({ qhChain: !st.qhChain }))}
+        <div>
+          <div className="qh-set-l">Весь отрывок при прослушивании<small>Сколько раз подряд прослушать все аяты отрывка целиком</small></div>
+          <RepeatPick value={st.qhRepeatAll} onChange={(v) => st.set({ qhRepeatAll: v })} />
+        </div>
+        {sw(st.qhChain, 'Слушать цепочкой', 'Последний аят прошлого отрывка переносится в новый: вчера 1–5, сегодня 5, 6–10. Так новое связывается с выученным', () => st.set({ qhChain: !st.qhChain }))}
       </div>
     </Sheet>
   )
