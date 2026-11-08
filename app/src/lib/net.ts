@@ -70,4 +70,8 @@ export async function cleanupOldData() {
   const stale = new Set(keys.filter((k) => !k.startsWith(`data:${DATA_VERSION}:`)).map((k) => k.split(':').slice(0, 2).join(':') + ':'))
   for (const prefix of stale) await idbDeletePrefix(prefix)
   if ((await idbKeys('audio:')).length) await idbDeletePrefix('audio:')
+  // разметка чтецов прошлых версий (lib/recite.ts: RECITE_V)
+  const { RECITE_V } = await import('./recite')
+  const old = new Set(keys.filter((k) => /^data:[^:]+:recite/.test(k) && !k.startsWith(dataKey(`recite${RECITE_V}/`))).map((k) => k.slice(0, k.indexOf('/') + 1)))
+  for (const prefix of old) await idbDeletePrefix(prefix)
 }

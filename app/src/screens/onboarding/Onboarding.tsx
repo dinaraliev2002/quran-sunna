@@ -217,7 +217,7 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
       )}
       {rec && (
         <Sheet onClose={() => setRec(false)} tall>
-          <SheetHead title="Чтец и качество" onClose={() => setRec(false)} />
+          <SheetHead title="Чтец" onClose={() => setRec(false)} />
           <div className="body"><ReciterList onDone={() => setRec(false)} /></div>
         </Sheet>
       )}

@@ -116,7 +116,7 @@ export default function Settings() {
       )}
       {open === 'rec' && (
         <Sheet onClose={close}>
-          <SheetHead title="Чтец" sub="Цифры справа — качество звука в кбит/с: 64 занимает вдвое меньше места" onClose={close} />
+          <SheetHead title="Чтец" sub="Сура звучит одной записью, без пауз между аятами" onClose={close} />
           <div className="body"><ReciterList onDone={close} /></div>
         </Sheet>
       )}

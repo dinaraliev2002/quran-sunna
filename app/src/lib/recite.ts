@@ -6,12 +6,16 @@ import { cachedJson, dataKey } from './net'
 import type { ReciteIndex, SurahTiming } from '../types/player'
 
 const pad = (n: number) => String(n).padStart(3, '0')
+/** Версия данных чтецов: увеличиваем при каждом изменении public/data/recite (иначе на телефонах останется старое из кэша) */
+export const RECITE_V = 2
+const key = (path: string) => dataKey(`recite${RECITE_V}/${path}`)
+const url = (path: string) => `${DATA_BASE}recite/${path}?v=${RECITE_V}`
 
 let index: ReciteIndex | null = null
 let indexP: Promise<ReciteIndex> | null = null
 /** Список записей всех чтецов (адреса и размеры файлов сур) */
 export function loadReciteIndex(): Promise<ReciteIndex> {
-  indexP ??= cachedJson<ReciteIndex>(dataKey('recite/index.json'), DATA_BASE + 'recite/index.json')
+  indexP ??= cachedJson<ReciteIndex>(key('index.json'), url('index.json'))
     .then((ix) => (index = ix))
     .catch((e) => { indexP = null; throw e })
   return indexP
@@ -39,8 +43,8 @@ export function loadTiming(reciter: string, surah: number): Promise<SurahTiming 
   if (!p) {
     p = loadReciteIndex().then((ix) => {
       if (!hasTiming(ix, reciter, surah)) return null
-      const path = `recite/${reciter}/${pad(surah)}.json`
-      return cachedJson<SurahTiming>(dataKey(path), DATA_BASE + path).then((t) => { timings.set(k, t); return t })
+      const path = `${reciter}/${pad(surah)}.json`
+      return cachedJson<SurahTiming>(key(path), url(path)).then((t) => { timings.set(k, t); return t })
     })
     p.catch(() => timingP.delete(k))
     timingP.set(k, p)

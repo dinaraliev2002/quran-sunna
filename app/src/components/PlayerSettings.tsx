@@ -16,7 +16,7 @@ export function PlayerSettings({ onClose }: { onClose: () => void }) {
   if (rec) {
     return (
       <Sheet onClose={() => setRec(false)} tall>
-        <SheetHead title="Чтец и качество" sub="Следующее прослушивание — с выбранным чтецом" onClose={() => setRec(false)} />
+        <SheetHead title="Чтец" sub="Следующее прослушивание — с выбранным чтецом" onClose={() => setRec(false)} />
         <div className="body"><ReciterList onDone={() => setRec(false)} /></div>
       </Sheet>
     )
