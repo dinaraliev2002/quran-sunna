@@ -117,11 +117,22 @@ async function fetchClip(r: string, key: string): Promise<Clip> {
   }
   if (!data) throw new Error('no audio')
   const buf = await new Promise<AudioBuffer>((ok, bad) => ctx!.decodeAudioData(data!, ok, bad))
-  const ch = buf.getChannelData(0), th = 0.004
-  let a = 0, b = ch.length - 1
-  while (a < b && Math.abs(ch[a]) < th) a++
-  while (b > a && Math.abs(ch[b]) < th) b--
+  const ch = buf.getChannelData(0)
   const sr = buf.sampleRate
+  const trim = (th: number) => {
+    let a = 0, b = ch.length - 1
+    while (a < b && Math.abs(ch[a]) < th) a++
+    while (b > a && Math.abs(ch[b]) < th) b--
+    return { a, b }
+  }
+  let { a, b } = trim(0.004)
+  // у некоторых чтецов (аш-Шатри) в записи постоянный тихий фон выше порога — «тишину» в конце файла не видно,
+  // и между аятами остаётся пауза до полсекунды. Тогда порог берём от громкости самой записи (−34 дБ от пика)
+  if (ch.length - 1 - b < sr * 0.01) {
+    let peak = 0
+    for (let i = 0; i < ch.length; i++) { const v = Math.abs(ch[i]); if (v > peak) peak = v }
+    ;({ a, b } = trim(Math.max(0.004, peak * 0.02)))
+  }
   const from = Math.max(0, a - Math.round(sr * 0.02)), to = Math.min(ch.length, b + Math.round(sr * 0.06))
   return { buf, off: from / sr, dur: (to - from) / sr }
 }
