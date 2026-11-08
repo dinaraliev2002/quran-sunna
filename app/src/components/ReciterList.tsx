@@ -23,7 +23,7 @@ export function ReciterList({ onDone, current, onPick }: { onDone?: () => void; 
         const gb = e ? (e.b.reduce((a, b) => a + b, 0) / 1e9).toFixed(1).replace('.', ',') : null
         return (
           <div key={id} className="opt-row rec-row" role="button" tabIndex={0} onClick={() => pick(id)}>
-            <span>{r.name}{e && <small>{e.w ? 'подсветка аятов и слов' : e.n.length >= 114 ? 'без подсветки аятов' : 'подсветка аятов'}{onPick && gb ? ` · весь Коран ≈ ${gb} ГБ` : ''}</small>}</span>
+            <span>{r.name}{e && <small>{e.w ? 'подсветка аятов и слов' : e.n.length < 114 ? 'подсветка аятов' : r.ayahs ? 'без подсветки аятов' : 'только сура целиком, без подсветки и заучивания'}{onPick && gb ? ` · весь Коран ≈ ${gb} ГБ` : ''}</small>}</span>
             {sel === id && <Icon id="check" />}
           </div>
         )

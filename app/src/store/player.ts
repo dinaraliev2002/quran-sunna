@@ -21,10 +21,11 @@ export const RECITERS: Record<string, Reciter> = {
   juhani: { name: 'Абдуллах аль-Джухани', ayahs: 'Abdullaah_3awwaad_Al-Juhaynee_128kbps' },
   qatami: { name: 'Насир аль-Катами', ayahs: 'Nasser_Alqatami_128kbps' },
   ayman: { name: 'Аймен Сувейд', ayahs: 'Ayman_Sowaid_64kbps' },
+  luhaidan: { name: 'Мухаммад аль-Люхайдан' },
 }
 const pad3 = (n: number) => String(n).padStart(3, '0')
 /** Файл одного аята на everyayah (запасной путь без разметки) */
-const ayahUrl = (rec: string, s: number, a: number) => `https://everyayah.com/data/${(RECITERS[rec] ?? RECITERS.alafasy).ayahs}/${pad3(s)}${pad3(a)}.mp3`
+const ayahUrl = (rec: string, s: number, a: number) => `https://everyayah.com/data/${RECITERS[rec]?.ayahs ?? RECITERS.alafasy.ayahs}/${pad3(s)}${pad3(a)}.mp3`
 
 /** Настройки плеера (из «Настройки плеера»); обновляются из lib/listen.ts */
 export const playerCfg = { gap: 0, next: 'stop' as 'stop' | 'next' | 'repeat', rate: 1, surahCount: (_s: number): number => 0 }
@@ -148,8 +149,18 @@ export const usePlayer = create<PlayerState>((set, get) => {
       const t = await loadTiming(rec, s).catch(() => null)
       if (g !== gen) return
       // с первого аята в обычном прослушивании — с самого начала записи (истиаза и басмала перед сурой)
-      const fromStart = a === 1 && !s0.memo && s0.queue.length > 1
+      let fromStart = a === 1 && !s0.memo && s0.queue.length > 1
       timing = t
+      const name = (RECITERS[rec] ?? RECITERS.alafasy).name
+      if (!t && !fromStart && !RECITERS[rec]?.ayahs) {
+        // ни разметки, ни файлов аятов (аль-Люхайдан): отдельный аят не сыграть
+        if (s0.memo || s0.queue.length === 1) {
+          el.pause()
+          set({ status: 'paused', error: `У чтеца ${name} есть только запись суры целиком — для заучивания и повтора аятов выберите другого чтеца.` })
+          return
+        }
+        fromStart = true // обычное прослушивание — сура целиком с начала
+      }
       if (!t && !fromStart) {
         // у суры нет разметки, а нужен отдельный аят (с середины, диапазон, заучивание) — файл этого аята
         const src = ayahUrl(rec, s, a)

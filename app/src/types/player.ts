@@ -1,7 +1,8 @@
 // Плеер Корана: чтецы, режим заучивания, таймер сна
 
-/** ayahs — папка файлов аятов на everyayah.com: запасной путь, если у суры нет разметки (начать с середины, заучивание) */
-export interface Reciter { name: string; ayahs: string }
+/** ayahs — папка файлов аятов на everyayah.com: запасной путь, если у суры нет разметки (начать с середины, заучивание).
+ *  Нет папки (аль-Люхайдан) — без разметки сура звучит только целиком */
+export interface Reciter { name: string; ayahs?: string }
 
 /** Записи сур одного чтеца (public/data/recite/index.json) */
 export interface ReciteEntry {

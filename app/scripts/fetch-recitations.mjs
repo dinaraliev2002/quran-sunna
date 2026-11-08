@@ -30,6 +30,8 @@ const SOURCES = {
   juhani: { folder: 'https://download.quranicaudio.com/quran/abdullaah_3awwaad_al-juhaynee/' },
   ayman: { folder: 'https://server15.mp3quran.net/a-rushdi/Almusshaf-Al-Mo-lim/' },
   muaiqly: { folder: 'https://cdn.mp3quran.net/audio/maher-muaiqly/r1/' },
+  // аль-Люхайдан: ни разметки, ни файлов аятов нигде нет — только сура целиком
+  luhaidan: { folder: 'https://cdn.mp3quran.net/audio/muhammad-luhaidan/r1/' },
 }
 
 const counts = JSON.parse(readFileSync(join(root, 'public', 'data', 'surahs.json'), 'utf8')).map((s) => s.ayahs)
