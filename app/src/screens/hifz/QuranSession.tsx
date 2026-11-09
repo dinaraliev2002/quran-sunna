@@ -34,7 +34,7 @@ function QuranSession({ mode }: { mode: 'learn' | 'review' }) {
   useEffect(() => {
     const st = useStore.getState()
     setReciter(st.reciter)
-    return () => { usePlayer.getState().stop(); setRate(1) }
+    return () => { usePlayer.getState().stop(); setRate(null) }
   }, [])
   useEffect(() => { setRate(rate) }, [rate])
 

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '../lib/telegram'
 import { listenSurah } from '../lib/listen'
-import { usePlayer } from '../store/player'
+import { refreshRate, usePlayer } from '../store/player'
 import { useStore } from '../store/settings'
 import { Icon } from './Icon'
 import { PlayerSettings } from './PlayerSettings'
@@ -65,9 +65,8 @@ export function MiniPlayer() {
   const setRate = (r: number) => {
     haptic.tick()
     setSpeed(false)
-    st.set({ plRate: r })
-    // скорость меняет способ воспроизведения — перезапускаем текущий аят
-    setTimeout(() => usePlayer.getState().play(p.queue, p.index, p.memo), 0)
+    st.set({ plRate: r }) // настройки плеера подхватываются сразу (lib/listen.ts), затем применяем к звучащей записи
+    refreshRate()
   }
 
   const goSurah = (n: number) => { haptic.tap(); if (meta) listenSurah(meta.surahs, n, 1) }

@@ -56,9 +56,13 @@ let reciter = 'alafasy'
 export const setReciter = (r: string) => { reciter = RECITERS[r] ? r : 'alafasy' }
 export const currentReciter = () => reciter
 
-/** Скорость чтеца (заучивание: 0.5–1.5, настройки плеера) */
+/** Скорость чтеца. У урока заучивания своя (0.5–1.5, setRate(r) на время урока, setRate(null) — вернуть), иначе — из настроек плеера */
 let rate = 1
-export const setRate = (r: number) => { rate = r; el.defaultPlaybackRate = r; el.playbackRate = r }
+let lessonRate: number | null = null
+const applyRate = (r: number) => { rate = r; el.defaultPlaybackRate = r; el.playbackRate = r }
+export const setRate = (r: number | null) => { lessonRate = r; applyRate(r ?? playerCfg.rate) }
+/** Скорость из настроек плеера поменялась — применить сразу, без перезапуска аята (если идёт не урок со своей скоростью) */
+export const refreshRate = () => { if (lessonRate === null) applyRate(playerCfg.rate) }
 
 /** Что загружено в плеер: чья запись какой суры и откуда (интернет / файл на телефоне); a — файл одного аята (запасной путь) */
 let file: { rec: string; s: number; a?: number; src: string; local: boolean } | null = null
@@ -306,7 +310,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     memo: null,
     error: null,
     play: (queue, start = 0, memo = null) => {
-      if (!memo) setRate(playerCfg.rate)
+      applyRate(lessonRate ?? playerCfg.rate)
       window.dispatchEvent(new Event('quran-play')) // остановить аудио азкара, если играет
       set({ queue, memo: memo ? { ...memo, each: 1, round: 1 } : null })
       // iPhone: плеер должен впервые зазвучать прямо в момент нажатия — пока ищем запись, играем тишину

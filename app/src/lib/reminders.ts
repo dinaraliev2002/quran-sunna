@@ -69,7 +69,9 @@ export async function syncReminders() {
 
     const list: LocalNotificationSchema[] = []
     const push = (id: number, title: string, body: string, to: string, schedule: LocalNotificationSchema['schedule']) =>
-      list.push({ id, title, body, schedule, channelId: CHANNEL, extra: { to } })
+      // isExactNotification: false — точный будильник не нужен (минута-другая роли не играет), а иначе Android 12+
+      // при каждой перестройке расписания открывает настройки «Будильники и напоминания», где приложения нет в списке
+      list.push({ id, title, body, schedule, channelId: CHANNEL, extra: { to }, isExactNotification: false } as LocalNotificationSchema)
     const now = Date.now()
     const cfg = (k: RemindKey): RemindCfg => rem[k]
 
