@@ -164,9 +164,10 @@ export default function Settings() {
 
 declare const __BUILD_TIME__: string // время сборки (vite.config.ts)
 
-/** Дописывается к надписи «версия» внизу настроек: время сборки и пометка, если телефон просит уменьшить анимацию.
+/** Дописывается к надписи «версия» внизу настроек (только в тестовой версии): время сборки и пометка, если телефон просит уменьшить анимацию.
  *  Помогает понять, что открыта старая версия из кэша или что анимации выключены самим телефоном */
 function BuildInfo() {
+  if (!location.pathname.includes('/test')) return null // только в тестовой версии; в публичной и в приложении строки нет
   const d = new Date(__BUILD_TIME__)
   const t = d.toLocaleString('ru-RU', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
