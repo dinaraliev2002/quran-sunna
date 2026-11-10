@@ -98,7 +98,7 @@ export default function Settings() {
         <button className="sitem" onClick={() => { haptic.tap(); openBot('feedback') }}><span className="si" style={{ background: '#2F7FD8' }}><Icon id="share" /></span><span className="t">Написать автору</span><span className="v">Идеи и ошибки</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => { haptic.tap(); openSupport() }}><span className="si" style={{ background: '#C0504D' }}><Icon id="heart" /></span><span className="t">Поддержать проект</span><Icon id="right" className="icon chev" /></button>
       </div>
-      <div className="ver">Коран и Сунна · версия 0.1</div>
+      <div className="ver">Коран и Сунна · версия 0.1<BuildInfo /></div>
 
       {open === 'tr' && <Choice title="Перевод смыслов" items={TRANSLATIONS} value={st.translation} onPick={(v) => st.set({ translation: v })} />}
       {playerOpen && <PlayerSettings onClose={() => setPlayerOpen(false)} />}
@@ -138,7 +138,6 @@ export default function Settings() {
           </div>
         </Sheet>
       )}
-      <BuildInfo />
       {open === 'news' && <NewsHistory onClose={close} />}
       {open === 'sources' && (
         <Sheet onClose={close}>
@@ -165,10 +164,11 @@ export default function Settings() {
 
 declare const __BUILD_TIME__: string // время сборки (vite.config.ts)
 
-/** Мелкая строка внизу настроек: какая сборка открыта и разрешены ли системой анимации. Помогает понять, что телефон показывает старую версию из кэша */
+/** Дописывается к надписи «версия» внизу настроек: время сборки и пометка, если телефон просит уменьшить анимацию.
+ *  Помогает понять, что открыта старая версия из кэша или что анимации выключены самим телефоном */
 function BuildInfo() {
   const d = new Date(__BUILD_TIME__)
   const t = d.toLocaleString('ru-RU', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
-  return <p className="build-info">Сборка от {t}{calm ? ' · в телефоне включено «уменьшить анимацию»' : ''}</p>
+  return <><br />сборка от {t}{calm ? <><br />в телефоне включено «уменьшить анимацию»</> : ''}</>
 }
