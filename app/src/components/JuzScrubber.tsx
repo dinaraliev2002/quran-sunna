@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { haptic } from '../lib/telegram'
 import { juzByPage } from '../lib/data'
 import type { Surah } from '../types/quran'
@@ -84,11 +84,18 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
   const move = (e: React.PointerEvent<HTMLDivElement>) => { if (dragging.current) at(e) }
   const up = () => { dragging.current = false; setHeld(false); onHold?.(false); last.current = 0; keepVisible(900) }
 
+  // Экран со списком уходит (переход на другой экран): шкала нарисована поверх всего, поэтому прячем её сразу,
+  // иначе она на долю секунды видна над новым экраном
+  const root = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (root.current) root.current.style.visibility = scroll.current?.closest('.pt-out') ? 'hidden' : ''
+  })
+
   if (!enabled) return null
   const pos = place(juz)
   // выносим в <body>: контейнер экрана создаёт свой «слой», и шкала оказалась бы под боковой панелью
   return createPortal(
-    <div className={'js' + (on ? ' on' : '') + (held ? ' held' : '')} aria-hidden={!on}>
+    <div ref={root} className={'js' + (on ? ' on' : '') + (held ? ' held' : '')} aria-hidden={!on}>
       <div className="js-track" ref={track} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
         {MARKS.map((m) => <span key={m} className={'js-mark' + (m === juz ? ' cur' : '')} style={{ top: place(m) }}>{m}</span>)}
         <div className="js-thumb" style={{ top: pos }}><b>{juz}</b></div>
