@@ -73,9 +73,19 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
     el.scrollTop += row.getBoundingClientRect().top - tr.getBoundingClientRect().top
   }
 
+  /** Положение бегунка и подсказки — одна CSS-переменная (--y, в пикселях от верха шкалы). Двигаем через translate:
+   *  это делает видеокарта, без пересчёта страницы. (Прошлая анимация меняла top — каждый кадр пересчитывалась
+   *  страница и размытие под шкалой, и на iPhone всё тормозило.) */
+  const root = useRef<HTMLDivElement>(null)
+  const setY = (f: number) => {
+    const h = track.current?.clientHeight ?? 0
+    root.current?.style.setProperty('--y', (PAD + (h - PAD * 2) * f).toFixed(1) + 'px')
+  }
+
   const at = (e: React.PointerEvent) => {
     const r = track.current!.getBoundingClientRect()
     const f = Math.min(1, Math.max(0, (e.clientY - r.top - PAD) / (r.height - PAD * 2)))
+    setY(f) // пока палец на шкале — бегунок идёт прямо за ним, без рывков по джузам
     const j = Math.round(f * 29) + 1
     setJuz(j)
     if (j !== last.current) { last.current = j; haptic.tick(); jump(j) }
@@ -84,22 +94,23 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
   const move = (e: React.PointerEvent<HTMLDivElement>) => { if (dragging.current) at(e) }
   const up = () => { dragging.current = false; setHeld(false); onHold?.(false); last.current = 0; keepVisible(900) }
 
+  // в покое (палец отпущен, список листают) бегунок стоит на своём джузе — плавно «доезжает» до него
+  useLayoutEffect(() => { if (!dragging.current) setY((juz - 1) / 29) }, [juz, held, on, enabled])
+
   // Экран со списком уходит (переход на другой экран): шкала нарисована поверх всего, поэтому прячем её сразу,
   // иначе она на долю секунды видна над новым экраном
-  const root = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     if (root.current) root.current.style.visibility = scroll.current?.closest('.pt-out') ? 'hidden' : ''
   })
 
   if (!enabled) return null
-  const pos = place(juz)
   // выносим в <body>: контейнер экрана создаёт свой «слой», и шкала оказалась бы под боковой панелью
   return createPortal(
     <div ref={root} className={'js' + (on ? ' on' : '') + (held ? ' held' : '')} aria-hidden={!on}>
       <div className="js-track" ref={track} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
         {MARKS.map((m) => <span key={m} className={'js-mark' + (m === juz ? ' cur' : '')} style={{ top: place(m) }}>{m}</span>)}
-        <div className="js-thumb" style={{ top: pos }}><b>{juz}</b></div>
-        <div className="js-bubble" style={{ top: pos }}><b>Джуз {juz}</b>{name && <span>{name}</span>}</div>
+        <div className="js-thumb"><b>{juz}</b></div>
+        <div className="js-bubble"><b>Джуз {juz}</b>{name && <span>{name}</span>}</div>
       </div>
     </div>,
     document.body,
