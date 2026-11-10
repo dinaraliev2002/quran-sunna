@@ -32,6 +32,7 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
   const meas = useRef<Measure | null>(null) // замеры списка; сбрасываются при смене списка и размера окна
   const rows = useRef<HTMLElement[]>([])
   const flashed = useRef<HTMLElement | null>(null)
+  const quietUntil = useRef(0) // после прыжка бегунком прокрутку не пересчитываем в джуз — иначе бегунок отскочит на джуз начала суры
 
   const keepVisible = useCallback((ms = 1100) => {
     setOn(true)
@@ -79,7 +80,7 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
     const el = scroll.current
     if (!enabled || !el) return
     const onScroll = () => {
-      if (dragging.current) return
+      if (dragging.current || performance.now() < quietUntil.current) return
       cancelAnimationFrame(frame.current)
       frame.current = requestAnimationFrame(() => {
         const s = surahs[topSurahIdx()]
@@ -96,32 +97,45 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
   // в покое бегунок стоит на своём джузе (плавно «доезжает» через transition)
   useLayoutEffect(() => { juzNow.current = juz; if (!dragging.current) setY((juz - 1) / 29) }, [juz, setY, on, enabled])
 
-  /** Прыгнуть к первой суре, которая захватывает начало джуза j */
+  /** Номер строки первой суры, которая захватывает начало джуза j */
+  const rowOf = (j: number) => {
+    const page = juzPages[j - 1]
+    const i = surahs.findIndex((s) => s.pages[1] >= page)
+    return i < 0 ? 0 : i
+  }
+
+  /** Прыгнуть к первой суре джуза j */
+  const jumped = useRef(0)
   const jump = (j: number) => {
     const el = scroll.current, m = measure()
     if (!el || !m) return
-    const page = juzPages[j - 1]
-    const i0 = surahs.findIndex((s) => s.pages[1] >= page)
-    const i = i0 < 0 ? 0 : i0
+    jumped.current = j
+    const i = rowOf(j)
     const row = rows.current[i]
     if (!row) return
-    setName(surahs[i].name)
     // первая сура джуза подсвечивается, пока палец на шкале: старая плавно гаснет, новая плавно загорается (transition в CSS)
     clearTimeout(unflash.current)
     if (flashed.current && flashed.current !== row) flashed.current.classList.remove('juz-flash')
     row.classList.add('juz-flash'); flashed.current = row
+    quietUntil.current = performance.now() + 300
     el.scrollTop = m.tops[i] - m.trackTop // позиции уже замерены — прокрутка без чтения раскладки
   }
 
-  // Палец двигается чаще, чем обновляется экран. Если на каждое движение прыгать списком, iPhone не успевает его
-  // дорисовать (список отстаёт и мелькает пустым). Поэтому бегунок двигаем сразу, а список — не чаще раза за кадр
+  // Пока палец ведёт по шкале, список НЕ прыгает на каждый джуз: iPhone не успевает перерисовывать сотни строк,
+  // и всё дёргается. Как в «Контактах» iPhone: бегунок и подсказка «Джуз · сура» меняются сразу (это ничего не стоит),
+  // а список переезжает, только когда палец задержался на джузе (JUMP_MS) или его отпустили
+  const JUMP_MS = 140
   const pending = useRef(0)
   const tick = useRef(0)
+  const jumpT = useRef<ReturnType<typeof setTimeout>>(undefined)
   const flush = () => {
     tick.current = 0
     const j = pending.current
     if (!dragging.current || j === last.current) return
-    last.current = j; juzNow.current = j; setJuz(j); haptic.tick(); jump(j)
+    last.current = j; juzNow.current = j
+    setJuz(j); setName(surahs[rowOf(j)]?.name ?? ''); haptic.tick()
+    clearTimeout(jumpT.current)
+    jumpT.current = setTimeout(() => { if (dragging.current) jump(j) }, JUMP_MS)
   }
   const at = (e: React.PointerEvent) => {
     const m = measure()
@@ -132,16 +146,23 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
     pending.current = Math.round(f * 29) + 1
     if (!tick.current) tick.current = requestAnimationFrame(flush)
   }
-  useEffect(() => () => cancelAnimationFrame(tick.current), [])
+  useEffect(() => () => { cancelAnimationFrame(tick.current); clearTimeout(jumpT.current) }, [])
 
   // Экран со списком уходит (переход на другой экран): шкала нарисована поверх всего, поэтому прячем её сразу,
   // иначе она на долю секунды видна над новым экраном
   useLayoutEffect(() => {
     if (root.current) root.current.style.visibility = scroll.current?.closest('.pt-out') ? 'hidden' : ''
   })
-  const down = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); meas.current = null; dragging.current = true; setHeld(true); onHold?.(true); keepVisible(); at(e) }
+  const down = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); meas.current = null; jumped.current = 0; dragging.current = true; setHeld(true); onHold?.(true); keepVisible(); at(e) }
   const move = (e: React.PointerEvent<HTMLDivElement>) => { if (dragging.current) at(e) }
   const up = () => {
+    if (!dragging.current) return
+    // палец отпустили — список сразу переезжает к выбранному джузу (если ещё не там)
+    cancelAnimationFrame(tick.current); tick.current = 0
+    clearTimeout(jumpT.current)
+    const target = pending.current || juzNow.current
+    if (target !== last.current) { juzNow.current = target; setJuz(target); setName(surahs[rowOf(target)]?.name ?? '') }
+    if (jumped.current !== target) jump(target)
     dragging.current = false; setHeld(false); onHold?.(false); last.current = 0; keepVisible(900)
     setY((juzNow.current - 1) / 29) // садимся на свой джуз
     // отпустили палец — подсветка ещё мгновение держится и плавно гаснет
