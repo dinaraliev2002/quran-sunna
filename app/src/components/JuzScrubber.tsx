@@ -23,6 +23,7 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
   const hide = useRef<ReturnType<typeof setTimeout>>(undefined)
   const frame = useRef(0)
   const last = useRef(0)
+  const unflash = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const keepVisible = useCallback((ms = 1100) => {
     setOn(true)
@@ -53,7 +54,7 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
       keepVisible()
     }
     el.addEventListener('scroll', onScroll, { passive: true })
-    return () => { el.removeEventListener('scroll', onScroll); cancelAnimationFrame(frame.current); clearTimeout(hide.current) }
+    return () => { el.removeEventListener('scroll', onScroll); cancelAnimationFrame(frame.current); clearTimeout(hide.current); clearTimeout(unflash.current) }
   }, [scroll, enabled, juzPages, topSurah, keepVisible])
 
   useEffect(() => { if (!enabled) setOn(false) }, [enabled])
@@ -67,9 +68,10 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
     const row = el.querySelectorAll<HTMLElement>('.srow')[i < 0 ? 0 : i]
     if (!row) return
     setName(surahs[i < 0 ? 0 : i].name)
-    el.querySelectorAll('.juz-flash').forEach((x) => x.classList.remove('juz-flash'))
-    row.classList.add('juz-flash') // первая сура джуза чуть подсвечивается
-    setTimeout(() => row.classList.remove('juz-flash'), 1600)
+    // первая сура джуза подсвечивается, пока палец на шкале: при переходе к другому джузу старая плавно гаснет, новая плавно загорается (transition в CSS)
+    clearTimeout(unflash.current)
+    el.querySelectorAll('.juz-flash').forEach((x) => x !== row && x.classList.remove('juz-flash'))
+    row.classList.add('juz-flash')
     el.scrollTop += row.getBoundingClientRect().top - tr.getBoundingClientRect().top
   }
 
@@ -82,7 +84,12 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
   }
   const down = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; setHeld(true); onHold?.(true); keepVisible(); at(e) }
   const move = (e: React.PointerEvent<HTMLDivElement>) => { if (dragging.current) at(e) }
-  const up = () => { dragging.current = false; setHeld(false); onHold?.(false); last.current = 0; keepVisible(900) }
+  const up = () => {
+    dragging.current = false; setHeld(false); onHold?.(false); last.current = 0; keepVisible(900)
+    // отпустили палец — подсветка ещё мгновение держится и плавно гаснет
+    clearTimeout(unflash.current)
+    unflash.current = setTimeout(() => scroll.current?.querySelectorAll('.juz-flash').forEach((x) => x.classList.remove('juz-flash')), 900)
+  }
 
   if (!enabled) return null
   const pos = place(juz)
@@ -91,8 +98,8 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
     <div className={'js' + (on ? ' on' : '') + (held ? ' held' : '')} aria-hidden={!on}>
       <div className="js-track" ref={track} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
         {MARKS.map((m) => <span key={m} className={'js-mark' + (m === juz ? ' cur' : '')} style={{ top: place(m) }}>{m}</span>)}
-        <div className="js-thumb" style={{ top: pos }}><b>{juz}</b></div>
-        <div className="js-bubble" style={{ top: pos }}><b>Джуз {juz}</b>{name && <span>{name}</span>}</div>
+        <div className="js-thumb" style={{ top: pos }}><b key={juz}>{juz}</b></div>
+        <div className="js-bubble" style={{ top: pos }}><b>Джуз {juz}</b>{name && <span key={name}>{name}</span>}</div>
       </div>
     </div>,
     document.body,
