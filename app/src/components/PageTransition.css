@@ -1,14 +1,25 @@
-/* обёртка экрана: занимает весь .app, чтобы .screen (position: absolute) лежал так же, как раньше */
+/* слой экрана занимает весь .app, чтобы .screen (position: absolute) лежал так же, как раньше */
 .pt { position: absolute; inset: 0; }
-.pt-push { animation: pt-push .34s cubic-bezier(.22, .9, .3, 1) backwards; }
-.pt-back { animation: pt-back .28s ease-out backwards; }
-/* из кнопки нижней панели: растёт от точки нажатия */
+/* уходящий экран тает под новым и не реагирует на касания */
+.pt-out { pointer-events: none; animation: pt-out .3s ease-in forwards; }
+.pt-in { z-index: 1; }
+.pt-push, .pt-back { animation: pt-in .38s ease-out backwards; }
+/* с нижней панели: новый экран чуть вырастает от нажатой кнопки */
 .pt-tab { transform-origin: var(--tx, 50%) var(--ty, 100%); animation: pt-tab .42s cubic-bezier(.2, .9, .25, 1) backwards; }
-@keyframes pt-push { from { opacity: 0; transform: translateY(18px); } }
-@keyframes pt-back { from { opacity: 0; transform: scale(1.025); } }
-@keyframes pt-tab { from { opacity: 0; transform: scale(.94); } 60% { opacity: 1; } }
+@keyframes pt-in { from { opacity: 0; } }
+@keyframes pt-out { to { opacity: 0; } }
+@keyframes pt-tab { from { opacity: 0; transform: scale(.96); } 70% { opacity: 1; } }
+/* содержимое нового экрана появляется по очереди: заголовок, затем блоки ниже (нижняя панель не участвует) */
+.pt-in.pt-push .screen > :not(.tabbar), .pt-in.pt-tab .screen > :not(.tabbar) { animation: pt-item .5s cubic-bezier(.22, .9, .3, 1) backwards; }
+.pt-in .screen > :nth-child(n+2) { animation-delay: .05s; }
+.pt-in .screen > :nth-child(n+3) { animation-delay: .1s; }
+.pt-in .screen > :nth-child(n+4) { animation-delay: .15s; }
+.pt-in .screen > :nth-child(n+5) { animation-delay: .2s; }
+.pt-in .screen > :nth-child(n+6) { animation-delay: .25s; }
+.pt-in .screen > :nth-child(n+7) { animation-delay: .3s; }
+@keyframes pt-item { from { opacity: 0; transform: translateY(12px); } }
 /* телефон просит уменьшить анимацию: без движения и масштаба, только мягкое проявление */
 @media (prefers-reduced-motion: reduce) {
-  .pt-push, .pt-back, .pt-tab { animation: pt-fade .25s ease-out backwards; }
-  @keyframes pt-fade { from { opacity: 0; } }
+  .pt-tab { animation: pt-in .3s ease-out backwards; }
+  .pt-in.pt-push .screen > :not(.tabbar), .pt-in.pt-tab .screen > :not(.tabbar) { animation: none; }
 }

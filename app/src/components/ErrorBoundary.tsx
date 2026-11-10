@@ -1,12 +1,15 @@
 import { Component, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
 import './ErrorBoundary.css'
 
-// Ловит ошибку при отрисовке экрана: вместо белого экрана — сообщение и кнопки «Назад» / «Обновить»
-class Boundary extends Component<{ children: ReactNode }, { err: Error | null }> {
+// Ловит ошибку при отрисовке экрана: вместо белого экрана — сообщение и кнопки «Назад» / «Обновить».
+// resetKey — адрес экрана: при его смене ошибка сбрасывается (без пересоздания экрана, чтобы он не терял состояние)
+export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: string }, { err: Error | null }> {
   state = { err: null as Error | null }
   static getDerivedStateFromError(err: Error) { return { err } }
   componentDidCatch(err: Error) { console.error('Ошибка экрана:', err) }
+  componentDidUpdate(prev: { resetKey?: string }) {
+    if (this.state.err && prev.resetKey !== this.props.resetKey) this.setState({ err: null })
+  }
   render() {
     if (!this.state.err) return this.props.children
     return (
@@ -21,10 +24,4 @@ class Boundary extends Component<{ children: ReactNode }, { err: Error | null }>
       </div>
     )
   }
-}
-
-// при переходе на другой экран ошибка сбрасывается (новый ключ — новый Boundary)
-export function ErrorBoundary({ children }: { children: ReactNode }) {
-  const loc = useLocation()
-  return <Boundary key={loc.pathname}>{children}</Boundary>
 }

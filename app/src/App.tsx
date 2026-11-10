@@ -98,9 +98,9 @@ export default function App() {
       {hydrated && <RemindAsk />}
       <div className="app">
         {hydrated && (
-          <ErrorBoundary>
-          <PageTransition>
-          <Routes>
+          <PageTransition render={(l) => (
+            <ErrorBoundary resetKey={l.pathname}>
+              <Routes location={l}>
             <Route path="/" element={<Home />} />
             <Route path="/quran" element={<SurahList />} />
             <Route path="/read/:surah" element={<Reader />} />
@@ -136,8 +136,8 @@ export default function App() {
             <Route path="/notifications" element={<Stub title="Уведомления" icon="bell" text="Здесь будут напоминания и сообщения." />} />
             <Route path="*" element={<Home />} />
           </Routes>
-          </PageTransition>
-          </ErrorBoundary>
+            </ErrorBoundary>
+          )} />
         )}
       </div>
     </HashRouter>
