@@ -7,4 +7,8 @@
 @keyframes pt-push { from { opacity: 0; transform: translateY(18px); } }
 @keyframes pt-back { from { opacity: 0; transform: scale(1.025); } }
 @keyframes pt-tab { from { opacity: 0; transform: scale(.94); } 60% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .pt-push, .pt-back, .pt-tab { animation: none; } }
+/* телефон просит уменьшить анимацию: без движения и масштаба, только мягкое проявление */
+@media (prefers-reduced-motion: reduce) {
+  .pt-push, .pt-back, .pt-tab { animation: pt-fade .25s ease-out backwards; }
+  @keyframes pt-fade { from { opacity: 0; } }
+}
