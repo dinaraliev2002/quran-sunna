@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { haptic } from '../lib/telegram'
 import { juzByPage } from '../lib/data'
 import type { Surah } from '../types/quran'
@@ -13,18 +13,25 @@ const PAD = 22 // отступ от краёв шкалы, чтобы бегун
 /** положение джуза на шкале: от верхнего до нижнего отступа */
 const place = (j: number) => `calc(${PAD}px + (100% - ${PAD * 2}px) * ${(j - 1) / 29})`
 
+/** Размеры списка, замеренные один раз (замеры при каждом движении пальца заставляли браузер пересчитывать раскладку — шкала тормозила) */
+interface Measure { tops: number[]; bottoms: number[]; trackTop: number; trackH: number }
+
 export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scroll: RefObject<HTMLDivElement | null>; surahs: Surah[]; juzPages: number[]; enabled: boolean; /** бегунок зажали / отпустили — список в это время не должен показывать верхние кнопки */ onHold?: (on: boolean) => void }) {
   const [on, setOn] = useState(false) // шкала видна
   const [juz, setJuz] = useState(1) // джуз сура наверху списка (или выбранный бегунком)
   const [name, setName] = useState('')
-  const [fy, setFy] = useState<number | null>(null) // пока тянем: точное положение пальца на шкале (0…1) — бегунок идёт за ним непрерывно, а не прыгает по джузам
   const [held, setHeld] = useState(false) // бегунок зажат — показываем подсказку с названием суры
+  const root = useRef<HTMLDivElement>(null)
   const track = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
   const hide = useRef<ReturnType<typeof setTimeout>>(undefined)
   const frame = useRef(0)
   const last = useRef(0)
+  const juzNow = useRef(1)
   const unflash = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const meas = useRef<Measure | null>(null) // замеры списка; сбрасываются при смене списка и размера окна
+  const rows = useRef<HTMLElement[]>([])
+  const flashed = useRef<HTMLElement | null>(null)
 
   const keepVisible = useCallback((ms = 1100) => {
     setOn(true)
@@ -32,15 +39,41 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
     if (!dragging.current) hide.current = setTimeout(() => setOn(false), ms)
   }, [])
 
-  /** Первая сура, видимая под шапкой: по ней определяем, какой сейчас джуз */
-  const topSurah = useCallback(() => {
+  /** Один раз замеряем положение всех строк списка и шкалы (координаты внутри прокручиваемого содержимого) */
+  const measure = useCallback((): Measure | null => {
     const el = scroll.current, tr = track.current
     if (!el || !tr) return null
-    const y = tr.getBoundingClientRect().top
-    const rows = el.querySelectorAll<HTMLElement>('.srow')
-    for (let i = 0; i < rows.length; i++) if (rows[i].getBoundingClientRect().bottom > y + 4) return surahs[i] ?? null
-    return null
-  }, [scroll, surahs])
+    if (meas.current) return meas.current
+    const er = el.getBoundingClientRect(), st = el.scrollTop
+    rows.current = [...el.querySelectorAll<HTMLElement>('.srow')]
+    const tops: number[] = [], bottoms: number[] = []
+    for (const r of rows.current) { const b = r.getBoundingClientRect(); tops.push(b.top - er.top + st); bottoms.push(b.bottom - er.top + st) }
+    const tb = tr.getBoundingClientRect()
+    meas.current = { tops, bottoms, trackTop: tb.top - er.top, trackH: tb.height }
+    return meas.current
+  }, [scroll])
+  useEffect(() => { meas.current = null }, [surahs, enabled])
+  useEffect(() => {
+    const reset = () => { meas.current = null }
+    addEventListener('resize', reset)
+    return () => removeEventListener('resize', reset)
+  }, [])
+
+  /** Положение бегунка и подсказки: одна CSS-переменная на корне, без пересчёта раскладки (двигаем через transform) */
+  const setY = useCallback((f: number) => {
+    const h = track.current?.clientHeight ?? 0
+    root.current?.style.setProperty('--y', (PAD + (h - PAD * 2) * f).toFixed(1) + 'px')
+  }, [])
+
+  /** Первая сура, видимая под шапкой (по ней определяем джуз): двоичный поиск по замеренным строкам, без обращения к раскладке */
+  const topSurahIdx = useCallback(() => {
+    const el = scroll.current, m = measure()
+    if (!el || !m) return -1
+    const y = el.scrollTop + m.trackTop + 4
+    let lo = 0, hi = m.bottoms.length - 1, ans = -1
+    while (lo <= hi) { const mid = (lo + hi) >> 1; if (m.bottoms[mid] > y) { ans = mid; hi = mid - 1 } else lo = mid + 1 }
+    return ans
+  }, [scroll, measure])
 
   useEffect(() => {
     const el = scroll.current
@@ -49,60 +82,65 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
       if (dragging.current) return
       cancelAnimationFrame(frame.current)
       frame.current = requestAnimationFrame(() => {
-        const s = topSurah()
+        const s = surahs[topSurahIdx()]
         if (s) { setJuz(juzByPage(juzPages, s.pages[0])); setName(s.name) }
       })
       keepVisible()
     }
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => { el.removeEventListener('scroll', onScroll); cancelAnimationFrame(frame.current); clearTimeout(hide.current); clearTimeout(unflash.current) }
-  }, [scroll, enabled, juzPages, topSurah, keepVisible])
+  }, [scroll, enabled, juzPages, surahs, topSurahIdx, keepVisible])
 
   useEffect(() => { if (!enabled) setOn(false) }, [enabled])
 
+  // в покое бегунок стоит на своём джузе (плавно «доезжает» через transition)
+  useLayoutEffect(() => { juzNow.current = juz; if (!dragging.current) setY((juz - 1) / 29) }, [juz, setY, on, enabled])
+
   /** Прыгнуть к первой суре, которая захватывает начало джуза j */
   const jump = (j: number) => {
-    const el = scroll.current, tr = track.current
-    if (!el || !tr) return
+    const el = scroll.current, m = measure()
+    if (!el || !m) return
     const page = juzPages[j - 1]
-    const i = surahs.findIndex((s) => s.pages[1] >= page)
-    const row = el.querySelectorAll<HTMLElement>('.srow')[i < 0 ? 0 : i]
+    const i0 = surahs.findIndex((s) => s.pages[1] >= page)
+    const i = i0 < 0 ? 0 : i0
+    const row = rows.current[i]
     if (!row) return
-    setName(surahs[i < 0 ? 0 : i].name)
-    // первая сура джуза подсвечивается, пока палец на шкале: при переходе к другому джузу старая плавно гаснет, новая плавно загорается (transition в CSS)
+    setName(surahs[i].name)
+    // первая сура джуза подсвечивается, пока палец на шкале: старая плавно гаснет, новая плавно загорается (transition в CSS)
     clearTimeout(unflash.current)
-    el.querySelectorAll('.juz-flash').forEach((x) => x !== row && x.classList.remove('juz-flash'))
-    row.classList.add('juz-flash')
-    el.scrollTop += row.getBoundingClientRect().top - tr.getBoundingClientRect().top
+    if (flashed.current && flashed.current !== row) flashed.current.classList.remove('juz-flash')
+    row.classList.add('juz-flash'); flashed.current = row
+    el.scrollTop = m.tops[i] - m.trackTop // позиции уже замерены — прокрутка без чтения раскладки
   }
 
   const at = (e: React.PointerEvent) => {
-    const r = track.current!.getBoundingClientRect()
-    const f = Math.min(1, Math.max(0, (e.clientY - r.top - PAD) / (r.height - PAD * 2)))
+    const m = measure()
+    if (!m) return
+    // положение пальца относительно шкалы (в экранных координатах)
+    const trackTopScreen = scroll.current!.getBoundingClientRect().top + m.trackTop
+    const f = Math.min(1, Math.max(0, (e.clientY - trackTopScreen - PAD) / (m.trackH - PAD * 2)))
+    setY(f) // бегунок идёт прямо за пальцем
     const j = Math.round(f * 29) + 1
-    setFy(f)
-    setJuz(j)
-    if (j !== last.current) { last.current = j; haptic.tick(); jump(j) }
+    if (j !== last.current) { last.current = j; juzNow.current = j; setJuz(j); haptic.tick(); jump(j) }
   }
-  const down = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; setHeld(true); onHold?.(true); keepVisible(); at(e) }
+  const down = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); meas.current = null; dragging.current = true; setHeld(true); onHold?.(true); keepVisible(); at(e) }
   const move = (e: React.PointerEvent<HTMLDivElement>) => { if (dragging.current) at(e) }
   const up = () => {
-    dragging.current = false; setHeld(false); setFy(null); onHold?.(false); last.current = 0; keepVisible(900)
+    dragging.current = false; setHeld(false); onHold?.(false); last.current = 0; keepVisible(900)
+    setY((juzNow.current - 1) / 29) // садимся на свой джуз
     // отпустили палец — подсветка ещё мгновение держится и плавно гаснет
     clearTimeout(unflash.current)
-    unflash.current = setTimeout(() => scroll.current?.querySelectorAll('.juz-flash').forEach((x) => x.classList.remove('juz-flash')), 900)
+    unflash.current = setTimeout(() => { flashed.current?.classList.remove('juz-flash'); flashed.current = null }, 900)
   }
 
   if (!enabled) return null
-  // при перетаскивании — за пальцем; в покое — на своём джузе (плавно «доезжает» через transition)
-  const pos = fy != null ? `calc(${PAD}px + (100% - ${PAD * 2}px) * ${fy})` : place(juz)
   // выносим в <body>: контейнер экрана создаёт свой «слой», и шкала оказалась бы под боковой панелью
   return createPortal(
-    <div className={'js' + (on ? ' on' : '') + (held ? ' held' : '') + (fy != null ? ' drag' : '')} aria-hidden={!on}>
+    <div ref={root} className={'js' + (on ? ' on' : '') + (held ? ' held' : '')} aria-hidden={!on}>
       <div className="js-track" ref={track} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
         {MARKS.map((m) => <span key={m} className={'js-mark' + (m === juz ? ' cur' : '')} style={{ top: place(m) }}>{m}</span>)}
-        <div className="js-thumb" style={{ top: pos }}><b key={juz}>{juz}</b></div>
-        <div className="js-bubble" style={{ top: pos }}><b>Джуз {juz}</b>{name && <span key={name}>{name}</span>}</div>
+        <div className="js-thumb"><b key={juz}>{juz}</b></div>
+        <div className="js-bubble"><b>Джуз {juz}</b>{name && <span key={name}>{name}</span>}</div>
       </div>
     </div>,
     document.body,
