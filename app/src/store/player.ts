@@ -362,7 +362,15 @@ export const setMediaTitle = (fn: (key: string) => string) => { titleOf = fn }
 
 function mediaSession(key: string) {
   if (!('mediaSession' in navigator)) return
-  navigator.mediaSession.metadata = new MediaMetadata({ title: titleOf(key), artist: (RECITERS[reciter] ?? RECITERS.alafasy).name, album: 'Коран' })
+  // картинка на экране блокировки и в «Пункте управления» (без неё iPhone показывал иконку сайта — молнию из шаблона)
+  const art = (f: string) => new URL(f, location.href).href
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: titleOf(key), artist: (RECITERS[reciter] ?? RECITERS.alafasy).name, album: 'Коран',
+    artwork: [
+      { src: art('./cover-256.jpg'), sizes: '256x256', type: 'image/jpeg' },
+      { src: art('./cover-512.jpg'), sizes: '512x512', type: 'image/jpeg' },
+    ],
+  })
   navigator.mediaSession.setActionHandler('play', () => usePlayer.getState().toggle())
   navigator.mediaSession.setActionHandler('pause', () => usePlayer.getState().toggle())
   navigator.mediaSession.setActionHandler('stop', () => usePlayer.getState().stop())
