@@ -14,7 +14,7 @@ const PAD = 22 // отступ от краёв шкалы, чтобы бегун
 const place = (j: number) => `calc(${PAD}px + (100% - ${PAD * 2}px) * ${(j - 1) / 29})`
 
 /** Размеры списка, замеренные один раз (замеры при каждом движении пальца заставляли браузер пересчитывать раскладку — шкала тормозила) */
-interface Measure { tops: number[]; bottoms: number[]; trackTop: number; trackH: number }
+interface Measure { tops: number[]; bottoms: number[]; trackTop: number; trackH: number; elTop: number }
 
 export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scroll: RefObject<HTMLDivElement | null>; surahs: Surah[]; juzPages: number[]; enabled: boolean; /** бегунок зажали / отпустили — список в это время не должен показывать верхние кнопки */ onHold?: (on: boolean) => void }) {
   const [on, setOn] = useState(false) // шкала видна
@@ -49,7 +49,7 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
     const tops: number[] = [], bottoms: number[] = []
     for (const r of rows.current) { const b = r.getBoundingClientRect(); tops.push(b.top - er.top + st); bottoms.push(b.bottom - er.top + st) }
     const tb = tr.getBoundingClientRect()
-    meas.current = { tops, bottoms, trackTop: tb.top - er.top, trackH: tb.height }
+    meas.current = { tops, bottoms, trackTop: tb.top - er.top, trackH: tb.height, elTop: er.top }
     return meas.current
   }, [scroll])
   useEffect(() => { meas.current = null }, [surahs, enabled])
@@ -113,16 +113,32 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
     el.scrollTop = m.tops[i] - m.trackTop // позиции уже замерены — прокрутка без чтения раскладки
   }
 
+  // Палец двигается чаще, чем обновляется экран. Если на каждое движение прыгать списком, iPhone не успевает его
+  // дорисовать (список отстаёт и мелькает пустым). Поэтому бегунок двигаем сразу, а список — не чаще раза за кадр
+  const pending = useRef(0)
+  const tick = useRef(0)
+  const flush = () => {
+    tick.current = 0
+    const j = pending.current
+    if (!dragging.current || j === last.current) return
+    last.current = j; juzNow.current = j; setJuz(j); haptic.tick(); jump(j)
+  }
   const at = (e: React.PointerEvent) => {
     const m = measure()
     if (!m) return
-    // положение пальца относительно шкалы (в экранных координатах)
-    const trackTopScreen = scroll.current!.getBoundingClientRect().top + m.trackTop
-    const f = Math.min(1, Math.max(0, (e.clientY - trackTopScreen - PAD) / (m.trackH - PAD * 2)))
+    // положение пальца относительно шкалы (в экранных координатах; верх списка замерен заранее)
+    const f = Math.min(1, Math.max(0, (e.clientY - m.elTop - m.trackTop - PAD) / (m.trackH - PAD * 2)))
     setY(f) // бегунок идёт прямо за пальцем
-    const j = Math.round(f * 29) + 1
-    if (j !== last.current) { last.current = j; juzNow.current = j; setJuz(j); haptic.tick(); jump(j) }
+    pending.current = Math.round(f * 29) + 1
+    if (!tick.current) tick.current = requestAnimationFrame(flush)
   }
+  useEffect(() => () => cancelAnimationFrame(tick.current), [])
+
+  // Экран со списком уходит (переход на другой экран): шкала нарисована поверх всего, поэтому прячем её сразу,
+  // иначе она на долю секунды видна над новым экраном
+  useLayoutEffect(() => {
+    if (root.current) root.current.style.visibility = scroll.current?.closest('.pt-out') ? 'hidden' : ''
+  })
   const down = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); meas.current = null; dragging.current = true; setHeld(true); onHold?.(true); keepVisible(); at(e) }
   const move = (e: React.PointerEvent<HTMLDivElement>) => { if (dragging.current) at(e) }
   const up = () => {
