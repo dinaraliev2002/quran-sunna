@@ -29,6 +29,24 @@ function copyDir(from, to) {
   }
 }
 
+// GitHub Pages иногда «роняет» сборку сайта (Page build failed) — тогда на сайте остаётся старая версия, хотя скрипт отчитался об успехе.
+// Поэтому после отправки ждём результат сборки и при ошибке запускаем её заново (до 3 раз). Нужен установленный gh; без него просто пропускаем.
+const sleep = (s) => execSync(process.platform === 'win32' ? `powershell -NoProfile -Command Start-Sleep ${s}` : `sleep ${s}`)
+function pagesStatus() {
+  try { return execSync('gh api repos/dinaraliev2002/quran-sunna/pages/builds/latest --jq .status', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() } catch { return null }
+}
+function waitForPages() {
+  if (pagesStatus() === null) { console.log('(gh недоступен — сборку Pages не проверяю)'); return }
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    let st = 'queued'
+    for (let i = 0; i < 24 && (st === 'queued' || st === 'building'); i++) { sleep(5); st = pagesStatus() ?? st }
+    if (st === 'built') { console.log('Сборка сайта на GitHub Pages прошла'); return }
+    console.log(`Сборка Pages: ${st} — запускаю заново (${attempt}/3)`)
+    try { execSync('gh api -X POST repos/dinaraliev2002/quran-sunna/pages/builds', { cwd: root, stdio: 'ignore' }) } catch {}
+  }
+  console.log('ВНИМАНИЕ: GitHub Pages не собрал сайт — на нём пока старая версия')
+}
+
 const dir = mkdtempSync(join(tmpdir(), 'deploy-'))
 try {
   if (target === 'test') {
@@ -51,6 +69,7 @@ try {
   else {
     run(`git ${who} commit -q -m "${target === 'test' ? 'Тестовая версия' : 'Публикация приложения'}"`, dir)
     run('git push -q origin gh-pages', dir)
+    waitForPages()
     console.log(target === 'test' ? 'Тестовая версия опубликована: https://dinaraliev2002.github.io/quran-sunna/test/' : 'Опубликовано для всех')
   }
 } finally {
