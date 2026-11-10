@@ -1,25 +1,14 @@
-/* шкала джузов у правого края списка сур; выше боковой панели (z 19) и нижней панели (z 20) */
-.js { position: fixed; z-index: 30; right: var(--safe-right); top: calc(var(--content-top) + 150px); bottom: calc(var(--safe-bottom) + 108px); width: 34px; opacity: 0; pointer-events: none; transition: opacity .22s ease; }
+/* шкала джузов у правого края списка сур; выше боковой панели (z 19) и нижней панели (z 20), ниже окон (z 30+) */
+.js { position: fixed; z-index: 25; right: var(--safe-right); top: calc(var(--content-top) + 150px); bottom: calc(var(--safe-bottom) + 108px); width: 34px; opacity: 0; pointer-events: none; transition: opacity .22s ease; }
 .js.on { opacity: 1; pointer-events: auto; }
-.js-track { position: absolute; inset: 0; touch-action: none; background: color-mix(in srgb, var(--surface) 96%, transparent); border-radius: 17px; box-shadow: 0 6px 22px rgba(0, 0, 0, .16); /* без размытия фона: оно перерисовывалось на каждом кадре прокрутки списка и сильно тормозило */ }
-.js-mark { position: absolute; right: 0; left: 0; text-align: center; transform: translateY(-50%); font-size: 10px; font-weight: 800; color: var(--text-2); pointer-events: none; }
-.js-mark { transition: opacity .2s ease; }
+/* вся шкала — кнопка: нажатие открывает сетку джузов. Без размытия фона: оно перерисовывалось на каждом кадре прокрутки */
+.js-track { position: absolute; inset: 0; display: block; width: 100%; padding: 0; touch-action: manipulation; background: color-mix(in srgb, var(--surface) 96%, transparent); border-radius: 17px; box-shadow: 0 6px 22px rgba(0, 0, 0, .16); transition: transform .15s ease; }
+.js-track:active { transform: scale(.94); }
+.js-mark { position: absolute; right: 0; left: 0; text-align: center; transform: translateY(-50%); font-size: 10px; font-weight: 800; color: var(--text-2); pointer-events: none; transition: opacity .2s ease; }
 .js-mark.cur { opacity: 0; }
-.js-thumb { position: absolute; top: 0; left: 2px; right: 2px; height: 28px; border-radius: 14px; background: var(--gold); color: var(--on-gold); display: grid; place-items: center; font-size: 13px; font-weight: 800; box-shadow: 0 3px 10px rgba(0, 0, 0, .25); will-change: transform;
-  transform: translateY(calc(var(--y, 0px) - 50%));
-  /* в покое бегунок плавно «доезжает» до своего джуза с лёгким пружинящим выбегом */
-  transition: transform .34s cubic-bezier(.22, 1.25, .36, 1), box-shadow .2s ease; }
-/* пока палец на шкале: бегунок чуть увеличен и идёт прямо за пальцем почти без задержки */
-.js.held .js-thumb { transform: translateY(calc(var(--y, 0px) - 50%)) scale(1.14); box-shadow: 0 5px 16px rgba(0, 0, 0, .32); transition: transform .07s linear, box-shadow .2s ease; }
-.js-thumb b { display: block; animation: js-pop .28s cubic-bezier(.2, 1.2, .4, 1); }
-@keyframes js-pop { from { opacity: .2; transform: translateY(5px) scale(.8); } to { opacity: 1; transform: none; } }
-.js-bubble { position: absolute; top: 0; right: 42px; background: var(--surface); border-radius: 16px; padding: 8px 14px; box-shadow: var(--shadow); white-space: nowrap; pointer-events: none; opacity: 0; will-change: transform;
-  transform: translate(10px, calc(var(--y, 0px) - 50%)); transition: opacity .18s ease, transform .34s cubic-bezier(.22, 1.25, .36, 1); }
-.js-bubble span { display: block; animation: js-name .25s ease; }
-@keyframes js-name { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.js-bubble b { display: block; font-size: 14px; font-weight: 800; }
-.js-bubble span { font-size: 12px; color: var(--text-2); }
-.js.held .js-bubble { opacity: 1; transform: translate(0, calc(var(--y, 0px) - 50%)); transition: opacity .18s ease, transform .07s linear; }
-/* первая сура джуза, на которой палец: подсвечивается плавно — старая гаснет, новая загорается, а не мигает */
+/* бегунок показывает текущий джуз; положение — переменная --y (её пишет код), двигаем через transform: он не пересчитывает раскладку */
+.js-thumb { position: absolute; top: 0; left: 2px; right: 2px; height: 28px; border-radius: 14px; background: var(--gold); color: var(--on-gold); display: grid; place-items: center; font-size: 13px; font-weight: 800; box-shadow: 0 3px 10px rgba(0, 0, 0, .25); pointer-events: none; will-change: transform;
+  transform: translateY(calc(var(--y, 0px) - 50%)); transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
+/* первая сура выбранного джуза: мягкая подсветка, гаснет сама */
 .srow { transition: background-color .38s ease, box-shadow .38s ease; }
 .srow.juz-flash { background: var(--highlight); box-shadow: 0 0 0 6px var(--highlight); border-radius: 16px; }
