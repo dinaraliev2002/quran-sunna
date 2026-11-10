@@ -24,7 +24,7 @@ export const AyahBlock = memo(function AyahBlock({ sid, a, opts, act, playing, h
         {/* у аята есть история ниспослания — она в окне аята */}
         {story && <button className="a-story" onClick={() => act.onInfo(sid, a.n)}><Icon id="book" />История аята</button>}
         {comment && !story && <button className="a-story" onClick={() => act.onInfo(sid, a.n)}><Icon id="scroll" />Комментарий</button>}
-        {sajda && <button className="a-story sj" onClick={() => act.onInfo(sid, a.n)} aria-label="Земной поклон">۩</button>}
+        {sajda && <button className="a-story sj" onClick={() => act.onInfo(sid, a.n)} aria-label="Земной поклон"><Icon id="sajda" /></button>}
         <div className="a-acts">
           <button className={'a-act' + (playing ? ' playing' : '')} onClick={() => (playing ? act.onToggle() : act.onPlay(sid, a.n))}
             aria-label={playing && act.sounding ? 'Пауза' : 'Слушать'}><Icon id={playing && act.sounding ? 'pause' : 'play'} /></button>
