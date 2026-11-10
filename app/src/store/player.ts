@@ -122,12 +122,17 @@ export const usePlayer = create<PlayerState>((set, get) => {
   function surahEnd(): boolean {
     const s = get()
     if (s.memo || !s.queue.length) return false
+    // Это конец суры, только если доиграли её ПОСЛЕДНИЙ аят. Иначе один аят (проверка в заучивании, нажатие на аят)
+    // после окончания включал всю следующую суру, а таймер сна «после N сур» считал его за суру
+    const lastKey = parse(s.queue[s.queue.length - 1])
+    const sid = lastKey.s
+    const count = playerCfg.surahCount(sid)
+    if (count && lastKey.a !== count) return false
     if (s.sleep?.mode === 'suras') {
       const left = s.sleep.left - 1
       if (left <= 0) { set({ sleep: null }); return false }
       set({ sleep: { mode: 'suras', left } })
     }
-    const sid = parse(s.queue[s.queue.length - 1]).s
     if (playerCfg.next === 'stop') return false
     const nsid = playerCfg.next === 'repeat' ? sid : sid + 1
     const n = playerCfg.surahCount(nsid)
