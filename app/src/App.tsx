@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { IconSprite } from './components/Icon'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { PageTransition } from './components/PageTransition'
 import { cleanupOldData } from './lib/net'
 import { useWordHighlight } from './lib/wordSync'
 import { useReminders } from './hooks/useReminders'
@@ -98,6 +99,7 @@ export default function App() {
       <div className="app">
         {hydrated && (
           <ErrorBoundary>
+          <PageTransition>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/quran" element={<SurahList />} />
@@ -134,6 +136,7 @@ export default function App() {
             <Route path="/notifications" element={<Stub title="Уведомления" icon="bell" text="Здесь будут напоминания и сообщения." />} />
             <Route path="*" element={<Home />} />
           </Routes>
+          </PageTransition>
           </ErrorBoundary>
         )}
       </div>
