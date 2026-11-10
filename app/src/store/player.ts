@@ -38,8 +38,10 @@ interface PlayerState {
   index: number
   current: string | null
   memo: (MemoOptions & { each: number; round: number }) | null
+  /** заучивание: играть ровно эти аяты и остановиться — без «следующей суры» и повтора из настроек плеера */
+  exact: boolean
   error: string | null
-  play: (queue: string[], start?: number, memo?: MemoOptions | null) => void
+  play: (queue: string[], start?: number, memo?: MemoOptions | null, opts?: { exact?: boolean }) => void
   toggle: () => void
   stop: () => void
 }
@@ -121,7 +123,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
   /** Конец суры: продолжать ли дальше (следующая сура / повтор) с учётом таймера сна */
   function surahEnd(): boolean {
     const s = get()
-    if (s.memo || !s.queue.length) return false
+    if (s.memo || s.exact || !s.queue.length) return false
     // Это конец суры, только если доиграли её ПОСЛЕДНИЙ аят. Иначе один аят (проверка в заучивании, нажатие на аят)
     // после окончания включал всю следующую суру, а таймер сна «после N сур» считал его за суру
     const lastKey = parse(s.queue[s.queue.length - 1])
@@ -313,11 +315,12 @@ export const usePlayer = create<PlayerState>((set, get) => {
     index: 0,
     current: null,
     memo: null,
+    exact: false,
     error: null,
-    play: (queue, start = 0, memo = null) => {
+    play: (queue, start = 0, memo = null, opts) => {
       applyRate(lessonRate ?? playerCfg.rate)
       window.dispatchEvent(new Event('quran-play')) // остановить аудио азкара, если играет
-      set({ queue, memo: memo ? { ...memo, each: 1, round: 1 } : null })
+      set({ queue, memo: memo ? { ...memo, each: 1, round: 1 } : null, exact: !!opts?.exact })
       // iPhone: плеер должен впервые зазвучать прямо в момент нажатия — пока ищем запись, играем тишину
       if (!file) { el.src = SILENT; el.play().catch(() => {}) }
       startAt(start)

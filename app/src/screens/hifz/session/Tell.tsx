@@ -17,7 +17,7 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
   const reveal = (n: number) => {
     haptic.tick()
     setOpen((s) => new Set(s).add(n))
-    usePlayer.getState().play([`${item.s}:${n}`])
+    usePlayer.getState().play([`${item.s}:${n}`], 0, null, { exact: true }) // проверка: только этот аят
   }
   return (
     <>
