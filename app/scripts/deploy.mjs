@@ -39,9 +39,10 @@ function waitForPages() {
   if (pagesStatus() === null) { console.log('(gh недоступен — сборку Pages не проверяю)'); return }
   for (let attempt = 1; attempt <= 3; attempt++) {
     let st = 'queued'
-    for (let i = 0; i < 24 && (st === 'queued' || st === 'building'); i++) { sleep(5); st = pagesStatus() ?? st }
+    for (let i = 0; i < 72 && (st === 'queued' || st === 'building'); i++) { sleep(5); st = pagesStatus() ?? st } // полный сайт собирается до нескольких минут — пока идёт сборка, не перезапускаем
     if (st === 'built') { console.log('Сборка сайта на GitHub Pages прошла'); return }
     console.log(`Сборка Pages: ${st} — запускаю заново (${attempt}/3)`)
+    if (st === 'errored') sleep(90) // сразу после сбоя новая сборка тоже падает — даём GitHub успокоиться
     try { execSync('gh api -X POST repos/dinaraliev2002/quran-sunna/pages/builds', { cwd: root, stdio: 'ignore' }) } catch {}
   }
   console.log('ВНИМАНИЕ: GitHub Pages не собрал сайт — на нём пока старая версия')
