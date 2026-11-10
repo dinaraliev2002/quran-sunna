@@ -138,6 +138,7 @@ export default function Settings() {
           </div>
         </Sheet>
       )}
+      <BuildInfo />
       {open === 'news' && <NewsHistory onClose={close} />}
       {open === 'sources' && (
         <Sheet onClose={close}>
@@ -160,4 +161,14 @@ export default function Settings() {
       <TabBar />
     </div>
   )
+}
+
+declare const __BUILD_TIME__: string // время сборки (vite.config.ts)
+
+/** Мелкая строка внизу настроек: какая сборка открыта и разрешены ли системой анимации. Помогает понять, что телефон показывает старую версию из кэша */
+function BuildInfo() {
+  const d = new Date(__BUILD_TIME__)
+  const t = d.toLocaleString('ru-RU', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
+  return <p className="build-info">Сборка от {t}{calm ? ' · в телефоне включено «уменьшить анимацию»' : ''}</p>
 }

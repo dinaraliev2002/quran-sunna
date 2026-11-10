@@ -9,7 +9,7 @@ const newsLatest = JSON.parse(readFileSync(new URL('./public/updates.json', impo
 export default defineConfig({
   base: './',
   plugins: [react()],
-  define: { __NEWS_LATEST__: JSON.stringify(newsLatest) },
+  define: { __NEWS_LATEST__: JSON.stringify(newsLatest), __BUILD_TIME__: JSON.stringify(new Date().toISOString()) },
   // адреса временного туннеля Cloudflare (для проверки в Telegram с компьютера)
   server: { allowedHosts: ['.trycloudflare.com'] },
   preview: { allowedHosts: ['.trycloudflare.com'] },

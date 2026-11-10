@@ -1707,3 +1707,4 @@ div.srow { cursor: pointer; }
 .qm-panel.edit .qm-row { flex-direction: row; gap: 10px; padding: 6px; background: var(--surface-2); text-align: left; }
 .qm-panel.edit .qm-ic { width: 34px; height: 34px; border-radius: 11px; }
 .qm-panel.edit .qm-t { flex: 1; font-size: 14px; }
+.build-info { text-align: center; font-size: 11px; color: var(--text-2); opacity: .6; margin: 18px 0 0; }
