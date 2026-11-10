@@ -11,6 +11,7 @@ import './PageTransition.css'
 const tap = { x: 0, y: 0, t: 0 }
 const keyOf = (l: Location) => (l.pathname.startsWith('/read/') ? '/read' : l.pathname)
 const OUT_MS = 160 // старый экран гаснет за 130 мс — после этого убираем
+const ENTER_MS = 950 // самая долгая анимация входа (последний блок: задержка .4 с + .5 с) — после неё класс входа снимаем
 
 export function PageTransition({ render }: { render: (loc: Location) => ReactNode }) {
   const loc = useLocation()
@@ -38,6 +39,16 @@ export function PageTransition({ render }: { render: (loc: Location) => ReactNod
     return () => removeEventListener('click', on, true)
   }, [])
 
+  // Анимация входа действует только сам переход (ENTER_MS). Иначе её правила цеплялись к окнам, которые экран
+  // открывает позже (например, «Заучивание» на главной): окно выезжало, а потом ещё раз проявлялось
+  const [entering, setEntering] = useState(false)
+  useEffect(() => {
+    if (!st.n) return
+    setEntering(true)
+    const t = setTimeout(() => setEntering(false), ENTER_MS)
+    return () => clearTimeout(t)
+  }, [st.n])
+
   // когда новый экран проявился — убираем старый
   useEffect(() => {
     if (!st.prev) return
@@ -48,7 +59,7 @@ export function PageTransition({ render }: { render: (loc: Location) => ReactNod
   return (
     <>
       {st.prev && <div key={st.n - 1} className="pt pt-out" aria-hidden="true">{render(st.prev)}</div>}
-      <div key={st.n} className={'pt pt-in' + (st.n ? ' pt-' + st.kind : '')} style={st.kind === 'tab' ? { ['--tx' as string]: st.ox + 'px', ['--ty' as string]: st.oy + 'px' } : undefined}>
+      <div key={st.n} className={'pt pt-in' + (st.n && (entering || st.prev) ? ' pt-' + st.kind : '')} style={st.kind === 'tab' ? { ['--tx' as string]: st.ox + 'px', ['--ty' as string]: st.oy + 'px' } : undefined}>
         {render(loc)}
       </div>
     </>

@@ -1,7 +1,10 @@
 /* слой экрана занимает весь .app, чтобы .screen (position: absolute) лежал так же, как раньше */
 .pt { position: absolute; inset: 0; }
 /* уходящий экран быстро гаснет ДО того, как проявится новый (иначе они просвечивают друг сквозь друга), и не реагирует на касания */
-.pt-out { pointer-events: none; animation: pt-out .13s ease-in forwards; }
+.pt-out { pointer-events: none; animation: pt-out .13s ease-in forwards; z-index: 0; isolation: isolate; }
+/* открытые окна уходящего экрана (например, «Заучивание» на главной, из которого перешли) пропадают сразу,
+   а не проскакивают поверх нового экрана; isolation держит всё уходящее под новым слоем */
+.pt-out .sheet, .pt-out .dim { visibility: hidden; }
 .pt-in { z-index: 1; }
 .pt-push, .pt-back { animation: pt-in .34s ease-out .1s backwards; }
 /* с нижней панели: новый экран чуть вырастает от нажатой кнопки */
