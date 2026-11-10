@@ -10,7 +10,7 @@ import './PageTransition.css'
 /** Откуда нажали: центр кнопки нижней панели и время нажатия (переход, начатый в ближайшие 700 мс, считаем «из кнопки») */
 const tap = { x: 0, y: 0, t: 0 }
 const keyOf = (l: Location) => (l.pathname.startsWith('/read/') ? '/read' : l.pathname)
-const OUT_MS = 360
+const OUT_MS = 160 // старый экран гаснет за 130 мс — после этого убираем
 
 export function PageTransition({ render }: { render: (loc: Location) => ReactNode }) {
   const loc = useLocation()

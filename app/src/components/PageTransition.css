@@ -1,25 +1,25 @@
 /* слой экрана занимает весь .app, чтобы .screen (position: absolute) лежал так же, как раньше */
 .pt { position: absolute; inset: 0; }
-/* уходящий экран тает под новым и не реагирует на касания */
-.pt-out { pointer-events: none; animation: pt-out .3s ease-in forwards; }
+/* уходящий экран быстро гаснет ДО того, как проявится новый (иначе они просвечивают друг сквозь друга), и не реагирует на касания */
+.pt-out { pointer-events: none; animation: pt-out .13s ease-in forwards; }
 .pt-in { z-index: 1; }
-.pt-push, .pt-back { animation: pt-in .38s ease-out backwards; }
+.pt-push, .pt-back { animation: pt-in .34s ease-out .1s backwards; }
 /* с нижней панели: новый экран чуть вырастает от нажатой кнопки */
-.pt-tab { transform-origin: var(--tx, 50%) var(--ty, 100%); animation: pt-tab .42s cubic-bezier(.2, .9, .25, 1) backwards; }
+.pt-tab { transform-origin: var(--tx, 50%) var(--ty, 100%); animation: pt-tab .42s cubic-bezier(.2, .9, .25, 1) .1s backwards; }
 @keyframes pt-in { from { opacity: 0; } }
 @keyframes pt-out { to { opacity: 0; } }
 @keyframes pt-tab { from { opacity: 0; transform: scale(.96); } 70% { opacity: 1; } }
 /* содержимое нового экрана появляется по очереди: заголовок, затем блоки ниже (нижняя панель не участвует) */
-.pt-in.pt-push .screen > :not(.tabbar), .pt-in.pt-tab .screen > :not(.tabbar) { animation: pt-item .5s cubic-bezier(.22, .9, .3, 1) backwards; }
-.pt-in .screen > :nth-child(n+2) { animation-delay: .05s; }
-.pt-in .screen > :nth-child(n+3) { animation-delay: .1s; }
-.pt-in .screen > :nth-child(n+4) { animation-delay: .15s; }
-.pt-in .screen > :nth-child(n+5) { animation-delay: .2s; }
-.pt-in .screen > :nth-child(n+6) { animation-delay: .25s; }
-.pt-in .screen > :nth-child(n+7) { animation-delay: .3s; }
+.pt-in.pt-push .screen > :not(.tabbar), .pt-in.pt-tab .screen > :not(.tabbar) { animation: pt-item .5s cubic-bezier(.22, .9, .3, 1) .1s backwards; }
+.pt-in .screen > :nth-child(n+2) { animation-delay: .15s; }
+.pt-in .screen > :nth-child(n+3) { animation-delay: .20s; }
+.pt-in .screen > :nth-child(n+4) { animation-delay: .25s; }
+.pt-in .screen > :nth-child(n+5) { animation-delay: .30s; }
+.pt-in .screen > :nth-child(n+6) { animation-delay: .35s; }
+.pt-in .screen > :nth-child(n+7) { animation-delay: .40s; }
 @keyframes pt-item { from { opacity: 0; transform: translateY(12px); } }
 /* телефон просит уменьшить анимацию: без движения и масштаба, только мягкое проявление */
 @media (prefers-reduced-motion: reduce) {
-  .pt-tab { animation: pt-in .3s ease-out backwards; }
+  .pt-tab { animation: pt-in .3s ease-out .1s backwards; }
   .pt-in.pt-push .screen > :not(.tabbar), .pt-in.pt-tab .screen > :not(.tabbar) { animation: none; }
 }
