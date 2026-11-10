@@ -20,3 +20,5 @@
 /* первая сура джуза, на которой палец: подсвечивается плавно — старая гаснет, новая загорается, а не мигает */
 .srow { transition: background-color .38s ease, box-shadow .38s ease; }
 .srow.juz-flash { background: var(--highlight); box-shadow: 0 0 0 6px var(--highlight); border-radius: 16px; }
+/* пока палец на шкале, бегунок и подсказка идут прямо за ним (почти без задержки), отпустили — плавно садятся на свой джуз */
+.js.drag .js-thumb, .js.drag .js-bubble { transition: transform .2s ease, box-shadow .2s ease, opacity .18s ease, translate .22s ease, top .06s linear; }

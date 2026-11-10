@@ -17,6 +17,7 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
   const [on, setOn] = useState(false) // шкала видна
   const [juz, setJuz] = useState(1) // джуз сура наверху списка (или выбранный бегунком)
   const [name, setName] = useState('')
+  const [fy, setFy] = useState<number | null>(null) // пока тянем: точное положение пальца на шкале (0…1) — бегунок идёт за ним непрерывно, а не прыгает по джузам
   const [held, setHeld] = useState(false) // бегунок зажат — показываем подсказку с названием суры
   const track = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
@@ -79,23 +80,25 @@ export function JuzScrubber({ scroll, surahs, juzPages, enabled, onHold }: { scr
     const r = track.current!.getBoundingClientRect()
     const f = Math.min(1, Math.max(0, (e.clientY - r.top - PAD) / (r.height - PAD * 2)))
     const j = Math.round(f * 29) + 1
+    setFy(f)
     setJuz(j)
     if (j !== last.current) { last.current = j; haptic.tick(); jump(j) }
   }
   const down = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; setHeld(true); onHold?.(true); keepVisible(); at(e) }
   const move = (e: React.PointerEvent<HTMLDivElement>) => { if (dragging.current) at(e) }
   const up = () => {
-    dragging.current = false; setHeld(false); onHold?.(false); last.current = 0; keepVisible(900)
+    dragging.current = false; setHeld(false); setFy(null); onHold?.(false); last.current = 0; keepVisible(900)
     // отпустили палец — подсветка ещё мгновение держится и плавно гаснет
     clearTimeout(unflash.current)
     unflash.current = setTimeout(() => scroll.current?.querySelectorAll('.juz-flash').forEach((x) => x.classList.remove('juz-flash')), 900)
   }
 
   if (!enabled) return null
-  const pos = place(juz)
+  // при перетаскивании — за пальцем; в покое — на своём джузе (плавно «доезжает» через transition)
+  const pos = fy != null ? `calc(${PAD}px + (100% - ${PAD * 2}px) * ${fy})` : place(juz)
   // выносим в <body>: контейнер экрана создаёт свой «слой», и шкала оказалась бы под боковой панелью
   return createPortal(
-    <div className={'js' + (on ? ' on' : '') + (held ? ' held' : '')} aria-hidden={!on}>
+    <div className={'js' + (on ? ' on' : '') + (held ? ' held' : '') + (fy != null ? ' drag' : '')} aria-hidden={!on}>
       <div className="js-track" ref={track} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
         {MARKS.map((m) => <span key={m} className={'js-mark' + (m === juz ? ' cur' : '')} style={{ top: place(m) }}>{m}</span>)}
         <div className="js-thumb" style={{ top: pos }}><b key={juz}>{juz}</b></div>
