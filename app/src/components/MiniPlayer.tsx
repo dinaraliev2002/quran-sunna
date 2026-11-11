@@ -8,6 +8,7 @@ import { useStore } from '../store/settings'
 import { Icon } from './Icon'
 import { PlayerSettings } from './PlayerSettings'
 import { useQuranMeta } from '../hooks/useQuranMeta'
+import { ease, flyDot, lerp } from './playerFly'
 
 const RATES = [0.75, 1, 1.25, 1.5]
 const fmtRate = (r: number) => String(r).replace('.', ',') + '×'
@@ -16,26 +17,11 @@ const SPRING = 'cubic-bezier(.22, 1, .36, 1)'
  *  только здесь плеер бывает кружком (рядом с этой кнопкой) или большим — узкого вида там нет */
 const DUA = /^\/azkar\/ch\//
 const HADITH_CARD = /^\/hadith\/c\/[^/]+\/[^/]+$/ // карточка хадиса — тот же адрес, что у списка хадисов книги, но с ?i=…
+const NAME_CARD = /^\/names\/\d+$/ // карточка имени Аллаха — внизу такой же зелёный переключатель
 
 /** Экраны с нижним меню: над ним плеер стоит выше. Адрес известен сразу, поэтому плеер летит в нужное место без «доводки».
  *  Появился новый экран с нижним меню (<TabBar />) — добавить его адрес сюда */
 const TAB_ROUTE = /^\/(quran|azkar|azkar\/cat\/[^/]+|downloads|hadith|hadith\/c\/[^/]+(\/g\/[^/]+|\/[^/]+)?|hadith\/t\/[^/]+|names|reminders|settings|notifications)$/
-
-/** Кривая плавности cubic-bezier(x1, y1, x2, y2): по доле времени (0…1) возвращает долю пути (0…1). Нужна, чтобы двигать окно и кнопки в одном кадре */
-function bezier(x1: number, y1: number, x2: number, y2: number) {
-  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx
-  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by
-  const X = (t: number) => ((ax * t + bx) * t + cx) * t
-  const Y = (t: number) => ((ay * t + by) * t + cy) * t
-  const dX = (t: number) => (3 * ax * t + 2 * bx) * t + cx
-  return (x: number) => {
-    let t = x
-    for (let i = 0; i < 8; i++) { const e = X(t) - x; if (Math.abs(e) < 1e-4) break; const d = dX(t); if (Math.abs(d) < 1e-6) break; t -= e / d }
-    return Y(Math.min(1, Math.max(0, t)))
-  }
-}
-const ease = bezier(0.22, 1, 0.36, 1)
-const lerp = (a: number, b: number, k: number) => a + (b - a) * k
 
 /** Положения кнопок до смены вида — отсюда они плавно «переезжают» на новые места (приём FLIP) */
 interface Snap { root: DOMRect; items: Record<string, DOMRect> }
@@ -45,7 +31,7 @@ type View = 'full' | 'bar' | 'dot'
  * Плеер: виден везде, пока что-то звучит. Три вида:
  *  • большой — название, управление, скорость · сон · настройки;
  *  • узкий — одна строка: развернуть, сура/аят назад-вперёд, пуск, закрыть (человек сворачивает его сам);
- *  • кружок — только в открытом дуа: пуск/пауза одним нажатием, смахнуть вправо — закрыть, стрелка сверху — развернуть.
+ *  • кружок — только в открытом дуа и карточках хадиса и имени Аллаха: пуск/пауза одним нажатием, смахнуть вправо — закрыть, стрелка сверху — развернуть.
  * Между видами плеер плавно меняет размер: при большой ⇄ узкий кнопки «переезжают» и совмещаются, при кружке окно сжимается в угол.
  */
 export function MiniPlayer() {
@@ -65,13 +51,14 @@ export function MiniPlayer() {
   const snap = useRef<Snap | null>(null)
   const closing = useRef(false)
   const wasHidden = useRef(true)
-  const prev = useRef<{ view: View; rect: DOMRect; el: Element } | null>(null)
+  const prev = useRef<{ view: View; rect: DOMRect; el: Element; cls: string } | null>(null)
+  const fly = useRef<(() => void) | null>(null) // идёт полёт в кружок/из кружка — «прервать»
   // в чтении плеер живёт внутри экрана чтения: тогда окна (меню, аят) закрывают его, а не наоборот
   const [host, setHost] = useState<Element | null>(null)
   const inRead = loc.pathname.startsWith('/read/')
   // над нижним меню — только на экранах, где оно есть; на остальных (главная) плеер прижат к низу
   // В карточке хадиса нижнего меню нет (его место занимает зелёный переключатель)
-  const inCard = HADITH_CARD.test(loc.pathname) && new URLSearchParams(loc.search).has('i')
+  const inCard = (HADITH_CARD.test(loc.pathname) && new URLSearchParams(loc.search).has('i')) || NAME_CARD.test(loc.pathname)
   const hasTab = TAB_ROUTE.test(loc.pathname) && !inCard
   // В открытом дуа и в карточке хадиса плеер бывает только большим или кружком; на остальных экранах — большим или узким
   const inDua = DUA.test(loc.pathname) || inCard
@@ -115,9 +102,15 @@ export function MiniPlayer() {
     // меню): в этот момент оно только началось, и замер дал бы старую высоту — кружок летел бы вбок, а потом «доезжал» вниз.
     // Поэтому на время замера плавность выключаем: плеер сразу встаёт на новое место (его всё равно ведёт анимация ниже)
     if (changing) el.style.transition = 'none'
+    if (changing) { fly.current?.(); fly.current = null } // прошлый полёт ещё шёл — сразу завершаем
+    // в кружок или из кружка летит копия плеера, а сам он прячется до конца полёта; содержимое меняется сразу, без плавности
+    if (changing && (view === 'dot' || before.view === 'dot')) {
+      el.style.visibility = 'hidden'
+      el.querySelectorAll<HTMLElement>('.mp-card, .mp-dot').forEach((n) => { n.style.transition = 'none' })
+    }
     const rect = el.getBoundingClientRect()
     if (changing) el.style.transition = ''
-    prev.current = { view, rect, el }
+    prev.current = { view, rect, el, cls: el.className }
     const flip = snap.current
     snap.current = null
     if (!before || before.el !== el || before.view === view) return
@@ -162,61 +155,15 @@ export function MiniPlayer() {
       setTimeout(done, DUR + 120) // страховка: если кадры не идут (вкладка в фоне), плеер всё равно встанет на место
       return
     }
-    // Кружок: окно плавно меняет размер и место, содержимое переплавляется (в CSS: старое гаснет сразу, новое проявляется в конце).
-    //  • кривая — плавный разгон и плавное торможение (раньше половина пути пролетала за первые 60 мс, дальше — медленное доползание);
-    //  • по горизонтали чуть быстрее, чем по вертикали, — окно идёт к углу мягкой дугой, а не по линейке;
-    //  • на время полёта убираем размытие фона под окном: телефону не нужно размывать его заново в каждом кадре
+    // Кружок ⇄ узкий/большой: кнопки во время полёта сходятся в «пуск» (или выходят из него) — components/playerFly.ts
     const toDot = view === 'dot'
-    const DUR = 560
-    const fast = 'cubic-bezier(.4, 0, .2, 1)', soft = 'cubic-bezier(.6, 0, .3, 1)'
-
-    // Разворачивание из кружка: кнопки «вырастают» из него. План считаем ДО запуска анимации окна — по конечной раскладке:
-    //  • золотой кружок сам становится кнопкой «пуск» — она начинает там же и такого же размера, затем едет на своё место;
-    //  • остальные кнопки выпрыгивают из «пуска» по очереди (сначала ближние) с лёгкой пружинкой;
-    //  • надпись сверху и нижний ряд мягко выезжают последними.
-    const card = el.querySelector<HTMLElement>('.mp-card')
-    const plan: { n: HTMLElement; kf: Keyframe[]; o: KeyframeAnimationOptions }[] = []
-    if (!toDot && card) {
-      const rel = (n: Element) => { const b = n.getBoundingClientRect(); return { x: b.left - rect.left, y: b.top - rect.top, w: b.width, h: b.height } }
-      const main = el.querySelector<HTMLElement>('[data-f=main]')
-      if (main) {
-        const m = rel(main)
-        plan.push({ n: main, kf: [{ transform: `translate(${-m.x}px, ${-m.y}px) scale(${before.rect.width / m.w})`, transformOrigin: '0 0' }, { transform: 'none', transformOrigin: '0 0' }], o: { duration: DUR, easing: fast } })
-        const cx = m.x + m.w / 2, cy = m.y + m.h / 2
-        const others = [...el.querySelectorAll<HTMLElement>('[data-f]')].filter((n) => n !== main && n.getClientRects().length)
-          .map((n) => { const b = rel(n); const dx = cx - (b.x + b.w / 2), dy = cy - (b.y + b.h / 2); return { n, dx, dy, d: Math.hypot(dx, dy) } })
-          .sort((a, b) => a.d - b.d)
-        others.forEach(({ n, dx, dy }, i) => plan.push({
-          n, kf: [{ transform: `translate(${dx}px, ${dy}px) scale(.35)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
-          o: { duration: 420, delay: 150 + i * 45, easing: 'cubic-bezier(.34, 1.4, .64, 1)', fill: 'backwards' },
-        }))
-      }
-      for (const [sel, dy, delay] of [['.mp-info', -8, 260], ['.mp-bot', 8, 320]] as const) {
-        const n = el.querySelector<HTMLElement>(sel)
-        if (!n || getComputedStyle(n).position === 'absolute') continue // в узком виде они спрятаны
-        plan.push({ n, kf: [{ transform: `translateY(${dy}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], o: { duration: 380, delay, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'backwards' } })
-      }
-      // раскладка карточки сразу конечная (ширина как в конце): пока окно растёт, кнопки не перестраиваются и не «гуляют»
-      const cw = card.getBoundingClientRect().width
-      if (cw) card.style.width = cw + 'px'
-      el.classList.add('mp-reveal') // карточка видна сразу, кружок гаснет сразу (CSS) — дальше видимостью управляет план
-    }
-
-    const xs = (r: DOMRect) => ({ left: r.left + 'px', width: r.width + 'px' })
-    const ys = (r: DOMRect) => ({ top: r.top + 'px', height: r.height + 'px' })
-    const css = el.style
-    for (const [k, v] of [['right', 'auto'], ['bottom', 'auto'], ['margin', '0'], ['max-width', 'none'], ['overflow', 'hidden'], ['backdrop-filter', 'none'], ['-webkit-backdrop-filter', 'none'], ['background', 'var(--surface)'], ['will-change', 'left, top, width, height']] as const) css.setProperty(k, v)
-    // fill: 'forwards' — в последний миг окно стоит в конечной точке, пока не убраны временные стили (иначе мог мелькнуть кадр не на месте)
-    const ax = el.animate([xs(before.rect), xs(rect)], { duration: DUR, easing: toDot ? fast : soft, fill: 'forwards' })
-    const ay = el.animate([ys(before.rect), ys(rect)], { duration: DUR, easing: toDot ? soft : fast, fill: 'forwards' })
-    const items = plan.map((p) => p.n.animate(p.kf, p.o))
-    const clean = () => {
-      for (const k of ['right', 'bottom', 'margin', 'max-width', 'overflow', 'backdrop-filter', '-webkit-backdrop-filter', 'background', 'will-change']) css.removeProperty(k)
-      ax.cancel(); ay.cancel() // дальше плеер стоит по обычным правилам — на том же месте
-    }
-    Promise.all([ax.finished, ay.finished]).then(clean, clean)
-    // кнопки доигрывают чуть дольше окна — после них снимаем временную ширину карточки
-    Promise.all(items.map((a) => a.finished)).finally(() => { el.classList.remove('mp-reveal'); card?.style.removeProperty('width') }).catch(() => {})
+    fly.current = flyDot(el, before.rect, rect, toDot ? before.cls : el.className, toDot, () => {
+      fly.current = null
+      el.style.visibility = ''
+      if (toDot) el.querySelector<HTMLElement>('.mp-dot-up')?.animate([{ transform: 'scale(0)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.34, 1.4, .64, 1)' })
+      // плавность содержимого возвращаем в следующем кадре, когда новый вид уже нарисован
+      requestAnimationFrame(() => el.querySelectorAll<HTMLElement>('.mp-card, .mp-dot').forEach((n) => { n.style.transition = '' }))
+    })
   })
 
   // Большой/узкий плеер стоит внизу — то, что у экрана внизу (большая кнопка-счётчик), поднимается над ним и плавно
