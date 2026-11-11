@@ -105,7 +105,7 @@ export function MiniPlayer() {
     if (changing) { fly.current?.(); fly.current = null } // прошлый полёт ещё шёл — сразу завершаем
     // в кружок или из кружка летит копия плеера, а сам он прячется до конца полёта; содержимое меняется сразу, без плавности
     if (changing && (view === 'dot' || before.view === 'dot')) {
-      el.style.visibility = 'hidden'
+      el.style.opacity = '0' // не visibility: у кружка в стилях своё «виден», он бы остался на экране
       el.querySelectorAll<HTMLElement>('.mp-card, .mp-dot').forEach((n) => { n.style.transition = 'none' })
     }
     const rect = el.getBoundingClientRect()
@@ -159,7 +159,7 @@ export function MiniPlayer() {
     const toDot = view === 'dot'
     fly.current = flyDot(el, before.rect, rect, toDot ? before.cls : el.className, toDot, () => {
       fly.current = null
-      el.style.visibility = ''
+      el.style.opacity = ''
       if (toDot) el.querySelector<HTMLElement>('.mp-dot-up')?.animate([{ transform: 'scale(0)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.34, 1.4, .64, 1)' })
       // плавность содержимого возвращаем в следующем кадре, когда новый вид уже нарисован
       requestAnimationFrame(() => el.querySelectorAll<HTMLElement>('.mp-card, .mp-dot').forEach((n) => { n.style.transition = '' }))

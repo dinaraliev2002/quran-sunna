@@ -27,7 +27,7 @@ const soft = bezier(0.6, 0, 0.3, 1) // разгон дольше — вмест�
 const inOut = bezier(0.5, 0, 0.3, 1)
 const spring = bezier(0.34, 1.4, 0.64, 1) // с лёгким «перелётом» — кнопка выпрыгивает и чуть пружинит
 
-interface Item { n: HTMLElement; cx: number; cy: number; h: number; text: boolean; i: number }
+interface Item { n: HTMLElement; cx: number; cy: number; h: number; text: boolean }
 
 /**
  * Запустить полёт. el — настоящий плеер (уже в новом виде и спрятан), from/to — его место до и после,
@@ -68,37 +68,44 @@ export function flyDot(el: HTMLElement, from: DOMRect, to: DOMRect, spreadCls: s
     if (n === main) return
     const b = n.getBoundingClientRect()
     if (!b.width) return
-    items.push({ n, cx: b.left + b.width / 2, cy: b.top + b.height / 2, h: b.width / 2, text: false, i: 0 })
+    items.push({ n, cx: b.left + b.width / 2, cy: b.top + b.height / 2, h: b.width / 2, text: false })
   })
   for (const sel of ['.mp-info', '.mp-bot']) {
     const n = inner.querySelector<HTMLElement>(sel)
     if (!n || getComputedStyle(n).position === 'absolute') continue // в узком виде надпись и нижний ряд спрятаны
     const b = n.getBoundingClientRect()
-    items.push({ n, cx: b.left + b.width / 2, cy: b.top + b.height / 2, h: 0, text: true, i: 0 })
+    items.push({ n, cx: b.left + b.width / 2, cy: b.top + b.height / 2, h: 0, text: true })
   }
-  // порядок: от ближних к центральной кнопке
-  const btns = items.filter((it) => !it.text).sort((a, b) => Math.hypot(a.cx - M.cx, a.cy - M.cy) - Math.hypot(b.cx - M.cx, b.cy - M.cy))
-  btns.forEach((it, i) => { it.i = i })
-  const nb = btns.length
 
+  // Два этапа, слегка внахлёст:
+  //  • «сбор»: окно сжимается до кружка вокруг «пуска» (W0), а кнопки одновременно уходят в «пуск» — левые справа налево, правые слева направо;
+  //  • «полёт»: кружок с «пуском» летит в угол мягкой дугой.
+  // Разворачивание — то же в обратном порядке: сначала прилетает на место «пуска», потом кнопки разом выходят в обе стороны.
+  const side = Math.min(S.height, M.w + 12)
+  const W0 = { left: M.cx - side / 2, top: M.cy - side / 2, width: side, height: side }
+  const mix = (a: typeof W0, b: typeof W0, kx: number, ky = kx) => ({ left: lerp(a.left, b.left, kx), top: lerp(a.top, b.top, ky), width: lerp(a.width, b.width, kx), height: lerp(a.height, b.height, ky) })
   const frame = (t: number) => {
-    // окно и центральная кнопка: по горизонтали и вертикали — разные кривые, путь к углу идёт мягкой дугой
-    const px = toDot ? fast(t) : soft(t), py = toDot ? soft(t) : fast(t)
-    place({ left: lerp(from.left, to.left, px), top: lerp(from.top, to.top, py), width: lerp(from.width, to.width, px), height: lerp(from.height, to.height, py) })
-    // где сейчас «пуск» (в развёрнутом виде он в M, в кружке — в Dc)
-    const sx = toDot ? px : 1 - px, sy = toDot ? py : 1 - py // 0 — на своём месте, 1 — в кружке
-    const mx = lerp(M.cx, Dc.cx, sx), my = lerp(M.cy, Dc.cy, sy)
-    if (main) {
-      const sm = toDot ? ease(t) : 1 - ease(t)
-      main.style.transform = `translate(${mx - M.cx}px, ${my - M.cy}px) scale(${lerp(1, D.width / M.w, sm)})`
+    // g — насколько собраны кнопки (0 — развёрнуто, 1 — всё в «пуске»); fx/fy — насколько пролетели к углу
+    let g: number, gb: number, fx: number, fy: number
+    if (toDot) {
+      const a = clamp(t / 0.5), b = clamp((t - 0.35) / 0.65)
+      g = inOut(a); gb = g; fx = fast(b); fy = soft(b)
+    } else {
+      const b = clamp(t / 0.55), a = clamp((t - 0.4) / 0.6)
+      fx = 1 - soft(b); fy = 1 - fast(b)
+      g = 1 - fast(a) // окно раскрывается без «перелёта»
+      gb = 1 - spring(a) // кнопки — с лёгкой пружинкой
     }
+    const r = mix(mix(S, W0, g), D, fx, fy)
+    place(r)
+    ws.borderRadius = lerp(22, Math.min(r.width, r.height) / 2, g) + 'px'
+    const mx = lerp(M.cx, Dc.cx, fx), my = lerp(M.cy, Dc.cy, fy)
+    if (main) main.style.transform = `translate(${mx - M.cx}px, ${my - M.cy}px) scale(${lerp(1, D.width / M.w, (fx + fy) / 2)})`
     for (const it of items) {
-      // c — насколько кнопка ушла в «пуск»: 0 — на своём месте, 1 — спряталась в нём
+      // c — насколько кнопка ушла в «пуск»: 0 — на своём месте, 1 — спряталась в нём. У всех кнопок одинаковое — выходят разом
       let c: number
-      if (it.text) c = toDot ? clamp(t / 0.3) : 1 - ease(clamp((t - 0.45) / 0.45))
-      // сходятся быстрее, чем сжимается окно, — иначе край окна «срезал» бы отставшие кнопки; дальние трогаются чуть раньше
-      else if (toDot) c = inOut(clamp((t - 0.03 * (nb - 1 - it.i)) / 0.48))
-      else c = 1 - spring(clamp((t - 0.14 - 0.06 * it.i) / 0.5)) // выходят по очереди, сначала ближние
+      if (it.text) c = toDot ? clamp(t / 0.25) : 1 - ease(clamp((t - 0.6) / 0.4))
+      else c = gb
       // кнопка не должна выходить за край окна (его срезало бы): если окно ещё не доросло — держим её ближе к «пуску»
       if (!it.text) {
         const wl = parseFloat(ws.left), wt = parseFloat(ws.top), wr = wl + parseFloat(ws.width), wb = wt + parseFloat(ws.height)
@@ -111,7 +118,7 @@ export function flyDot(el: HTMLElement, from: DOMRect, to: DOMRect, spreadCls: s
     }
   }
 
-  const DUR = toDot ? 540 : 620
+  const DUR = toDot ? 560 : 700
   let raf = 0, over = false
   const finish = () => {
     if (over) return
