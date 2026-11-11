@@ -87,7 +87,7 @@ export function AyahSheet({ surah, ayah, onClose, onPlay, onAyah }: {
           <button className="xbtn" disabled={cur <= 1} style={{ opacity: cur > 1 ? 1 : .35 }} onClick={() => go(cur - 1, 'r')} aria-label="Предыдущий аят"><Icon id="back" /></button>
           <button className="xbtn" disabled={cur >= surah.ayahs} style={{ opacity: cur < surah.ayahs ? 1 : .35 }} onClick={() => go(cur + 1, 'l')} aria-label="Следующий аят"><Icon id="right" /></button>
           <button className="xbtn" onClick={() => setBlocksOpen(true)} aria-label="Что показывать"><Icon id="gear" /></button>
-          <button className="xbtn" onClick={onClose} aria-label="Закрыть"><Icon id="close" /></button>
+          <button className="xbtn" data-close onClick={onClose} aria-label="Закрыть"><Icon id="close" /></button>
         </div>
       </div>
       {bar && (

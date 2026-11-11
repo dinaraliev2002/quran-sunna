@@ -4,7 +4,7 @@ export function SheetHead({ title, sub, onClose }: { title: string; sub?: string
   return (
     <div className="sh">
       <div><h3>{title}</h3>{sub && <span>{sub}</span>}</div>
-      <button className="xbtn" onClick={onClose}><Icon id="close" /></button>
+      <button className="xbtn" data-close onClick={onClose}><Icon id="close" /></button>
     </div>
   )
 }
