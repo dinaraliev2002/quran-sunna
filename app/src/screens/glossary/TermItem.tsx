@@ -17,8 +17,8 @@ export function TermItem({ x, open, onToggle }: { x: GlossaryItem; open: boolean
       </button>
       {open && (
         <div className="gl-card">
-          <div className="gl-big" dir="rtl">{x.ar}</div>
-          <b className="gl-name">{x.tr}</b>
+          {/* название и арабское написание — в одной строке; длинное арабское слово переносится, а не налезает на русское */}
+          <div className="gl-top"><div className="gl-big" dir="rtl">{x.ar}</div><b className="gl-name">{x.tr}</b></div>
           <span className="gl-tag">ТЕРМИН</span>
           <p className="gl-mean">{x.mean}</p>
           {!!x.n && (

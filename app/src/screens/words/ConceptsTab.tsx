@@ -64,8 +64,7 @@ export function ConceptsTab({ focus }: { focus?: string | null }) {
             </button>
             {isOpen && (
               <div className="gl-card">
-                <div className="gl-big" dir="rtl">{c.ar}</div>
-                <b className="gl-name">{c.ru}</b>
+                <div className="gl-top"><div className="gl-big" dir="rtl">{c.ar}</div><b className="gl-name">{c.ru}</b></div>
                 {c.c.length > 0 && <span className="gl-tag">{c.c.join(' · ').toUpperCase()}</span>}
                 {c.d && <p className="gl-mean">{c.d}</p>}
                 {(() => { const g = glossaryFor(c, gloss); return g && <div className="cn-kv"><span className="wd-dim">Из словаря Кулиева</span><p>{g.mean}</p></div> })()}

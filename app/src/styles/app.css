@@ -635,7 +635,8 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .tafsir-txt .tf-quote { font-weight: 600; color: var(--emerald-bright); }
 .azc::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 0; height: calc(var(--safe-bottom) + 150px); pointer-events: none; z-index: 4;
   background: linear-gradient(transparent, var(--surface) 60%); border-radius: 0 0 var(--r-tile) var(--r-tile); }
-.azc-counter-wrap { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-bottom) + 18px); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 5; }
+.azc-counter-wrap { position: absolute; left: 0; right: 0; bottom: max(calc(var(--safe-bottom) + 18px), var(--mp-clear, 0px)); transition: bottom .45s cubic-bezier(.22, 1, .36, 1); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 5; }
+/* --mp-clear — высота, на которой стоит верх плеера (components/MiniPlayer.tsx): счётчик поднимается над плеером и плавно опускается, когда его закрыли */
 .azc-counter { pointer-events: auto; width: min(260px, calc(100% - 64px)); height: 112px; border-radius: 56px; background: var(--emerald); color: var(--on-emerald); display: grid; place-items: center; box-shadow: 0 14px 34px rgba(19, 112, 75, .4); transition: transform .12s, background .3s; }
 .azc-counter:active { transform: scale(.96); }
 .azc-counter.full { background: var(--surface-3); color: var(--emerald-bright); box-shadow: var(--shadow); }
@@ -1474,7 +1475,18 @@ div.srow { cursor: pointer; }
 /* плеер: без нижнего меню (главная) — у самого низа, над меню — только где оно есть */
 .miniplayer { bottom: calc(var(--safe-bottom) + 14px); }
 .miniplayer.has-tab { bottom: calc(var(--safe-bottom) + 96px); }
-.miniplayer.mp-small > .mp-x:last-child { order: 2; }
+/* Свёрнутый и развёрнутый плеер — одни и те же элементы (components/MiniPlayer.tsx): в свёрнутом виде верхний ряд и ряд кнопок «растворяются» в одну строку
+   (display: contents), надпись и нижний ряд гаснут и убираются из потока. Кнопки при смене вида плавно переезжают (FLIP в коде) */
+.miniplayer.mp-small .mp-top, .miniplayer.mp-small .mp-mid { display: contents; }
+.miniplayer.mp-small .mp-fold { order: 0; }
+.miniplayer.mp-small .mp-mid > * { order: 1; }
+.miniplayer.mp-small .mp-close { order: 2; }
+.miniplayer .mp-info, .miniplayer .mp-bot { transition: opacity .3s ease .14s; }
+.miniplayer.mp-small .mp-info { position: absolute; left: 16px; top: 10px; right: 104px; opacity: 0; pointer-events: none; transition-duration: .14s; transition-delay: 0s; }
+.miniplayer.mp-small .mp-bot { position: absolute; left: 16px; right: 12px; bottom: 8px; opacity: 0; pointer-events: none; transition-duration: .14s; transition-delay: 0s; }
+/* плеер только что появился: плавно выезжает снизу */
+.miniplayer.mp-enter { animation: mp-in .5s cubic-bezier(.22, 1, .36, 1); }
+@keyframes mp-in { from { opacity: 0; transform: translateY(26px) scale(.96); } }
 
 /* озвучка тафсира в окне аята */
 .tafsir-audio { margin: 4px 0 12px; padding: 10px 12px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); }
@@ -1536,9 +1548,9 @@ div.srow { cursor: pointer; }
 /* словарь терминов: раскрывающийся список, внутри карточка */
 .gl-item { background: var(--surface); border-radius: 20px; margin-bottom: 8px; overflow: hidden; }
 .gl-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 14px 16px; text-align: left; }
-.gl-head b { flex: 1; font-size: 16px; font-weight: 700; }
+.gl-head b { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 16px; font-weight: 700; }
 .gl-ar, .gl-big { font-family: var(--font-quran); direction: rtl; color: var(--gold-ink); }
-.gl-ar { font-size: 24px; }
+.gl-ar { font-size: 24px; line-height: 1.3; flex: 0 1 auto; max-width: 52%; text-align: right; overflow-wrap: anywhere; }
 .gl-head .chev-s { color: var(--text-2); transition: transform .2s; }
 .gl-item.open .gl-head .chev-s { transform: rotate(90deg); }
 .gl-item.open .gl-head { justify-content: flex-end; padding-bottom: 4px; }
@@ -1546,6 +1558,10 @@ div.srow { cursor: pointer; }
 .gl-card { padding: 0 16px 16px; animation: up .2s ease-out; }
 .gl-big { font-size: 38px; line-height: 1.4; text-align: right; }
 .gl-name { display: block; font-size: 18px; margin-top: -34px; }
+/* карточка термина: арабское слово справа, русское название слева; на узком экране длинное арабское слово переносится на вторую строку */
+.gl-top { display: flex; flex-direction: row-reverse; align-items: center; justify-content: space-between; gap: 12px; }
+.gl-top .gl-big { flex: 0 1 auto; max-width: 64%; min-width: 0; overflow-wrap: anywhere; }
+.gl-top .gl-name { flex: 1 1 0; min-width: 0; margin-top: 0; overflow-wrap: anywhere; }
 .gl-tag { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; color: var(--gold-ink); background: var(--highlight); padding: 3px 9px; border-radius: 99px; margin: 8px 0 10px; }
 .gl-mean { font-size: 14.5px; line-height: 1.55; color: var(--text); border-left: 2px solid var(--line); padding-left: 12px; margin: 0 0 12px; }
 .gl-chip { font-size: 12.5px; font-weight: 700; background: var(--emerald); color: var(--on-emerald); border-radius: 99px; padding: 6px 13px; margin-bottom: 8px; }
