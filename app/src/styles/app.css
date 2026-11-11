@@ -14,6 +14,8 @@ a { color: inherit; text-decoration: none; }
 
 .app { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
 .screen { position: absolute; inset: 0; overflow-y: auto; padding: calc(var(--content-top) + 12px) calc(var(--safe-right) + 18px) calc(var(--safe-bottom) + 120px) calc(var(--safe-left) + 18px); }
+/* пока звучит плеер, внизу экрана остаётся место под него (--mp-pad, считает components/MiniPlayer.tsx): последние пункты списка не прячутся под плеером */
+.screen { padding-bottom: max(calc(var(--safe-bottom) + 120px), var(--mp-pad, 0px)); transition: padding-bottom .45s cubic-bezier(.22, 1, .36, 1); }
 
 /* ===== Общие ===== */
 .icon { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
@@ -782,8 +784,9 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .h-continue small { display: block; margin-top: 4px; }
 /* карточка хадиса: текст, закреплённое листание, внизу — соседние книги */
 .hdk-body { display: flex; flex-direction: column; padding-bottom: 14px; }
-.hdk-content { flex: none; min-height: calc(100% - 66px); padding-bottom: 16px; } /* кнопки книг — только ниже экрана */
-.hdk-body > .hdk-pager { position: sticky; bottom: 0; align-self: center; z-index: 2; margin: 0 0 4px; box-shadow: 0 8px 22px rgba(19, 112, 75, .35); }
+.hdk-content { flex: none; min-height: calc(100% - 66px); padding-bottom: max(16px, calc(var(--mp-pad, 0px) + 48px)); transition: padding-bottom .45s cubic-bezier(.22, 1, .36, 1); } /* кнопки книг — только ниже экрана */
+/* пока звучит большой плеер, переключатель стоит над ним (--mp-clear), а текст карточки заканчивается выше плеера и переключателя (--mp-pad) — components/MiniPlayer.tsx */
+.hdk-body > .hdk-pager { transition: bottom .45s cubic-bezier(.22, 1, .36, 1); position: sticky; bottom: max(0px, calc(var(--mp-clear, 0px) - 12px)); align-self: center; z-index: 2; margin: 0 0 4px; box-shadow: 0 8px 22px rgba(19, 112, 75, .35); }
 .hdk-books { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 .hdk-books button { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--surface-2); text-align: left; }
 .hdk-books button.next { text-align: right; }
@@ -1480,9 +1483,11 @@ div.srow { cursor: pointer; }
 .miniplayer.mp-circle .mp-card { position: absolute; left: 0; top: 0; width: 300px; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .15s ease, visibility 0s .15s; }
 .miniplayer.mp-circle .mp-dot { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity .25s ease .15s, visibility 0s; }
 .miniplayer.mp-circle.in-reader { right: 14px; }
+/* карточка хадиса: кружок стоит сбоку от зелёного переключателя, на его высоте */
+.miniplayer.mp-circle.mp-dock-card { bottom: calc(var(--safe-bottom) + 28px); }
 /* Узкий вид: большой и узкий плеер — одни и те же элементы (components/MiniPlayer.tsx). В узком верхний ряд и ряд кнопок «растворяются»
    в одну строку (display: contents), надпись и нижний ряд гаснут и выходят из потока; кнопки при смене вида плавно переезжают (FLIP в коде) */
-.miniplayer.mp-bar { display: flex; align-items: center; justify-content: space-between; gap: 2px; padding: 6px 8px; }
+.miniplayer.mp-bar { display: flex; flex-wrap: wrap; align-content: flex-start; align-items: center; justify-content: space-between; gap: 2px; padding: 6px 8px; } /* align-content — кнопки держатся у верха окна, пока оно плавно меняет высоту (иначе центрируются и «приседают») */
 .miniplayer.mp-bar .mp-card, .miniplayer.mp-bar .mp-top, .miniplayer.mp-bar .mp-mid { display: contents; }
 .miniplayer.mp-bar .mp-main { width: 46px; height: 46px; }
 .miniplayer.mp-bar .mp-side { width: 36px; height: 36px; }

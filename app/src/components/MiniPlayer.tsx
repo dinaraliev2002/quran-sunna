@@ -12,8 +12,30 @@ import { useQuranMeta } from '../hooks/useQuranMeta'
 const RATES = [0.75, 1, 1.25, 1.5]
 const fmtRate = (r: number) => String(r).replace('.', ',') + '×'
 const SPRING = 'cubic-bezier(.22, 1, .36, 1)'
-/** Открыто конкретное дуа (карточки азкара, внизу большой счётчик): только здесь плеер сам превращается в кружок */
+/** Экраны, где внизу есть своя главная кнопка (карточки азкара — большой счётчик, карточка хадиса — зелёный переключатель):
+ *  только здесь плеер бывает кружком (рядом с этой кнопкой) или большим — узкого вида там нет */
 const DUA = /^\/azkar\/ch\//
+const HADITH_CARD = /^\/hadith\/c\/[^/]+\/[^/]+$/ // карточка хадиса — тот же адрес, что у списка хадисов книги, но с ?i=…
+
+/** Экраны с нижним меню: над ним плеер стоит выше. Адрес известен сразу, поэтому плеер летит в нужное место без «доводки».
+ *  Появился новый экран с нижним меню (<TabBar />) — добавить его адрес сюда */
+const TAB_ROUTE = /^\/(quran|azkar|azkar\/cat\/[^/]+|downloads|hadith|hadith\/c\/[^/]+(\/g\/[^/]+|\/[^/]+)?|hadith\/t\/[^/]+|names|reminders|settings|notifications)$/
+
+/** Кривая плавности cubic-bezier(x1, y1, x2, y2): по доле времени (0…1) возвращает долю пути (0…1). Нужна, чтобы двигать окно и кнопки в одном кадре */
+function bezier(x1: number, y1: number, x2: number, y2: number) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx
+  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by
+  const X = (t: number) => ((ax * t + bx) * t + cx) * t
+  const Y = (t: number) => ((ay * t + by) * t + cy) * t
+  const dX = (t: number) => (3 * ax * t + 2 * bx) * t + cx
+  return (x: number) => {
+    let t = x
+    for (let i = 0; i < 8; i++) { const e = X(t) - x; if (Math.abs(e) < 1e-4) break; const d = dX(t); if (Math.abs(d) < 1e-6) break; t -= e / d }
+    return Y(Math.min(1, Math.max(0, t)))
+  }
+}
+const ease = bezier(0.22, 1, 0.36, 1)
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k
 
 /** Положения кнопок до смены вида — отсюда они плавно «переезжают» на новые места (приём FLIP) */
 interface Snap { root: DOMRect; items: Record<string, DOMRect> }
@@ -44,13 +66,17 @@ export function MiniPlayer() {
   const closing = useRef(false)
   const wasHidden = useRef(true)
   const prev = useRef<{ view: View; rect: DOMRect; el: Element } | null>(null)
-  // над нижним меню — только на экранах, где оно есть; на остальных (главная) плеер прижат к низу
-  const [hasTab, setHasTab] = useState(false)
   // в чтении плеер живёт внутри экрана чтения: тогда окна (меню, аят) закрывают его, а не наоборот
   const [host, setHost] = useState<Element | null>(null)
   const inRead = loc.pathname.startsWith('/read/')
-  const view: View = DUA.test(loc.pathname) && !pinFull ? 'dot' : mini ? 'bar' : 'full'
-  useEffect(() => { setPinFull(false) }, [loc.pathname])
+  // над нижним меню — только на экранах, где оно есть; на остальных (главная) плеер прижат к низу
+  // В карточке хадиса нижнего меню нет (его место занимает зелёный переключатель)
+  const inCard = HADITH_CARD.test(loc.pathname) && new URLSearchParams(loc.search).has('i')
+  const hasTab = TAB_ROUTE.test(loc.pathname) && !inCard
+  // В открытом дуа и в карточке хадиса плеер бывает только большим или кружком; на остальных экранах — большим или узким
+  const inDua = DUA.test(loc.pathname) || inCard
+  const view: View = inDua ? (pinFull ? 'full' : 'dot') : mini ? 'bar' : 'full'
+  useEffect(() => { setPinFull(false) }, [loc.pathname, inCard])
   useEffect(() => {
     setHost(null)
     if (!inRead) return
@@ -60,12 +86,6 @@ export function MiniPlayer() {
     const t = setInterval(sync, 200)
     return () => clearInterval(t)
   }, [inRead])
-  useEffect(() => {
-    // смотрим только на входящий экран: у уходящего (он ещё доли секунды на месте) нижнее меню может быть другим
-    const look = () => setHasTab(!!document.querySelector('.pt-in .tabbar, .app > .tabbar, body > .tabbar'))
-    const ts = [0, 60, 300, 900].map((ms) => setTimeout(look, ms))
-    return () => ts.forEach(clearTimeout)
-  }, [loc.pathname])
   useEffect(() => {
     if (p.sleep?.mode !== 'time') return
     const t = setInterval(() => tick((n) => n + 1), 15000)
@@ -95,19 +115,48 @@ export function MiniPlayer() {
     const flip = snap.current
     snap.current = null
     if (!before || before.el !== el || before.view === view) return
+    // Большой ⇄ узкий: окно плеера и кнопки двигаем ВМЕСТЕ, в одном и том же кадре (скриптом). Раньше окно ехало одним способом
+    // (left/top/height), а кнопки другим (transform в видеокарте), и на телефоне они расходились на кадр-другой: кнопки «приседали».
     if (flip && before.view !== 'dot' && view !== 'dot') {
+      const items: { n: HTMLElement; dx: number; dy: number; sc: number }[] = []
       el.querySelectorAll<HTMLElement>('[data-f]').forEach((n) => {
         const o = flip.items[n.dataset.f!]
         if (!o) return
         const r = n.getBoundingClientRect()
-        // координаты — от верха самого плеера (его размер и место двигаем отдельно, ниже)
-        const dx = (o.left - flip.root.left) - (r.left - rect.left)
-        const dy = (o.top - flip.root.top) - (r.top - rect.top)
-        const sc = r.width ? o.width / r.width : 1
-        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sc - 1) < 0.01) return
-        n.animate([{ transform: `translate(${dx}px, ${dy}px) scale(${sc})`, transformOrigin: '0 0' }, { transform: 'none', transformOrigin: '0 0' }], { duration: 480, easing: SPRING })
+        // координаты — от верха самого плеера: окно и кнопки едут одновременно, поэтому на экране кнопка идёт по прямой из старого места в новое
+        items.push({ n, dx: (o.left - flip.root.left) - (r.left - rect.left), dy: (o.top - flip.root.top) - (r.top - rect.top), sc: r.width ? o.width / r.width : 1 })
       })
+      const from = before.rect, to = rect
+      const set = (k: number) => {
+        const css = el.style
+        css.setProperty('left', lerp(from.left, to.left, k) + 'px')
+        css.setProperty('top', lerp(from.top, to.top, k) + 'px')
+        css.setProperty('width', lerp(from.width, to.width, k) + 'px')
+        css.setProperty('height', lerp(from.height, to.height, k) + 'px')
+        css.setProperty('right', 'auto'); css.setProperty('bottom', 'auto'); css.setProperty('margin', '0'); css.setProperty('max-width', 'none'); css.setProperty('overflow', 'hidden')
+        for (const it of items) {
+          it.n.style.transformOrigin = '0 0'
+          it.n.style.transform = `translate(${it.dx * (1 - k)}px, ${it.dy * (1 - k)}px) scale(${1 + (it.sc - 1) * (1 - k)})`
+        }
+      }
+      const done = () => {
+        for (const prop of ['left', 'top', 'width', 'height', 'right', 'bottom', 'margin', 'max-width', 'overflow']) el.style.removeProperty(prop)
+        for (const it of items) { it.n.style.transform = ''; it.n.style.transformOrigin = '' }
+      }
+      const DUR = 480, t0 = performance.now()
+      set(0)
+      const step = (now: number) => {
+        const k = Math.min(1, (now - t0) / DUR)
+        if (!el.isConnected) return
+        if (k >= 1) return done()
+        set(ease(k))
+        requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
+      setTimeout(done, DUR + 120) // страховка: если кадры не идут (вкладка в фоне), плеер всё равно встанет на место
+      return
     }
+    // Кружок: окно плавно меняет размер и место (содержимое переплавляется в CSS)
     const geo = (r: DOMRect) => ({ left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', right: 'auto', bottom: 'auto', margin: '0px', maxWidth: 'none' })
     el.style.overflow = 'hidden' // пока меняется размер, всё лишнее обрезается
     const a = el.animate([geo(before.rect), geo(rect)], { duration: 480, easing: SPRING })
@@ -119,13 +168,21 @@ export function MiniPlayer() {
   useEffect(() => {
     const root = document.documentElement
     const el = rootRef.current
-    if (hidden || !el || hasTab || view === 'dot') { root.style.setProperty('--mp-clear', '0px'); return }
-    const apply = () => { if (!closing.current) root.style.setProperty('--mp-clear', Math.max(0, innerHeight - el.getBoundingClientRect().top + 10) + 'px') }
+    const reset = () => { root.style.setProperty('--mp-clear', '0px'); root.style.setProperty('--mp-pad', '0px') }
+    if (hidden || !el || view === 'dot') { reset(); return }
+    // --mp-clear — для того, что стоит внизу экрана на месте плеера (счётчик); --mp-pad — нижний отступ прокручиваемых экранов,
+    // чтобы последние пункты списка можно было поднять над плеером (иначе плеер их закрывает)
+    const apply = () => {
+      if (closing.current) return
+      const d = Math.max(0, innerHeight - el.getBoundingClientRect().top)
+      root.style.setProperty('--mp-clear', (hasTab ? 0 : d + 10) + 'px')
+      root.style.setProperty('--mp-pad', d + 14 + 'px')
+    }
     apply()
     const ro = new ResizeObserver(apply)
     ro.observe(el)
     addEventListener('resize', apply)
-    return () => { ro.disconnect(); removeEventListener('resize', apply); root.style.setProperty('--mp-clear', '0px') }
+    return () => { ro.disconnect(); removeEventListener('resize', apply); reset() }
   }, [hidden, hasTab, view, host])
 
   // ----- кружок: нажатие — пуск/пауза, смахнуть вправо — закрыть -----
@@ -142,9 +199,13 @@ export function MiniPlayer() {
       if (!g.moved) return
       if (ev.cancelable) ev.preventDefault()
       g.dx = dx
+      // Кружок у самого правого края: палец упирается в край экрана уже через 20–40 пикселей. Поэтому движение
+      // кружка усиливаем — он уезжает заметно дальше пальца, и видно, что его «смахивают»
+      const room = Math.max(24, innerWidth - g.x - 6) // сколько пальцу есть куда двигаться вправо
+      const k = Math.min(1, Math.max(0, dx) / room) // доля пройденного пути (0…1)
       el.style.transition = 'none'
-      el.style.transform = `translateX(${Math.max(-14, dx)}px)`
-      el.style.opacity = String(Math.max(0.25, 1 - Math.max(0, dx) / 260))
+      el.style.transform = `translateX(${dx < 0 ? Math.max(-14, dx) : Math.round(k * (innerWidth - g.x + 20))}px)`
+      el.style.opacity = String(Math.max(0.2, 1 - k * 0.8))
     }
     const back = () => { el.style.transition = `transform .3s ${SPRING}, opacity .2s ease`; el.style.transform = ''; el.style.opacity = '' }
     const end = () => {
@@ -153,7 +214,9 @@ export function MiniPlayer() {
       if (!d) return
       if (!d.moved) { haptic.tap(); return usePlayer.getState().toggle() } // обычное нажатие
       const v = d.dx / Math.max(1, performance.now() - d.t) // пикселей в мс
-      if (d.dx > 60 || (d.dx > 30 && v > 0.4)) { // длинное смахивание, или короткое, но резкое
+      const room = Math.max(24, innerWidth - d.x - 6)
+      // закрываем, если палец прошёл больше трети доступного пути до края, или быстрый «щелчок» хотя бы на 12 пикселей
+      if (d.dx > room * 0.35 || (d.dx > 12 && v > 0.35)) {
         // смахнули вправо — уезжает за край экрана, затем плеер закрывается
         haptic.tap()
         el.style.transition = 'transform .24s cubic-bezier(.5, 0, .9, .5), opacity .24s ease-in'
@@ -223,6 +286,7 @@ export function MiniPlayer() {
     if (!el || closing.current) return p.stop()
     closing.current = true
     document.documentElement.style.setProperty('--mp-clear', '0px') // то, что стояло над плеером, плавно опускается
+    document.documentElement.style.setProperty('--mp-pad', '0px')
     el.classList.add('mp-crt') // содержимое сразу гаснет, остаётся светящийся «экран»
     el.style.backdropFilter = 'none'
     el.style.setProperty('-webkit-backdrop-filter', 'none')
@@ -245,13 +309,14 @@ export function MiniPlayer() {
       el.querySelectorAll<HTMLElement>('[data-f]').forEach((n) => { items[n.dataset.f!] = n.getBoundingClientRect() })
       snap.current = { root: el.getBoundingClientRect(), items }
     }
-    setMini((v) => !v)
+    if (inDua) setPinFull(false) // в дуа «свернуть» — только в кружок
+    else setMini((v) => !v)
   }
-  const expand = () => { haptic.tap(); setPinFull(true) } // из кружка — обратно в тот вид, который был (большой или узкий)
+  const expand = () => { haptic.tap(); setPinFull(true) } // из кружка — сразу в большой плеер
 
   const place = (node: ReactNode) => (inRead && host ? createPortal(node, host) : node)
 
-  const cls = 'miniplayer glass' + (view === 'bar' ? ' mp-bar' : '') + (view === 'dot' ? ' mp-circle' : '') + (view === 'dot' && playing ? ' mp-on' : '') + (inReader ? ' in-reader' : hasTab ? ' has-tab' : '') + (enter ? ' mp-enter' : '')
+  const cls = 'miniplayer glass' + (view === 'bar' ? ' mp-bar' : '') + (view === 'dot' ? ' mp-circle' : '') + (view === 'dot' && inCard ? ' mp-dock-card' : '') + (view === 'dot' && playing ? ' mp-on' : '') + (inReader ? ' in-reader' : hasTab ? ' has-tab' : '') + (enter ? ' mp-enter' : '')
   return place(
     <>
       <div ref={rootRef} className={cls}>
@@ -262,7 +327,7 @@ export function MiniPlayer() {
               <b>{sr?.name ?? `Сура ${s}`}</b>
               <span>Аят {a} из {sr?.ayahs ?? ''}{sl ? ` · сон ${sl.mode === 'time' ? `${left} мин` : `${sl.left} ${sl.left === 1 ? 'сура' : 'суры'}`}` : ''}</span>
             </button>
-            <button data-f="fold" className="mp-btn mp-x mp-fold" tabIndex={view === 'dot' ? -1 : 0} onClick={fold} aria-label={mini ? 'Развернуть плеер' : 'Свернуть плеер'}><Icon id={mini ? 'up' : 'down'} /></button>
+            <button data-f="fold" className="mp-btn mp-x mp-fold" tabIndex={view === 'dot' ? -1 : 0} onClick={fold} aria-label={inDua ? 'Свернуть в кружок' : mini ? 'Развернуть плеер' : 'Свернуть плеер'}><Icon id={mini && !inDua ? 'up' : 'down'} /></button>
             <button data-f="close" className="mp-btn mp-x mp-close" tabIndex={view === 'dot' ? -1 : 0} onClick={closePlayer} aria-label="Закрыть плеер"><Icon id="close" /></button>
           </div>
           <div className="mp-mid">
