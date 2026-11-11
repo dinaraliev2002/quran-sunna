@@ -23,7 +23,6 @@ export const ease = bezier(0.22, 1, 0.36, 1)
 export const lerp = (a: number, b: number, k: number) => a + (b - a) * k
 const clamp = (v: number) => Math.min(1, Math.max(0, v))
 const fast = bezier(0.4, 0, 0.2, 1) // плавный разгон и торможение
-const soft = bezier(0.6, 0, 0.3, 1) // разгон дольше — вместе с fast даёт мягкую дугу к углу
 const inOut = bezier(0.5, 0, 0.3, 1)
 const spring = bezier(0.34, 1.4, 0.64, 1) // с лёгким «перелётом» — кнопка выпрыгивает и чуть пружинит
 
@@ -79,7 +78,7 @@ export function flyDot(el: HTMLElement, from: DOMRect, to: DOMRect, spreadCls: s
 
   // Два этапа, слегка внахлёст:
   //  • «сбор»: окно сжимается до кружка вокруг «пуска» (W0), а кнопки одновременно уходят в «пуск» — левые справа налево, правые слева направо;
-  //  • «полёт»: кружок с «пуском» летит в угол мягкой дугой.
+  //  • «полёт»: кружок с «пуском» летит в угол ровно по диагонали.
   // Разворачивание — то же в обратном порядке: сначала прилетает на место «пуска», потом кнопки разом выходят в обе стороны.
   const side = Math.min(S.height, M.w + 12)
   const W0 = { left: M.cx - side / 2, top: M.cy - side / 2, width: side, height: side }
@@ -89,10 +88,10 @@ export function flyDot(el: HTMLElement, from: DOMRect, to: DOMRect, spreadCls: s
     let g: number, gb: number, fx: number, fy: number
     if (toDot) {
       const a = clamp(t / 0.5), b = clamp((t - 0.35) / 0.65)
-      g = inOut(a); gb = g; fx = fast(b); fy = soft(b)
+      g = inOut(a); gb = g; fx = fy = fast(b) // одна кривая по обеим осям — путь ровно по диагонали
     } else {
       const b = clamp(t / 0.55), a = clamp((t - 0.4) / 0.6)
-      fx = 1 - soft(b); fy = 1 - fast(b)
+      fx = fy = 1 - fast(b)
       g = 1 - fast(a) // окно раскрывается без «перелёта»
       gb = 1 - spring(a) // кнопки — с лёгкой пружинкой
     }
