@@ -4,8 +4,9 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem } from '@capacitor/filesystem'
 
 const DIR = 'downloads'
-// audio: — старые загрузки по аятам (больше не используются, удаляются при запуске); sura: — записи сур целиком
-const BIG = ['audio:', 'font:', 'sura:']
+// audio: — старые загрузки по аятам (больше не используются, удаляются при запуске); sura: — записи сур целиком;
+// ayah: — файлы аятов у чтецов, которые звучат аятами встык (Афаси)
+const BIG = ['audio:', 'font:', 'sura:', 'ayah:']
 export const useFiles = Capacitor.isNativePlatform()
 export const isBig = (key: string) => useFiles && BIG.some((p) => key.startsWith(p))
 const name = (key: string) => key.replace(/:/g, '__')

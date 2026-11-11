@@ -2,7 +2,8 @@
 // у остальных подсвечивается только аят.
 import { useEffect } from 'react'
 import { create } from 'zustand'
-import { playbackPos, playingTiming, usePlayer } from '../store/player'
+import { currentReciter, isGlue, playbackPos, playingTiming, usePlayer } from '../store/player'
+import { glueWords } from './recite'
 
 /** Какое слово какого аята звучит сейчас (0 — слово не определено) */
 export const useWordPos = create<{ key: string | null; word: number }>(() => ({ key: null, word: 0 }))
@@ -24,7 +25,8 @@ export function useWordHighlight() {
     const tick = () => {
       if (!live) return
       const pos = playbackPos()
-      const segs = pos ? playingTiming(pos.key)?.w?.[Number(pos.key.split(':')[1]) - 1] : null
+      // у чтецов с файлами аятов (Афаси) слова — свои, от начала файла аята; у остальных — из разметки записи суры
+      const segs = !pos ? null : isGlue(currentReciter()) ? glueWords(currentReciter(), pos.key) : playingTiming(pos.key)?.w?.[Number(pos.key.split(':')[1]) - 1]
       let w = 0
       if (pos && segs?.length) {
         for (const [n, st] of segs) { if (st <= pos.ms) w = n; else break }

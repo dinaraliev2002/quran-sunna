@@ -7,7 +7,7 @@ import type { ReciteIndex, SurahTiming } from '../types/player'
 
 const pad = (n: number) => String(n).padStart(3, '0')
 /** Версия данных чтецов: увеличиваем при каждом изменении public/data/recite (иначе на телефонах останется старое из кэша) */
-export const RECITE_V = 3
+export const RECITE_V = 4
 const key = (path: string) => dataKey(`recite${RECITE_V}/${path}`)
 const url = (path: string) => `${DATA_BASE}recite/${path}?v=${RECITE_V}`
 
@@ -54,3 +54,26 @@ export function loadTiming(reciter: string, surah: number): Promise<SurahTiming 
 
 /** Ключ скачанной записи суры в хранилище телефона */
 export const suraKey = (reciter: string, surah: number) => `sura:${reciter}:${pad(surah)}`
+
+/** Ключ скачанного файла одного аята (чтецы, у которых звучат файлы аятов, — Афаси) */
+export const ayahKey = (reciter: string, surah: number, ayah: number) => `ayah:${reciter}:${pad(surah)}:${pad(ayah)}`
+
+// Слова аятов для подсветки у чтецов с файлами аятов: время в мс от начала файла аята (public/data/timing, scripts/fetch-timings.mjs)
+type Seg = [number, number, number] // [слово, начало, конец]
+const glueW = new Map<string, Record<string, Seg[]>>()
+const glueWLoading = new Set<string>()
+/** Слова звучащего аята «сура:аят» или null (нет разметки / ещё грузится) */
+export function glueWords(reciter: string, key: string): Seg[] | null {
+  const [s, a] = key.split(':')
+  const k = `${reciter}:${s}`
+  const hit = glueW.get(k)
+  if (hit) return hit[a] ?? null
+  if (!glueWLoading.has(k)) {
+    glueWLoading.add(k)
+    const path = `timing/${reciter}/${pad(Number(s))}.json`
+    cachedJson<Record<string, Seg[]>>(dataKey(path), DATA_BASE + path)
+      .then((j) => { glueW.set(k, j) })
+      .catch(() => { glueWLoading.delete(k) })
+  }
+  return null
+}

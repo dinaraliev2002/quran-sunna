@@ -2,10 +2,11 @@
 import { create } from 'zustand'
 import { DATA_BASE, TOTAL_PAGES, type Surah } from './data'
 import { fontKey, fontUrl, isBundled } from './fonts'
-import { idbDeletePrefix, idbKeys, requestPersistence } from './idb'
+import { idbDeletePrefix, idbKeys, idbPut, requestPersistence } from './idb'
 import { cachedBuffer, cachedJson, dataKey, DATA_VERSION, downloadBlob } from './net'
 import { downloadToFile, useFiles } from './nativeFiles'
-import { loadReciteIndex, loadTiming, suraKey, surahBytes, surahUrl } from './recite'
+import { ayahKey, loadReciteIndex, loadTiming, suraKey, surahBytes, surahUrl } from './recite'
+import { isGlue, RECITERS } from '../store/player'
 
 export type JobKind = 'data' | 'fonts' | 'audio'
 /** done/total — число файлов, а у аудио — байты (записи сур большие, прогресс виден внутри файла) */
@@ -104,7 +105,7 @@ export async function downloadAudio(reciter: string, surahs: Surah[], title: str
   surahs = surahs.filter((s) => !queued.has(s.id) && !have.has(suraKey(reciter, s.id)))
   const tasks: Task[] = surahs.map((s) => ({
     weight: Math.max(1, surahBytes(ix, reciter, s.id)),
-    run: async (onBytes) => {
+    run: isGlue(reciter) ? (onBytes) => downloadAyahs(reciter, s, surahBytes(ix, reciter, s.id), onBytes) : async (onBytes) => {
       const url = surahUrl(ix, reciter, s.id)
       if (!url) throw new Error('нет записи')
       await loadTiming(reciter, s.id)
@@ -114,6 +115,26 @@ export async function downloadAudio(reciter: string, surahs: Surah[], title: str
     },
   }))
   return run('audio:' + reciter, 'audio', title, tasks, surahs.map((s) => s.id))
+}
+
+/** Чтецы с файлами аятов (Афаси): качаем файл каждого аята суры; когда все на месте — отметка sura:… (по ней видно, что сура скачана) */
+async function downloadAyahs(reciter: string, s: Surah, weight: number, onBytes: (n: number) => void) {
+  const have = new Set(await idbKeys(`ayah:${reciter}:${pad(s.id)}:`))
+  let sum = 0
+  const sig = abort?.signal
+  for (let a = 1; a <= s.ayahs; a++) {
+    if (sig?.aborted) throw new Error('отменено')
+    const key = ayahKey(reciter, s.id, a)
+    if (!have.has(key)) {
+      const url = `https://everyayah.com/data/${RECITERS[reciter]?.ayahs}/${pad(s.id)}${pad(a)}.mp3`
+      if (useFiles) await downloadToFile(key, url)
+      else await downloadBlob(key, url, sig)
+    }
+    sum = Math.round(weight * a / s.ayahs)
+    onBytes(sum)
+  }
+  // отметка «сура скачана»: пустой файл с тем же ключом, что у цельных записей
+  await idbPut(suraKey(reciter, s.id), new Blob([]))
 }
 
 // ---------- состояние «что уже скачано» ----------
@@ -134,12 +155,13 @@ export async function offlineStatus(fontVariantNow: string, reciter: string) {
 /** Удалить скачанное аудио одной суры у чтеца */
 export async function deleteAudioSurah(reciter: string, surah: number) {
   await idbDeletePrefix(suraKey(reciter, surah))
+  await idbDeletePrefix(`ayah:${reciter}:${pad(surah)}:`)
   useDownloads.setState((s) => ({ version: s.version + 1 }))
 }
 
 export async function deleteDownloads(kind: 'fonts' | 'audio' | 'all', key?: string) {
   if (kind === 'fonts') await idbDeletePrefix(`font:${key}:`)
-  else if (kind === 'audio') await idbDeletePrefix(`sura:${key}:`)
-  else { await idbDeletePrefix('font:'); await idbDeletePrefix('sura:'); await idbDeletePrefix('audio:') }
+  else if (kind === 'audio') { await idbDeletePrefix(`sura:${key}:`); await idbDeletePrefix(`ayah:${key}:`) }
+  else { await idbDeletePrefix('font:'); await idbDeletePrefix('sura:'); await idbDeletePrefix('audio:'); await idbDeletePrefix('ayah:') }
   useDownloads.setState((s) => ({ version: s.version + 1 }))
 }

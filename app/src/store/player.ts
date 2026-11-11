@@ -1,16 +1,18 @@
 import { create } from 'zustand'
 import { cachedBlob } from '../lib/net'
 import { localFileUrl, useFiles } from '../lib/nativeFiles'
-import { loadReciteIndex, loadTiming, suraKey, surahUrl, timingNow } from '../lib/recite'
+import { ayahKey, loadReciteIndex, loadTiming, suraKey, surahUrl, timingNow } from '../lib/recite'
+import { glueOn, gluePos, glueSounding, glueStart, glueStop, glueSupported, glueToggle } from '../lib/glueAudio'
 import type { Reciter, PauseMode, MemoOptions, Sleep, SurahTiming } from '../types/player'
 export type { Reciter, PauseMode, MemoOptions, Sleep }
 
 // Плеер Корана. Чтец звучит одной цельной записью на всю суру — между аятами нет пауз и щелчков,
-// как в мусхафе-плеерах. По разметке (lib/recite.ts) плеер знает, где какой аят: подсвечивает его,
+// как в мусхафе-плеерах. Исключение — Афаси (glue): у него чистый звук только в файлах аятов everyayah, поэтому аяты
+// ставятся встык через Web Audio (lib/glueAudio.ts, лишняя тишина обрезается); в заучивании и на iPhone играют сами файлы. По разметке (lib/recite.ts) плеер знает, где какой аят: подсвечивает его,
 // останавливается в конце диапазона, а в заучивании повторяет аят или отрывок перемоткой к его началу.
 
 export const RECITERS: Record<string, Reciter> = {
-  alafasy: { name: 'Мишари аль-Афаси', ayahs: 'Alafasy_128kbps' },
+  alafasy: { name: 'Мишари аль-Афаси', ayahs: 'Alafasy_128kbps', glue: true },
   husary: { name: 'Махмуд аль-Хусари', ayahs: 'Husary_128kbps' },
   husary_m: { name: 'аль-Хусари (учебная, медленно)', ayahs: 'Husary_Muallim_128kbps' },
   sudais: { name: 'Абдуррахман ас-Судайс', ayahs: 'Abdurrahmaan_As-Sudais_192kbps' },
@@ -26,6 +28,14 @@ export const RECITERS: Record<string, Reciter> = {
 const pad3 = (n: number) => String(n).padStart(3, '0')
 /** Файл одного аята на everyayah (запасной путь без разметки) */
 const ayahUrl = (rec: string, s: number, a: number) => `https://everyayah.com/data/${RECITERS[rec]?.ayahs ?? RECITERS.alafasy.ayahs}/${pad3(s)}${pad3(a)}.mp3`
+/** Адреса файла аята «сура:аят»: everyayah, потом зеркало */
+const ayahUrls = (rec: string, key: string) => {
+  const [s, a] = key.split(':').map(Number)
+  const u = ayahUrl(rec, s, a)
+  return [u, u.replace('https://everyayah.com/data/', 'https://mirrors.quranicaudio.com/everyayah/')]
+}
+/** Звучит ли чтец файлами аятов, а не цельной записью суры */
+export const isGlue = (rec: string) => !!RECITERS[rec]?.glue
 
 /** Настройки плеера (из «Настройки плеера»); обновляются из lib/listen.ts */
 export const playerCfg = { gap: 0, next: 'stop' as 'stop' | 'next' | 'repeat', rate: 1, surahCount: (_s: number): number => 0 }
@@ -75,6 +85,7 @@ const parse = (key: string) => { const [s, a] = key.split(':').map(Number); retu
 
 /** Что звучит прямо сейчас: аят и место в записи суры (мс) — для подсветки слов */
 export function playbackPos(): { key: string; ms: number } | null {
+  if (glueOn()) return gluePos()
   const key = usePlayer.getState().current
   if (!key || !file || el.paused) return null
   return { key, ms: el.currentTime * 1000 }
@@ -98,6 +109,23 @@ async function sourceOf(rec: string, s: number): Promise<{ src: string; local: b
   const url = surahUrl(await loadReciteIndex(), rec, s)
   if (!url) throw new Error('нет записи')
   return { src: url, local: false }
+}
+
+/** Откуда играть файл аята: скачанный на телефоне или интернет */
+async function ayahSource(rec: string, s: number, a: number): Promise<{ src: string; local: boolean }> {
+  const key = ayahKey(rec, s, a)
+  if (useFiles) {
+    const u = await localFileUrl(key)
+    if (u) return { src: u, local: true }
+  } else {
+    const blob = await cachedBlob(key)
+    if (blob) {
+      if (blobUrl) URL.revokeObjectURL(blobUrl)
+      blobUrl = URL.createObjectURL(blob)
+      return { src: blobUrl, local: true }
+    }
+  }
+  return { src: ayahUrl(rec, s, a), local: false }
 }
 
 /** Дождаться, пока плеер узнает длину записи (до этого перематывать нельзя) */
@@ -157,10 +185,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
     busy = true
     try {
       const rec = reciter
-      const t = await loadTiming(rec, s).catch(() => null)
+      const t = isGlue(rec) ? null : await loadTiming(rec, s).catch(() => null)
       if (g !== gen) return
       // с первого аята в обычном прослушивании — с самого начала записи (истиаза и басмала перед сурой)
-      let fromStart = a === 1 && !s0.memo && s0.queue.length > 1
+      let fromStart = !isGlue(rec) && a === 1 && !s0.memo && s0.queue.length > 1
       timing = t
       const name = (RECITERS[rec] ?? RECITERS.alafasy).name
       if (!t && !fromStart && !RECITERS[rec]?.ayahs) {
@@ -174,8 +202,12 @@ export const usePlayer = create<PlayerState>((set, get) => {
       }
       if (!t && !fromStart) {
         // у суры нет разметки, а нужен отдельный аят (с середины, диапазон, заучивание) — файл этого аята
-        const src = ayahUrl(rec, s, a)
-        if (!file || file.src !== src) { file = { rec, s, a, src, local: false }; el.src = src }
+        if (!(file && file.rec === rec && file.s === s && file.a === a)) {
+          const r = await ayahSource(rec, s, a)
+          if (g !== gen) return
+          file = { rec, s, a, ...r }
+          el.src = r.src
+        }
       } else {
         const src = await sourceOf(rec, s)
         if (g !== gen) return
@@ -269,6 +301,13 @@ export const usePlayer = create<PlayerState>((set, get) => {
   el.ontimeupdate = check
   el.onerror = () => {
     if (!file || el.src.startsWith('data:') || !get().current) return
+    // скачанный файл аята не открылся — играем из интернета
+    if (file.a && file.local) {
+      file = { ...file, src: ayahUrl(file.rec, file.s, file.a), local: false }
+      el.src = file.src
+      el.play().catch(() => {})
+      return
+    }
     // файл аята не открылся на everyayah — берём зеркало
     if (file.a && file.src.startsWith('https://everyayah.com/')) {
       file = { ...file, src: file.src.replace('https://everyayah.com/data/', 'https://mirrors.quranicaudio.com/everyayah/') }
@@ -320,13 +359,37 @@ export const usePlayer = create<PlayerState>((set, get) => {
     play: (queue, start = 0, memo = null, opts) => {
       applyRate(lessonRate ?? playerCfg.rate)
       window.dispatchEvent(new Event('quran-play')) // остановить аудио азкара, если играет
+      glueStop()
       set({ queue, memo: memo ? { ...memo, each: 1, round: 1 } : null, exact: !!opts?.exact })
+      // аяты встык: обычное прослушивание без повторов и без замедления (с ними — по файлу, как раньше)
+      if (!memo && isGlue(reciter) && glueSupported && rate === 1) {
+        gen++
+        clearTimers()
+        el.pause()
+        el.removeAttribute('src')
+        file = null
+        timing = null
+        set({ index: start, current: queue[start], status: 'loading', error: null })
+        const rec = reciter
+        glueStart({
+          rec, start,
+          queue: () => get().queue,
+          more: surahEnd,
+          urls: (key) => ayahUrls(rec, key),
+          gapMs: (d) => gapMs(d * 1000),
+          show: (i, key) => { set({ index: i, current: key, status: glueSounding() ? 'playing' : 'paused' }); mediaSession(key) },
+          done: finish,
+          fail: () => set({ status: 'paused', error: 'Не удалось загрузить аудио. Проверьте интернет.' }),
+        })
+        return
+      }
       // iPhone: плеер должен впервые зазвучать прямо в момент нажатия — пока ищем запись, играем тишину
       if (!file) { el.src = SILENT; el.play().catch(() => {}) }
       startAt(start)
     },
     toggle: () => {
       const s = get()
+      if (glueOn()) { set({ status: glueToggle() ? 'playing' : 'paused' }); return }
       if (s.status === 'playing' || s.status === 'loading') {
         clearTimeout(waitTimer)
         el.pause()
@@ -340,6 +403,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       el.play().catch(() => startAt(s.index))
     },
     stop: () => {
+      glueStop()
       gen++
       clearTimers()
       clearTimeout(sleepTimer)
