@@ -168,19 +168,55 @@ export function MiniPlayer() {
     //  • на время полёта убираем размытие фона под окном: телефону не нужно размывать его заново в каждом кадре
     const toDot = view === 'dot'
     const DUR = 560
+    const fast = 'cubic-bezier(.4, 0, .2, 1)', soft = 'cubic-bezier(.6, 0, .3, 1)'
+
+    // Разворачивание из кружка: кнопки «вырастают» из него. План считаем ДО запуска анимации окна — по конечной раскладке:
+    //  • золотой кружок сам становится кнопкой «пуск» — она начинает там же и такого же размера, затем едет на своё место;
+    //  • остальные кнопки выпрыгивают из «пуска» по очереди (сначала ближние) с лёгкой пружинкой;
+    //  • надпись сверху и нижний ряд мягко выезжают последними.
+    const card = el.querySelector<HTMLElement>('.mp-card')
+    const plan: { n: HTMLElement; kf: Keyframe[]; o: KeyframeAnimationOptions }[] = []
+    if (!toDot && card) {
+      const rel = (n: Element) => { const b = n.getBoundingClientRect(); return { x: b.left - rect.left, y: b.top - rect.top, w: b.width, h: b.height } }
+      const main = el.querySelector<HTMLElement>('[data-f=main]')
+      if (main) {
+        const m = rel(main)
+        plan.push({ n: main, kf: [{ transform: `translate(${-m.x}px, ${-m.y}px) scale(${before.rect.width / m.w})`, transformOrigin: '0 0' }, { transform: 'none', transformOrigin: '0 0' }], o: { duration: DUR, easing: fast } })
+        const cx = m.x + m.w / 2, cy = m.y + m.h / 2
+        const others = [...el.querySelectorAll<HTMLElement>('[data-f]')].filter((n) => n !== main && n.getClientRects().length)
+          .map((n) => { const b = rel(n); const dx = cx - (b.x + b.w / 2), dy = cy - (b.y + b.h / 2); return { n, dx, dy, d: Math.hypot(dx, dy) } })
+          .sort((a, b) => a.d - b.d)
+        others.forEach(({ n, dx, dy }, i) => plan.push({
+          n, kf: [{ transform: `translate(${dx}px, ${dy}px) scale(.35)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
+          o: { duration: 420, delay: 150 + i * 45, easing: 'cubic-bezier(.34, 1.4, .64, 1)', fill: 'backwards' },
+        }))
+      }
+      for (const [sel, dy, delay] of [['.mp-info', -8, 260], ['.mp-bot', 8, 320]] as const) {
+        const n = el.querySelector<HTMLElement>(sel)
+        if (!n || getComputedStyle(n).position === 'absolute') continue // в узком виде они спрятаны
+        plan.push({ n, kf: [{ transform: `translateY(${dy}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], o: { duration: 380, delay, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'backwards' } })
+      }
+      // раскладка карточки сразу конечная (ширина как в конце): пока окно растёт, кнопки не перестраиваются и не «гуляют»
+      const cw = card.getBoundingClientRect().width
+      if (cw) card.style.width = cw + 'px'
+      el.classList.add('mp-reveal') // карточка видна сразу, кружок гаснет сразу (CSS) — дальше видимостью управляет план
+    }
+
     const xs = (r: DOMRect) => ({ left: r.left + 'px', width: r.width + 'px' })
     const ys = (r: DOMRect) => ({ top: r.top + 'px', height: r.height + 'px' })
     const css = el.style
     for (const [k, v] of [['right', 'auto'], ['bottom', 'auto'], ['margin', '0'], ['max-width', 'none'], ['overflow', 'hidden'], ['backdrop-filter', 'none'], ['-webkit-backdrop-filter', 'none'], ['background', 'var(--surface)'], ['will-change', 'left, top, width, height']] as const) css.setProperty(k, v)
-    const fast = 'cubic-bezier(.4, 0, .2, 1)', soft = 'cubic-bezier(.6, 0, .3, 1)'
     // fill: 'forwards' — в последний миг окно стоит в конечной точке, пока не убраны временные стили (иначе мог мелькнуть кадр не на месте)
     const ax = el.animate([xs(before.rect), xs(rect)], { duration: DUR, easing: toDot ? fast : soft, fill: 'forwards' })
     const ay = el.animate([ys(before.rect), ys(rect)], { duration: DUR, easing: toDot ? soft : fast, fill: 'forwards' })
+    const items = plan.map((p) => p.n.animate(p.kf, p.o))
     const clean = () => {
       for (const k of ['right', 'bottom', 'margin', 'max-width', 'overflow', 'backdrop-filter', '-webkit-backdrop-filter', 'background', 'will-change']) css.removeProperty(k)
       ax.cancel(); ay.cancel() // дальше плеер стоит по обычным правилам — на том же месте
     }
     Promise.all([ax.finished, ay.finished]).then(clean, clean)
+    // кнопки доигрывают чуть дольше окна — после них снимаем временную ширину карточки
+    Promise.all(items.map((a) => a.finished)).finally(() => { el.classList.remove('mp-reveal'); card?.style.removeProperty('width') }).catch(() => {})
   })
 
   // Большой/узкий плеер стоит внизу — то, что у экрана внизу (большая кнопка-счётчик), поднимается над ним и плавно
