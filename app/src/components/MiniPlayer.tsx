@@ -109,8 +109,14 @@ export function MiniPlayer() {
   useLayoutEffect(() => {
     const el = rootRef.current
     if (!el) { prev.current = null; return }
-    const rect = el.getBoundingClientRect()
     const before = prev.current
+    const changing = !!before && before.el === el && before.view !== view
+    // Вид меняется — замеряем КОНЕЧНОЕ место плеера. У плеера есть плавное движение по высоте (когда внизу появляется/пропадает
+    // меню): в этот момент оно только началось, и замер дал бы старую высоту — кружок летел бы вбок, а потом «доезжал» вниз.
+    // Поэтому на время замера плавность выключаем: плеер сразу встаёт на новое место (его всё равно ведёт анимация ниже)
+    if (changing) el.style.transition = 'none'
+    const rect = el.getBoundingClientRect()
+    if (changing) el.style.transition = ''
     prev.current = { view, rect, el }
     const flip = snap.current
     snap.current = null
@@ -179,11 +185,16 @@ export function MiniPlayer() {
       root.style.setProperty('--mp-pad', d + 14 + 'px')
     }
     apply()
-    const ro = new ResizeObserver(apply)
+    const ro = new ResizeObserver(apply) // размер плеера меняется — пересчитываем
     ro.observe(el)
     addEventListener('resize', apply)
-    return () => { ro.disconnect(); removeEventListener('resize', apply); reset() }
-  }, [hidden, hasTab, view, host])
+    // Плеер мог ещё плавно ехать (поднимается над нижним меню, меняет вид): положение без смены размера ResizeObserver не замечает,
+    // а первый замер дал бы старую высоту. Поэтому пересчитываем, когда движение закончилось, и ещё несколько раз для верности
+    el.addEventListener('transitionend', apply)
+    el.addEventListener('animationend', apply)
+    const timers = [120, 300, 520, 800].map((ms) => setTimeout(apply, ms))
+    return () => { ro.disconnect(); removeEventListener('resize', apply); el.removeEventListener('transitionend', apply); el.removeEventListener('animationend', apply); timers.forEach(clearTimeout); reset() }
+  }, [hidden, hasTab, view, host, loc.pathname])
 
   // ----- кружок: нажатие — пуск/пауза, смахнуть вправо — закрыть -----
   // На телефоне — родные касания (touch): на iPhone они самые надёжные. Мышь и перо — через pointer-события.
