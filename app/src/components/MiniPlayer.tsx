@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '../lib/telegram'
@@ -12,15 +12,19 @@ import { useQuranMeta } from '../hooks/useQuranMeta'
 const RATES = [0.75, 1, 1.25, 1.5]
 const fmtRate = (r: number) => String(r).replace('.', ',') + '×'
 const SPRING = 'cubic-bezier(.22, 1, .36, 1)'
-/** Экраны чтения азкара (внизу большой счётчик): плеер там сам сворачивается в кружок. Страницы-списки (с нижним меню) остаются с карточкой */
-const READING = /^\/azkar\/ch\//
+/** Открыто конкретное дуа (карточки азкара, внизу большой счётчик): только здесь плеер сам превращается в кружок */
+const DUA = /^\/azkar\/ch\//
+
+/** Положения кнопок до смены вида — отсюда они плавно «переезжают» на новые места (приём FLIP) */
+interface Snap { root: DOMRect; items: Record<string, DOMRect> }
+type View = 'full' | 'bar' | 'dot'
 
 /**
- * Плеер: виден везде, пока что-то звучит. Два вида:
- *  • карточка — название, управление, скорость · сон · настройки;
- *  • кружок — одна кнопка «пуск/пауза» в углу. Нажатие — пуск/пауза, смахнуть вправо — закрыть (как видео в YouTube),
- *    значок-стрелка сверху — снова развернуть.
- * Карточка плавно превращается в кружок и обратно; на экранах чтения (READING) сворачивается сама.
+ * Плеер: виден везде, пока что-то звучит. Три вида:
+ *  • большой — название, управление, скорость · сон · настройки;
+ *  • узкий — одна строка: развернуть, сура/аят назад-вперёд, пуск, закрыть (человек сворачивает его сам);
+ *  • кружок — только в открытом дуа: пуск/пауза одним нажатием, смахнуть вправо — закрыть, стрелка сверху — развернуть.
+ * Между видами плеер плавно меняет размер: при большой ⇄ узкий кнопки «переезжают» и совмещаются, при кружке окно сжимается в угол.
  */
 export function MiniPlayer() {
   const p = usePlayer()
@@ -30,20 +34,22 @@ export function MiniPlayer() {
   const loc = useLocation()
   const [gear, setGear] = useState(false)
   const [speed, setSpeed] = useState(false)
-  const [mini, setMini] = useState(false) // человек свернул плеер в кружок
-  const [pinFull, setPinFull] = useState(false) // на экране чтения человек сам развернул плеер — не сворачиваем, пока не уйдёт с экрана
+  const [mini, setMini] = useState(false) // человек свернул плеер в узкую строку
+  const [pinFull, setPinFull] = useState(false) // в дуа человек сам развернул плеер из кружка — не сворачиваем, пока не уйдёт с экрана
   const [enter, setEnter] = useState(false) // плеер только что появился — мягко выезжает снизу
   const [, tick] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
+  const dotRef = useRef<HTMLButtonElement>(null)
+  const snap = useRef<Snap | null>(null)
   const closing = useRef(false)
   const wasHidden = useRef(true)
-  const prev = useRef<{ small: boolean; rect: DOMRect; el: Element } | null>(null)
+  const prev = useRef<{ view: View; rect: DOMRect; el: Element } | null>(null)
   // над нижним меню — только на экранах, где оно есть; на остальных (главная) плеер прижат к низу
   const [hasTab, setHasTab] = useState(false)
   // в чтении плеер живёт внутри экрана чтения: тогда окна (меню, аят) закрывают его, а не наоборот
   const [host, setHost] = useState<Element | null>(null)
   const inRead = loc.pathname.startsWith('/read/')
-  const small = mini || (READING.test(loc.pathname) && !pinFull)
+  const view: View = DUA.test(loc.pathname) && !pinFull ? 'dot' : mini ? 'bar' : 'full'
   useEffect(() => { setPinFull(false) }, [loc.pathname])
   useEffect(() => {
     setHost(null)
@@ -57,7 +63,6 @@ export function MiniPlayer() {
   useEffect(() => {
     // смотрим только на входящий экран: у уходящего (он ещё доли секунды на месте) нижнее меню может быть другим
     const look = () => setHasTab(!!document.querySelector('.pt-in .tabbar, .app > .tabbar, body > .tabbar'))
-    look()
     const ts = [0, 60, 300, 900].map((ms) => setTimeout(look, ms))
     return () => ts.forEach(clearTimeout)
   }, [loc.pathname])
@@ -78,74 +83,105 @@ export function MiniPlayer() {
     return () => clearTimeout(t)
   }, [hidden])
 
-  // Карточка ⇄ кружок: само окно плеера плавно меняет размер и положение (из старого места и размера — в новые),
-  // а содержимое переплавляется (в CSS). Старое положение берём из прошлой отрисовки — так работает и когда плеер
-  // сворачивается сам, при переходе на другой экран.
+  // Смена вида: само окно плавно меняет размер и место (из прежнего положения — в новое), а при большой ⇄ узкий ещё и
+  // кнопки переезжают на новые места. Прежнее положение берём из прошлой отрисовки — так работает и когда вид меняется
+  // сам (открыли дуа), а не по нажатию.
   useLayoutEffect(() => {
     const el = rootRef.current
     if (!el) { prev.current = null; return }
     const rect = el.getBoundingClientRect()
     const before = prev.current
-    prev.current = { small, rect, el }
-    if (!before || before.el !== el || before.small === small) return
-    const geo = (r: DOMRect, radius: number) => ({ left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', right: 'auto', bottom: 'auto', margin: '0px', maxWidth: 'none', borderRadius: radius + 'px' })
+    prev.current = { view, rect, el }
+    const flip = snap.current
+    snap.current = null
+    if (!before || before.el !== el || before.view === view) return
+    if (flip && before.view !== 'dot' && view !== 'dot') {
+      el.querySelectorAll<HTMLElement>('[data-f]').forEach((n) => {
+        const o = flip.items[n.dataset.f!]
+        if (!o) return
+        const r = n.getBoundingClientRect()
+        // координаты — от верха самого плеера (его размер и место двигаем отдельно, ниже)
+        const dx = (o.left - flip.root.left) - (r.left - rect.left)
+        const dy = (o.top - flip.root.top) - (r.top - rect.top)
+        const sc = r.width ? o.width / r.width : 1
+        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sc - 1) < 0.01) return
+        n.animate([{ transform: `translate(${dx}px, ${dy}px) scale(${sc})`, transformOrigin: '0 0' }, { transform: 'none', transformOrigin: '0 0' }], { duration: 480, easing: SPRING })
+      })
+    }
+    const geo = (r: DOMRect) => ({ left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', right: 'auto', bottom: 'auto', margin: '0px', maxWidth: 'none' })
     el.style.overflow = 'hidden' // пока меняется размер, всё лишнее обрезается
-    const a = el.animate([geo(before.rect, before.small ? 22 : 22), geo(rect, small ? 22 : 22)], { duration: 480, easing: SPRING })
+    const a = el.animate([geo(before.rect), geo(rect)], { duration: 480, easing: SPRING })
     a.onfinish = a.oncancel = () => { el.style.overflow = '' }
-  }) // без списка зависимостей: после каждой отрисовки запоминаем, где стоит плеер, — это «откуда» для следующего превращения
+  })
 
-  // Плеер-карточка стоит внизу — то, что у экрана внизу (большая кнопка-счётчик в азкарах), поднимается над ним и плавно
-  // опускается, когда плеер закрыли или свернули. Расстояние от низа окна до верха плеера кладём в --mp-clear
+  // Большой/узкий плеер стоит внизу — то, что у экрана внизу (большая кнопка-счётчик), поднимается над ним и плавно
+  // опускается, когда плеер закрыли или свернули в кружок. Расстояние от низа окна до верха плеера кладём в --mp-clear
   useEffect(() => {
     const root = document.documentElement
     const el = rootRef.current
-    if (hidden || !el || hasTab || small) { root.style.setProperty('--mp-clear', '0px'); return }
+    if (hidden || !el || hasTab || view === 'dot') { root.style.setProperty('--mp-clear', '0px'); return }
     const apply = () => { if (!closing.current) root.style.setProperty('--mp-clear', Math.max(0, innerHeight - el.getBoundingClientRect().top + 10) + 'px') }
     apply()
     const ro = new ResizeObserver(apply)
     ro.observe(el)
     addEventListener('resize', apply)
     return () => { ro.disconnect(); removeEventListener('resize', apply); root.style.setProperty('--mp-clear', '0px') }
-  }, [hidden, hasTab, small, host])
+  }, [hidden, hasTab, view, host])
 
   // ----- кружок: нажатие — пуск/пауза, смахнуть вправо — закрыть -----
-  const drag = useRef<{ x: number; y: number; t: number; moved: boolean; dx: number } | null>(null)
-  const dotDown = (e: RPE) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, moved: false, dx: 0 } }
-  const dotMove = (e: RPE) => {
-    const d = drag.current, el = rootRef.current
-    if (!d || !el) return
-    const dx = e.clientX - d.x, dy = e.clientY - d.y
-    if (!d.moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) d.moved = true
-    if (!d.moved) return
-    d.dx = dx
-    el.style.transition = 'none'
-    el.style.transform = `translateX(${Math.max(-14, dx)}px)`
-    el.style.opacity = String(Math.max(0.25, 1 - Math.max(0, dx) / 260))
-  }
-  const dotUp = (e: RPE) => {
-    const d = drag.current, el = rootRef.current
-    drag.current = null
-    if (!d || !el) return
-    if (!d.moved) { haptic.tap(); return p.toggle() } // обычное нажатие
-    const speedPx = d.dx / Math.max(1, e.timeStamp - d.t) // пикселей в мс
-    if (d.dx > 70 || speedPx > 0.5) {
-      // смахнули вправо — уезжает за край экрана, затем плеер закрывается
-      haptic.tap()
-      el.style.transition = 'transform .24s cubic-bezier(.5, 0, .9, .5), opacity .24s ease-in'
-      el.style.transform = `translateX(${innerWidth}px)`
-      el.style.opacity = '0'
-      setTimeout(() => p.stop(), 240)
-    } else {
-      el.style.transition = `transform .3s ${SPRING}, opacity .2s ease`
-      el.style.transform = ''
-      el.style.opacity = ''
+  // На телефоне — родные касания (touch): на iPhone они самые надёжные. Мышь и перо — через pointer-события.
+  useEffect(() => {
+    const btn = dotRef.current, el = rootRef.current
+    if (!btn || !el || hidden || view !== 'dot') return
+    let g: { x: number; y: number; t: number; moved: boolean; dx: number } | null = null
+    const begin = (x: number, y: number) => { g = { x, y, t: performance.now(), moved: false, dx: 0 } }
+    const move = (x: number, y: number, ev: Event) => {
+      if (!g) return
+      const dx = x - g.x, dy = y - g.y
+      if (!g.moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) g.moved = true
+      if (!g.moved) return
+      if (ev.cancelable) ev.preventDefault()
+      g.dx = dx
+      el.style.transition = 'none'
+      el.style.transform = `translateX(${Math.max(-14, dx)}px)`
+      el.style.opacity = String(Math.max(0.25, 1 - Math.max(0, dx) / 260))
     }
-  }
-  const dotCancel = () => {
-    drag.current = null
-    const el = rootRef.current
-    if (el) { el.style.transition = `transform .3s ${SPRING}, opacity .2s ease`; el.style.transform = ''; el.style.opacity = '' }
-  }
+    const back = () => { el.style.transition = `transform .3s ${SPRING}, opacity .2s ease`; el.style.transform = ''; el.style.opacity = '' }
+    const end = () => {
+      const d = g
+      g = null
+      if (!d) return
+      if (!d.moved) { haptic.tap(); return usePlayer.getState().toggle() } // обычное нажатие
+      const v = d.dx / Math.max(1, performance.now() - d.t) // пикселей в мс
+      if (d.dx > 60 || (d.dx > 30 && v > 0.4)) { // длинное смахивание, или короткое, но резкое
+        // смахнули вправо — уезжает за край экрана, затем плеер закрывается
+        haptic.tap()
+        el.style.transition = 'transform .24s cubic-bezier(.5, 0, .9, .5), opacity .24s ease-in'
+        el.style.transform = `translateX(${innerWidth}px)`
+        el.style.opacity = '0'
+        setTimeout(() => usePlayer.getState().stop(), 240)
+      } else back()
+    }
+    const cancel = () => { if (g) { g = null; back() } }
+    const ts = (e: TouchEvent) => { const t = e.touches[0]; begin(t.clientX, t.clientY) }
+    const tm = (e: TouchEvent) => { const t = e.touches[0]; move(t.clientX, t.clientY, e) }
+    const te = (e: TouchEvent) => { if (e.cancelable) e.preventDefault(); end() } // preventDefault — чтобы после касания не пришёл лишний «клик»
+    const pd = (e: PointerEvent) => { if (e.pointerType === 'touch') return; btn.setPointerCapture(e.pointerId); begin(e.clientX, e.clientY) }
+    const pm = (e: PointerEvent) => { if (e.pointerType !== 'touch') move(e.clientX, e.clientY, e) }
+    const pu = (e: PointerEvent) => { if (e.pointerType !== 'touch') end() }
+    btn.addEventListener('touchstart', ts, { passive: true })
+    btn.addEventListener('touchmove', tm, { passive: false })
+    btn.addEventListener('touchend', te, { passive: false })
+    btn.addEventListener('touchcancel', cancel)
+    btn.addEventListener('pointerdown', pd)
+    btn.addEventListener('pointermove', pm)
+    btn.addEventListener('pointerup', pu)
+    btn.addEventListener('pointercancel', cancel)
+    return () => {
+      btn.removeEventListener('touchstart', ts); btn.removeEventListener('touchmove', tm); btn.removeEventListener('touchend', te); btn.removeEventListener('touchcancel', cancel)
+      btn.removeEventListener('pointerdown', pd); btn.removeEventListener('pointermove', pm); btn.removeEventListener('pointerup', pu); btn.removeEventListener('pointercancel', cancel)
+    }
+  }, [hidden, view])
 
   if (hidden) return gear ? <PlayerSettings onClose={() => setGear(false)} /> : null
   const [s, a] = p.current!.split(':').map(Number)
@@ -154,6 +190,7 @@ export function MiniPlayer() {
   const inReader = loc.pathname.startsWith('/read/')
   const sl = p.sleep
   const left = sl?.mode === 'time' ? Math.max(1, Math.ceil((sl.until - Date.now()) / 60000)) : 0
+  const small = view !== 'full' // в узком плеере и кружке скорость, сон и настройки спрятаны
 
   const toggleSleep = () => {
     haptic.tap()
@@ -170,50 +207,69 @@ export function MiniPlayer() {
   const goSurah = (n: number) => { haptic.tap(); if (meta) listenSurah(meta.surahs, n, 1) }
   const total = meta?.surahs.length ?? 114
   const surahBtns = !p.memo
-  const prevS = surahBtns && <button className="mp-btn mp-side mp-surah" disabled={s <= 1} onClick={() => goSurah(s - 1)} aria-label="Предыдущая сура"><Icon id="skip" className="icon mp-next" /></button>
-  const nextS = surahBtns && <button className="mp-btn mp-side mp-surah" disabled={s >= total} onClick={() => goSurah(s + 1)} aria-label="Следующая сура"><Icon id="skip" /></button>
-  const prevA = <button className="mp-btn mp-side" disabled={p.index <= 0} onClick={() => { haptic.tap(); p.play(p.queue, p.index - 1, p.memo) }} aria-label="Предыдущий аят"><Icon id="back" /></button>
-  const nextA = <button className="mp-btn mp-side" disabled={p.index >= p.queue.length - 1} onClick={() => { haptic.tap(); p.play(p.queue, p.index + 1, p.memo) }} aria-label="Следующий аят"><Icon id="back" className="icon mp-next" /></button>
-  const main = <button className="mp-btn mp-main" onClick={() => { haptic.tap(); p.toggle() }} aria-label={playing ? 'Пауза' : 'Слушать'}><Icon id={playing ? 'pause' : 'play'} /></button>
+  const prevS = surahBtns && <button data-f="prevS" className="mp-btn mp-side mp-surah" disabled={s <= 1} onClick={() => goSurah(s - 1)} aria-label="Предыдущая сура"><Icon id="skip" className="icon mp-next" /></button>
+  const nextS = surahBtns && <button data-f="nextS" className="mp-btn mp-side mp-surah" disabled={s >= total} onClick={() => goSurah(s + 1)} aria-label="Следующая сура"><Icon id="skip" /></button>
+  const prevA = <button data-f="prevA" className="mp-btn mp-side" disabled={p.index <= 0} onClick={() => { haptic.tap(); p.play(p.queue, p.index - 1, p.memo) }} aria-label="Предыдущий аят"><Icon id="back" /></button>
+  const nextA = <button data-f="nextA" className="mp-btn mp-side" disabled={p.index >= p.queue.length - 1} onClick={() => { haptic.tap(); p.play(p.queue, p.index + 1, p.memo) }} aria-label="Следующий аят"><Icon id="back" className="icon mp-next" /></button>
+  const main = <button data-f="main" className="mp-btn mp-main" onClick={() => { haptic.tap(); p.toggle() }} aria-label={playing ? 'Пауза' : 'Слушать'}><Icon id={playing ? 'pause' : 'play'} /></button>
 
-  // Закрытие крестиком — как выключение старого телевизора: экран схлопывается в яркую линию, затем в точку
+  // Закрытие крестиком — как выключение настоящего телевизора с электронно-лучевой трубкой:
+  //  1) картинка на миг вспыхивает белым и схлопывается по высоте в яркую линию;
+  //  2) линия стягивается по ширине в светящуюся точку;
+  //  3) точка вспыхивает и гаснет. Всё вместе ~0,3 секунды.
   const closePlayer = () => {
     haptic.tap()
     const el = rootRef.current
     if (!el || closing.current) return p.stop()
     closing.current = true
     document.documentElement.style.setProperty('--mp-clear', '0px') // то, что стояло над плеером, плавно опускается
+    el.classList.add('mp-crt') // содержимое сразу гаснет, остаётся светящийся «экран»
+    el.style.backdropFilter = 'none'
+    el.style.setProperty('-webkit-backdrop-filter', 'none')
+    el.style.overflow = 'hidden'
+    const glow = '0 0 14px 3px rgba(255,255,255,.95), 0 0 46px 10px rgba(190,225,255,.55)'
     const an = el.animate([
-      { transform: 'scale(1, 1)', filter: 'brightness(1)', opacity: 1 },
-      { transform: 'scale(1, .03)', filter: 'brightness(2.4)', opacity: 1, offset: 0.55 },
-      { transform: 'scale(.02, .03)', filter: 'brightness(4)', opacity: 1, offset: 0.88 },
-      { transform: 'scale(0, 0)', filter: 'brightness(4)', opacity: 0 },
-    ], { duration: 420, easing: 'cubic-bezier(.55, .1, .75, .5)', fill: 'forwards' })
+      // в самом начале цвет, тень и скругление не заданы — берутся текущие, поэтому «вспышка» нарастает плавно из обычного вида
+      { offset: 0, transform: 'scale(1, 1)', opacity: 1, easing: 'cubic-bezier(.7, 0, .9, .4)' },
+      { offset: 0.38, transform: 'scale(1, .012)', backgroundColor: '#ffffff', boxShadow: glow, borderRadius: '3px', opacity: 1, easing: 'cubic-bezier(.6, 0, .85, .5)' },
+      { offset: 0.8, transform: 'scale(.014, .012)', backgroundColor: '#ffffff', boxShadow: glow, borderRadius: '3px', opacity: 1, easing: 'ease-out' },
+      { offset: 1, transform: 'scale(0, 0)', backgroundColor: '#ffffff', boxShadow: '0 0 30px 12px rgba(255,255,255,.9)', borderRadius: '3px', opacity: 0 },
+    ], { duration: 300, fill: 'forwards' })
     an.onfinish = () => { closing.current = false; p.stop() }
   }
-  const expand = () => { haptic.tap(); setMini(false); setPinFull(true) }
+  const fold = () => {
+    haptic.tap()
+    const el = rootRef.current
+    if (el) {
+      const items: Record<string, DOMRect> = {}
+      el.querySelectorAll<HTMLElement>('[data-f]').forEach((n) => { items[n.dataset.f!] = n.getBoundingClientRect() })
+      snap.current = { root: el.getBoundingClientRect(), items }
+    }
+    setMini((v) => !v)
+  }
+  const expand = () => { haptic.tap(); setPinFull(true) } // из кружка — обратно в тот вид, который был (большой или узкий)
 
   const place = (node: ReactNode) => (inRead && host ? createPortal(node, host) : node)
 
-  const cls = 'miniplayer glass' + (small ? ' mp-circle' : '') + (small && playing ? ' mp-on' : '') + (inReader ? ' in-reader' : hasTab ? ' has-tab' : '') + (enter ? ' mp-enter' : '')
+  const cls = 'miniplayer glass' + (view === 'bar' ? ' mp-bar' : '') + (view === 'dot' ? ' mp-circle' : '') + (view === 'dot' && playing ? ' mp-on' : '') + (inReader ? ' in-reader' : hasTab ? ' has-tab' : '') + (enter ? ' mp-enter' : '')
   return place(
     <>
       <div ref={rootRef} className={cls}>
-        {/* карточка (в кружке она гаснет) */}
-        <div className="mp-card" aria-hidden={small}>
+        {/* большой и узкий вид — одни и те же элементы: положение меняет CSS, а кнопки плавно переезжают (FLIP выше) */}
+        <div className="mp-card" aria-hidden={view === 'dot'}>
           <div className="mp-top">
             <button className="mp-info" tabIndex={small ? -1 : 0} onClick={() => { haptic.tap(); nav(`/read/${s}?a=${a}`) }}>
               <b>{sr?.name ?? `Сура ${s}`}</b>
               <span>Аят {a} из {sr?.ayahs ?? ''}{sl ? ` · сон ${sl.mode === 'time' ? `${left} мин` : `${sl.left} ${sl.left === 1 ? 'сура' : 'суры'}`}` : ''}</span>
             </button>
-            <button className="mp-btn mp-x" tabIndex={small ? -1 : 0} onClick={() => { haptic.tap(); setMini(true) }} aria-label="Свернуть в кружок"><Icon id="down" /></button>
-            <button className="mp-btn mp-x" tabIndex={small ? -1 : 0} onClick={closePlayer} aria-label="Закрыть плеер"><Icon id="close" /></button>
+            <button data-f="fold" className="mp-btn mp-x mp-fold" tabIndex={view === 'dot' ? -1 : 0} onClick={fold} aria-label={mini ? 'Развернуть плеер' : 'Свернуть плеер'}><Icon id={mini ? 'up' : 'down'} /></button>
+            <button data-f="close" className="mp-btn mp-x mp-close" tabIndex={view === 'dot' ? -1 : 0} onClick={closePlayer} aria-label="Закрыть плеер"><Icon id="close" /></button>
           </div>
           <div className="mp-mid">
             {prevS}{prevA}{main}{nextA}{nextS}
           </div>
           {!p.memo && (
-            <div className="mp-bot">
+            <div className="mp-bot" aria-hidden={small}>
               <div className="mp-rate">
                 <button className="mp-chip" tabIndex={small ? -1 : 0} onClick={() => setSpeed(!speed)} aria-label="Скорость">{fmtRate(st.plRate)}</button>
                 {speed && !small && (
@@ -230,13 +286,14 @@ export function MiniPlayer() {
             </div>
           )}
         </div>
-        {/* кружок (в карточке он скрыт) */}
-        <div className="mp-dot" aria-hidden={!small}>
-          <button className="mp-dot-btn" tabIndex={small ? 0 : -1} onPointerDown={dotDown} onPointerMove={dotMove} onPointerUp={dotUp} onPointerCancel={dotCancel}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.toggle() } }} aria-label={playing ? 'Пауза. Смахните вправо, чтобы закрыть' : 'Слушать. Смахните вправо, чтобы закрыть'}>
+        {/* кружок (в остальных видах скрыт) */}
+        <div className="mp-dot" aria-hidden={view !== 'dot'}>
+          <button ref={dotRef} className="mp-dot-btn" tabIndex={view === 'dot' ? 0 : -1}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.toggle() } }}
+            aria-label={playing ? 'Пауза. Смахните вправо, чтобы закрыть' : 'Слушать. Смахните вправо, чтобы закрыть'}>
             <Icon id={playing ? 'pause' : 'play'} />
           </button>
-          <button className="mp-dot-up" tabIndex={small ? 0 : -1} onClick={expand} aria-label="Развернуть плеер"><Icon id="up" /></button>
+          <button className="mp-dot-up" tabIndex={view === 'dot' ? 0 : -1} onClick={expand} aria-label="Развернуть плеер"><Icon id="up" /></button>
         </div>
       </div>
       {gear && <PlayerSettings onClose={() => setGear(false)} />}

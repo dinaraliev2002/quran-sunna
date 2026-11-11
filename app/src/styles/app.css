@@ -1480,6 +1480,22 @@ div.srow { cursor: pointer; }
 .miniplayer.mp-circle .mp-card { position: absolute; left: 0; top: 0; width: 300px; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .15s ease, visibility 0s .15s; }
 .miniplayer.mp-circle .mp-dot { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity .25s ease .15s, visibility 0s; }
 .miniplayer.mp-circle.in-reader { right: 14px; }
+/* Узкий вид: большой и узкий плеер — одни и те же элементы (components/MiniPlayer.tsx). В узком верхний ряд и ряд кнопок «растворяются»
+   в одну строку (display: contents), надпись и нижний ряд гаснут и выходят из потока; кнопки при смене вида плавно переезжают (FLIP в коде) */
+.miniplayer.mp-bar { display: flex; align-items: center; justify-content: space-between; gap: 2px; padding: 6px 8px; }
+.miniplayer.mp-bar .mp-card, .miniplayer.mp-bar .mp-top, .miniplayer.mp-bar .mp-mid { display: contents; }
+.miniplayer.mp-bar .mp-main { width: 46px; height: 46px; }
+.miniplayer.mp-bar .mp-side { width: 36px; height: 36px; }
+.miniplayer.mp-bar .mp-surah { width: 32px; height: 32px; }
+.miniplayer.mp-bar .mp-x { width: 34px; height: 34px; }
+.miniplayer.mp-bar .mp-fold { order: 0; }
+.miniplayer.mp-bar .mp-mid > * { order: 1; }
+.miniplayer.mp-bar .mp-close { order: 2; }
+.miniplayer .mp-info, .miniplayer .mp-bot { transition: opacity .3s ease .14s; }
+.miniplayer.mp-bar .mp-info { position: absolute; left: 16px; top: 10px; right: 104px; opacity: 0; pointer-events: none; transition-duration: .14s; transition-delay: 0s; }
+.miniplayer.mp-bar .mp-bot { position: absolute; left: 16px; right: 12px; bottom: 8px; opacity: 0; pointer-events: none; transition-duration: .14s; transition-delay: 0s; }
+/* закрытие «как выключение телевизора»: содержимое гаснет сразу, остаётся светящийся экран (его схлопывает код) */
+.miniplayer.mp-crt > * { opacity: 0 !important; transition: opacity .05s linear !important; }
 /* кнопка кружка: золотая, как кнопка запуска в чтении; нажать — пуск/пауза, смахнуть вправо — закрыть */
 .mp-dot-btn { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: var(--on-gold); touch-action: none; -webkit-tap-highlight-color: transparent; }
 .mp-dot-btn .icon { width: 19px; height: 19px; }
