@@ -1477,11 +1477,11 @@ div.srow { cursor: pointer; }
    Размер и положение окна анимирует код, содержимое — здесь. */
 /* плеер плавно поднимается/опускается, когда внизу появляется или пропадает нижнее меню */
 .miniplayer { transition: bottom .45s cubic-bezier(.22, 1, .36, 1); }
-.miniplayer .mp-card { transition: opacity .22s ease .12s; }
-.miniplayer .mp-dot { position: absolute; inset: 0; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .2s ease, visibility 0s .2s; }
+.miniplayer .mp-card { transition: opacity .24s ease .32s; } /* кружок разворачивается: содержимое карточки проявляется в конце полёта */
+.miniplayer .mp-dot { position: absolute; inset: 0; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .1s ease, visibility 0s .1s; }
 .miniplayer.mp-circle { left: auto; right: 8px; width: 44px; height: 44px; max-width: none; margin: 0; padding: 0; border-radius: 22px; display: block; }
-.miniplayer.mp-circle .mp-card { position: absolute; left: 0; top: 0; width: 300px; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .15s ease, visibility 0s .15s; }
-.miniplayer.mp-circle .mp-dot { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity .25s ease .15s, visibility 0s; }
+.miniplayer.mp-circle .mp-card { position: absolute; left: 0; top: 0; width: 300px; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .12s ease, visibility 0s .12s; }
+.miniplayer.mp-circle .mp-dot { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity .2s ease .38s, visibility 0s; } /* золотая кнопка — только когда окно уже почти стало кружком */
 .miniplayer.mp-circle.in-reader { right: 14px; }
 /* карточка хадиса: кружок стоит сбоку от зелёного переключателя, на его высоте */
 .miniplayer.mp-circle.mp-dock-card { bottom: calc(var(--safe-bottom) + 28px); }

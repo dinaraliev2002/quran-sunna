@@ -69,6 +69,17 @@ export async function cleanupOldData() {
   const keys = await idbKeys('data:')
   const stale = new Set(keys.filter((k) => !k.startsWith(`data:${DATA_VERSION}:`)).map((k) => k.split(':').slice(0, 2).join(':') + ':'))
   for (const prefix of stale) await idbDeletePrefix(prefix)
+  // тексты, исправленные после выхода (lib/dataFixes.ts): их копии на телефоне удаляем один раз — скачаются заново
+  const { DATA_FIXES } = await import('./dataFixes')
+  let applied: string[] = []
+  try { applied = JSON.parse(localStorage.getItem('data-fixes') || '[]') } catch { /* нет хранилища — применим снова, это безопасно */ }
+  for (const fix of DATA_FIXES) {
+    if (applied.includes(fix.id)) continue
+    for (const p of fix.paths) await idbDeletePrefix(dataKey(p)) // точный путь: «…/1.json» не совпадёт ни с чем другим
+    for (const p of fix.prefixes ?? []) await idbDeletePrefix(dataKey(p))
+    applied.push(fix.id)
+  }
+  try { localStorage.setItem('data-fixes', JSON.stringify(applied)) } catch { /* без хранилища — проверим в следующий раз */ }
   if ((await idbKeys('audio:')).length) await idbDeletePrefix('audio:')
   // разметка чтецов прошлых версий (lib/recite.ts: RECITE_V)
   const { RECITE_V } = await import('./recite')

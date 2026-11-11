@@ -162,11 +162,25 @@ export function MiniPlayer() {
       setTimeout(done, DUR + 120) // страховка: если кадры не идут (вкладка в фоне), плеер всё равно встанет на место
       return
     }
-    // Кружок: окно плавно меняет размер и место (содержимое переплавляется в CSS)
-    const geo = (r: DOMRect) => ({ left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', right: 'auto', bottom: 'auto', margin: '0px', maxWidth: 'none' })
-    el.style.overflow = 'hidden' // пока меняется размер, всё лишнее обрезается
-    const a = el.animate([geo(before.rect), geo(rect)], { duration: 480, easing: SPRING })
-    a.onfinish = a.oncancel = () => { el.style.overflow = '' }
+    // Кружок: окно плавно меняет размер и место, содержимое переплавляется (в CSS: старое гаснет сразу, новое проявляется в конце).
+    //  • кривая — плавный разгон и плавное торможение (раньше половина пути пролетала за первые 60 мс, дальше — медленное доползание);
+    //  • по горизонтали чуть быстрее, чем по вертикали, — окно идёт к углу мягкой дугой, а не по линейке;
+    //  • на время полёта убираем размытие фона под окном: телефону не нужно размывать его заново в каждом кадре
+    const toDot = view === 'dot'
+    const DUR = 560
+    const xs = (r: DOMRect) => ({ left: r.left + 'px', width: r.width + 'px' })
+    const ys = (r: DOMRect) => ({ top: r.top + 'px', height: r.height + 'px' })
+    const css = el.style
+    for (const [k, v] of [['right', 'auto'], ['bottom', 'auto'], ['margin', '0'], ['max-width', 'none'], ['overflow', 'hidden'], ['backdrop-filter', 'none'], ['-webkit-backdrop-filter', 'none'], ['background', 'var(--surface)'], ['will-change', 'left, top, width, height']] as const) css.setProperty(k, v)
+    const fast = 'cubic-bezier(.4, 0, .2, 1)', soft = 'cubic-bezier(.6, 0, .3, 1)'
+    // fill: 'forwards' — в последний миг окно стоит в конечной точке, пока не убраны временные стили (иначе мог мелькнуть кадр не на месте)
+    const ax = el.animate([xs(before.rect), xs(rect)], { duration: DUR, easing: toDot ? fast : soft, fill: 'forwards' })
+    const ay = el.animate([ys(before.rect), ys(rect)], { duration: DUR, easing: toDot ? soft : fast, fill: 'forwards' })
+    const clean = () => {
+      for (const k of ['right', 'bottom', 'margin', 'max-width', 'overflow', 'backdrop-filter', '-webkit-backdrop-filter', 'background', 'will-change']) css.removeProperty(k)
+      ax.cancel(); ay.cancel() // дальше плеер стоит по обычным правилам — на том же месте
+    }
+    Promise.all([ax.finished, ay.finished]).then(clean, clean)
   })
 
   // Большой/узкий плеер стоит внизу — то, что у экрана внизу (большая кнопка-счётчик), поднимается над ним и плавно
