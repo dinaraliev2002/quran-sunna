@@ -1466,24 +1466,32 @@ div.srow { cursor: pointer; }
 .miniplayer .mp-mid { gap: clamp(8px, 3.2vw, 20px); }
 .miniplayer .mp-surah { width: 38px; height: 38px; background: transparent; color: var(--gold-deep, var(--gold)); border: 1px solid var(--line); }
 .miniplayer .mp-surah .icon { width: 16px; height: 16px; }
-.miniplayer.mp-small { display: flex; align-items: center; justify-content: space-between; gap: 2px; padding: 6px 8px; }
-.miniplayer.mp-small .mp-main { width: 46px; height: 46px; }
-.miniplayer.mp-small .mp-side { width: 36px; height: 36px; }
-.miniplayer.mp-small .mp-surah { width: 32px; height: 32px; }
-.miniplayer.mp-small .mp-x { width: 34px; height: 34px; }
 
 /* плеер: без нижнего меню (главная) — у самого низа, над меню — только где оно есть */
 .miniplayer { bottom: calc(var(--safe-bottom) + 14px); }
 .miniplayer.has-tab { bottom: calc(var(--safe-bottom) + 96px); }
-/* Свёрнутый и развёрнутый плеер — одни и те же элементы (components/MiniPlayer.tsx): в свёрнутом виде верхний ряд и ряд кнопок «растворяются» в одну строку
-   (display: contents), надпись и нижний ряд гаснут и убираются из потока. Кнопки при смене вида плавно переезжают (FLIP в коде) */
-.miniplayer.mp-small .mp-top, .miniplayer.mp-small .mp-mid { display: contents; }
-.miniplayer.mp-small .mp-fold { order: 0; }
-.miniplayer.mp-small .mp-mid > * { order: 1; }
-.miniplayer.mp-small .mp-close { order: 2; }
-.miniplayer .mp-info, .miniplayer .mp-bot { transition: opacity .3s ease .14s; }
-.miniplayer.mp-small .mp-info { position: absolute; left: 16px; top: 10px; right: 104px; opacity: 0; pointer-events: none; transition-duration: .14s; transition-delay: 0s; }
-.miniplayer.mp-small .mp-bot { position: absolute; left: 16px; right: 12px; bottom: 8px; opacity: 0; pointer-events: none; transition-duration: .14s; transition-delay: 0s; }
+/* Плеер: карточка (.mp-card) и кружок (.mp-dot) лежат в одном окне и переплавляются друг в друга (components/MiniPlayer.tsx).
+   Размер и положение окна анимирует код, содержимое — здесь. */
+/* плеер плавно поднимается/опускается, когда внизу появляется или пропадает нижнее меню */
+.miniplayer { transition: bottom .45s cubic-bezier(.22, 1, .36, 1); }
+.miniplayer .mp-card { transition: opacity .22s ease .12s; }
+.miniplayer .mp-dot { position: absolute; inset: 0; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .2s ease, visibility 0s .2s; }
+.miniplayer.mp-circle { left: auto; right: 8px; width: 44px; height: 44px; max-width: none; margin: 0; padding: 0; border-radius: 22px; display: block; }
+.miniplayer.mp-circle .mp-card { position: absolute; left: 0; top: 0; width: 300px; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .15s ease, visibility 0s .15s; }
+.miniplayer.mp-circle .mp-dot { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity .25s ease .15s, visibility 0s; }
+.miniplayer.mp-circle.in-reader { right: 14px; }
+/* кнопка кружка: золотая, как кнопка запуска в чтении; нажать — пуск/пауза, смахнуть вправо — закрыть */
+.mp-dot-btn { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: var(--on-gold); touch-action: none; -webkit-tap-highlight-color: transparent; }
+.mp-dot-btn .icon { width: 19px; height: 19px; }
+.mp-dot-btn:active { transform: scale(.94); }
+/* значок сверху — «развернуть»; крупная невидимая область нажатия вокруг него */
+.mp-dot-up { position: absolute; top: -9px; left: -9px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--text-2); box-shadow: 0 2px 8px rgba(0, 0, 0, .25); padding: 0; }
+.mp-dot-up::before { content: ''; position: absolute; inset: -8px; }
+.mp-dot-up .icon { width: 11px; height: 11px; }
+/* пока звучит — кружок мягко «дышит» */
+.miniplayer.mp-on .mp-dot-btn { animation: mp-pulse 2.2s ease-out infinite; }
+@keyframes mp-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gold) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 13px transparent; } }
+@media (prefers-reduced-motion: reduce) { .miniplayer.mp-on .mp-dot-btn { animation: none; } }
 /* плеер только что появился: плавно выезжает снизу */
 .miniplayer.mp-enter { animation: mp-in .5s cubic-bezier(.22, 1, .36, 1); }
 @keyframes mp-in { from { opacity: 0; transform: translateY(26px) scale(.96); } }
@@ -1548,9 +1556,9 @@ div.srow { cursor: pointer; }
 /* словарь терминов: раскрывающийся список, внутри карточка */
 .gl-item { background: var(--surface); border-radius: 20px; margin-bottom: 8px; overflow: hidden; }
 .gl-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 14px 16px; text-align: left; }
-.gl-head b { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 16px; font-weight: 700; }
+.gl-head b { flex: 1; min-width: 6.8em; overflow-wrap: break-word; text-wrap: balance; font-size: 16px; font-weight: 700; }
 .gl-ar, .gl-big { font-family: var(--font-quran); direction: rtl; color: var(--gold-ink); }
-.gl-ar { font-size: 24px; line-height: 1.3; flex: 0 1 auto; max-width: 52%; text-align: right; overflow-wrap: anywhere; }
+.gl-ar { font-size: 24px; line-height: 1.3; flex: 0 1 auto; max-width: 40%; text-align: right; overflow-wrap: anywhere; }
 .gl-head .chev-s { color: var(--text-2); transition: transform .2s; }
 .gl-item.open .gl-head .chev-s { transform: rotate(90deg); }
 .gl-item.open .gl-head { justify-content: flex-end; padding-bottom: 4px; }
@@ -1559,9 +1567,9 @@ div.srow { cursor: pointer; }
 .gl-big { font-size: 38px; line-height: 1.4; text-align: right; }
 .gl-name { display: block; font-size: 18px; margin-top: -34px; }
 /* карточка термина: арабское слово справа, русское название слева; на узком экране длинное арабское слово переносится на вторую строку */
-.gl-top { display: flex; flex-direction: row-reverse; align-items: center; justify-content: space-between; gap: 12px; }
-.gl-top .gl-big { flex: 0 1 auto; max-width: 64%; min-width: 0; overflow-wrap: anywhere; }
-.gl-top .gl-name { flex: 1 1 0; min-width: 0; margin-top: 0; overflow-wrap: anywhere; }
+.gl-top { display: flex; flex-direction: row-reverse; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.gl-top .gl-big { flex: 0 1 auto; max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.gl-top .gl-name { flex: 1 1 8.5em; min-width: min(8.5em, 100%); margin-top: 0; overflow-wrap: break-word; text-wrap: balance; }
 .gl-tag { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; color: var(--gold-ink); background: var(--highlight); padding: 3px 9px; border-radius: 99px; margin: 8px 0 10px; }
 .gl-mean { font-size: 14.5px; line-height: 1.55; color: var(--text); border-left: 2px solid var(--line); padding-left: 12px; margin: 0 0 12px; }
 .gl-chip { font-size: 12.5px; font-weight: 700; background: var(--emerald); color: var(--on-emerald); border-radius: 99px; padding: 6px 13px; margin-bottom: 8px; }

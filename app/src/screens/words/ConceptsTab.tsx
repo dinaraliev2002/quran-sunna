@@ -4,6 +4,7 @@ import { Icon } from '../../components/Icon'
 import { ConceptVerses } from './ConceptVerses'
 import { glossaryFor, loadConcepts } from '../../lib/concepts'
 import { loadGlossary } from '../../lib/data'
+import { keepHyphen } from '../../lib/nobreak'
 import { plural } from '../../lib/plural'
 import type { Concept } from '../../types/concepts'
 import type { GlossaryItem } from '../../types/quran'
@@ -58,13 +59,13 @@ export function ConceptsTab({ focus }: { focus?: string | null }) {
         return (
           <div className={'gl-item' + (isOpen ? ' open' : '')} key={c.i} id={'cn-' + c.i}>
             <button className="gl-head" onClick={() => { setOpen(isOpen ? null : c.i); setAll(false) }} aria-expanded={isOpen}>
-              <b>{c.ru}</b>
+              <b>{keepHyphen(c.ru)}</b>
               <span className="gl-ar">{c.ar}</span>
               <Icon id="right" className="icon chev-s" />
             </button>
             {isOpen && (
               <div className="gl-card">
-                <div className="gl-top"><div className="gl-big" dir="rtl">{c.ar}</div><b className="gl-name">{c.ru}</b></div>
+                <div className="gl-top"><div className="gl-big" dir="rtl">{c.ar}</div><b className="gl-name">{keepHyphen(c.ru)}</b></div>
                 {c.c.length > 0 && <span className="gl-tag">{c.c.join(' · ').toUpperCase()}</span>}
                 {c.d && <p className="gl-mean">{c.d}</p>}
                 {(() => { const g = glossaryFor(c, gloss); return g && <div className="cn-kv"><span className="wd-dim">Из словаря Кулиева</span><p>{g.mean}</p></div> })()}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { plural } from '../../lib/plural'
+import { keepHyphen } from '../../lib/nobreak'
 import type { GlossaryItem } from '../../types/quran'
 
 /** Термин в словаре: закрытым — строка (термин и арабское написание), открытым — карточка с пояснением и аятами */
@@ -11,14 +12,14 @@ export function TermItem({ x, open, onToggle }: { x: GlossaryItem; open: boolean
   return (
     <div className={'gl-item' + (open ? ' open' : '')}>
       <button className="gl-head" onClick={onToggle} aria-expanded={open}>
-        <b>{x.tr}</b>
+        <b>{keepHyphen(x.tr)}</b>
         <span className="gl-ar">{x.ar}</span>
         <Icon id="right" className="icon chev-s" />
       </button>
       {open && (
         <div className="gl-card">
           {/* название и арабское написание — в одной строке; длинное арабское слово переносится, а не налезает на русское */}
-          <div className="gl-top"><div className="gl-big" dir="rtl">{x.ar}</div><b className="gl-name">{x.tr}</b></div>
+          <div className="gl-top"><div className="gl-big" dir="rtl">{x.ar}</div><b className="gl-name">{keepHyphen(x.tr)}</b></div>
           <span className="gl-tag">ТЕРМИН</span>
           <p className="gl-mean">{x.mean}</p>
           {!!x.n && (

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { create } from 'zustand'
 import { Sheet } from '../../components/ui'
+import { keepHyphen } from '../../lib/nobreak'
 import type { GlossaryItem } from '../../types/quran'
 
 /** Какой термин сейчас открыт в маленьком окошке (null — закрыто) */
@@ -29,7 +30,7 @@ export function TermPop() {
     <Sheet onClose={close}>
       <div className="term-pop">
         <div className="gl-big" dir="rtl">{item.ar}</div>
-        <b className="gl-name">{item.tr}</b>
+        <b className="gl-name">{keepHyphen(item.tr)}</b>
         <span className="gl-tag">ТЕРМИН</span>
         <p className="gl-mean">{brief(item.mean)}</p>
         <button className="wd-more" onClick={() => { close(); nav('/glossary', { state: { open: item.tr } }) }}>Подробнее в словаре</button>
