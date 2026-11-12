@@ -25,6 +25,8 @@ export const RECITERS: Record<string, Reciter> = {
   ayman: { name: 'Аймен Сувейд', ayahs: 'Ayman_Sowaid_64kbps' },
   luhaidan: { name: 'Мухаммад аль-Люхайдан' },
 }
+/** На сколько мс раньше границы по разметке гасим звук в конце аята */
+const END_LEAD = 90
 const pad3 = (n: number) => String(n).padStart(3, '0')
 /** Файл одного аята на everyayah (запасной путь без разметки) */
 const ayahUrl = (rec: string, s: number, a: number) => `https://everyayah.com/data/${RECITERS[rec]?.ayahs ?? RECITERS.alafasy.ayahs}/${pad3(s)}${pad3(a)}.mp3`
@@ -280,11 +282,13 @@ export const usePlayer = create<PlayerState>((set, get) => {
     if (!sp || file.s !== sid) return
     // последний аят суры в обычном прослушивании дослушиваем до конца записи (событие ended)
     if (!s.memo && a === timing.a.length) return
-    const left = sp[1] - el.currentTime * 1000
-    if (left <= 25) return itemEnd()
+    // останавливаемся чуть раньше границы: пока команда паузы дойдёт до звука (задержка вывода, таймер), успеет уйти ещё
+    // 50–100 мс, и в конце аята было бы слышно начало следующего
+    const left = sp[1] - el.currentTime * 1000 - END_LEAD
+    if (left <= 0) return itemEnd()
     // точный момент конца аята, чтобы не «зацепить» начало следующего при повторе
     clearTimeout(edgeTimer)
-    if (left < 400) edgeTimer = setTimeout(check, Math.max(0, left / rate - 15))
+    if (left < 400) edgeTimer = setTimeout(check, Math.max(0, left / rate - 10))
   }
 
   function finish() {
