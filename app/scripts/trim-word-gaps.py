@@ -54,7 +54,7 @@ def main():
         for words in cur['w']:
             for i, x in enumerate(words):
                 total += 1
-                st, en = x[1], x[2]
+                st, en = int(x[1]), int(x[2])
                 a, b = st // 10, min(n, en // 10)
                 if b - a < GAP // 10:
                     continue
@@ -66,7 +66,7 @@ def main():
                 moved += 1
                 if i > 0:
                     prev = words[i - 1]
-                    pa, pb = prev[1] // 10, min(n, st // 10)
+                    pa, pb = int(prev[1]) // 10, min(n, st // 10)
                     ph = np.nonzero(voiced[pa:pb])[0]
                     if len(ph):
                         prev[2] = min(prev[2], prev[1] + int(ph[-1]) * 10 + 60)

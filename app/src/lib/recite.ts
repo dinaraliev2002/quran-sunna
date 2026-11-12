@@ -7,7 +7,7 @@ import type { ReciteIndex, SurahTiming } from '../types/player'
 
 const pad = (n: number) => String(n).padStart(3, '0')
 /** Версия данных чтецов: увеличиваем при каждом изменении public/data/recite (иначе на телефонах останется старое из кэша) */
-export const RECITE_V = 8
+export const RECITE_V = 9
 const key = (path: string) => dataKey(`recite${RECITE_V}/${path}`)
 const url = (path: string) => `${DATA_BASE}recite/${path}?v=${RECITE_V}`
 
