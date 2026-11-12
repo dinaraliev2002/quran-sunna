@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Tour } from '../components/Tour'
@@ -19,6 +19,8 @@ import { listenSurah } from '../lib/listen'
 import { usePlayer } from '../store/player'
 import { useChapterProgress } from './azkar/Azkar'
 import { useHifzToday } from './hifz/parts'
+import { dayNum } from '../lib/hifz'
+import { loadWordCards } from '../lib/wordCards'
 import { useQhToday } from '../hooks/useQuranHifz'
 import { QpcText } from './reader/views'
 
@@ -101,6 +103,11 @@ export default function Home() {
   // заучивание: повтор и новые хадисы по плану; всё сделано → задача отмечается сама
   const hz = useHifzToday()
   const qh = useQhToday()
+  // повторения слов: карточки лежат на устройстве, число считаем при показе главной
+  const wordsDue = useMemo(() => Object.values(loadWordCards()).filter((c) => c.d <= dayNum()).length, [])
+  // число на значке: повторяется только один раздел (хадисы, Коран или слова) — сколько именно в нём; в нескольких — в скольких разделах есть повторения
+  const dueParts = [hz.due.length, qh.due.length, wordsDue].filter((n) => n > 0)
+  const memoBadge = dueParts.length > 1 ? dueParts.length : dueParts[0] ?? 0
   const hzLeft = hz.due.length + hz.newLeft + (qh.started ? qh.due.length + qh.newLeft : 0)
   useEffect(() => { if ((hz.started || qh.started) && hzLeft === 0) markTask('memo', true) }, [hz.started, qh.started, hzLeft, markTask])
   const qhSub = !qh.started ? 'Заучивание наизусть: начните с 30-го джуза'
@@ -144,10 +151,10 @@ export default function Home() {
           </button>
           <div className="h-top-r">
             <div className="h-pill" title="Дней подряд с чтением Корана"><Icon id="flame" />{streak} {plural(streak, 'день', 'дня', 'дней')}</div>
-            {/* заучивание: число — сколько ждёт повторения сегодня; точка — есть новое по плану */}
+            {/* заучивание: число — сколько ждёт повторения сегодня (если повторы в одном разделе) или в скольких разделах они есть; точка — есть новое по плану */}
             <button className="h-pill round h-memo" onClick={() => { haptic.tap(); setMemo(true) }} aria-label="Заучивание">
               <Icon id="brain" />
-              {hz.due.length > 0 ? <i className="h-badge">{hz.due.length}</i> : hz.newLeft > 0 && hz.started ? <i className="h-badge dot" /> : null}
+              {memoBadge > 0 ? <i className="h-badge">{memoBadge}</i> : hz.newLeft > 0 && hz.started ? <i className="h-badge dot" /> : null}
             </button>
             <button className="h-pill round" onClick={() => nav('/notifications')} aria-label="Уведомления"><Icon id="bell" /></button>
           </div>

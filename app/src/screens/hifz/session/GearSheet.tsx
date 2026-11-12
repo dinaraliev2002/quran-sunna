@@ -30,6 +30,7 @@ export function GearSheet({ onClose }: { onClose: () => void }) {
             {chip<Settings['qhDrill']>(0, st.qhDrill, 'Без упражнений', (v) => st.set({ qhDrill: v }))}
           </div>
         </div>
+        {sw(st.qhCheckAudio, 'Звук при проверке', 'По кнопке «Проверить себя» сразу звучат аяты отрывка', () => st.set({ qhCheckAudio: !st.qhCheckAudio }))}
         {sw(st.qhNext, '«Продолжи аят»', 'Ещё упражнение: видно только начало каждого аята', () => st.set({ qhNext: !st.qhNext }))}
         <div>
           <div className="qh-set-l">Перевод</div>

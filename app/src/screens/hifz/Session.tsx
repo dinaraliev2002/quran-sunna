@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { plural } from '../../lib/plural'
-import { baseOf, bodyWords, dayNum, expand, firstLetter, hiddenMask, inDays, loadByKeys, loadHifzSet, LONG_WORDS, MAX_NEW, nextInterval, setOf, shuffled, toChunks, toWords, type Grade, type HifzItem } from '../../lib/hifz'
+import { baseOf, bodyWords, dayNum, expand, firstLetter, hiddenMask, loadByKeys, loadHifzSet, LONG_WORDS, MAX_NEW, setOf, shuffled, toChunks, toWords, type Grade, type HifzItem } from '../../lib/hifz'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import { HadithBody, ListenBtn, useHifzToday, WarnSheet } from './parts'
@@ -137,12 +137,11 @@ function LearnItem({ item, onDone, onSplit }: { item: HifzItem; onDone: () => vo
 function ReviewItem({ item, onDone }: { item: HifzItem; onDone: () => void }) {
   const showAr = useStore((s) => s.hzAr)
   const key = item.key
-  const card = useStore((s) => s.hifz[key])
   const grade = useStore((s) => s.hifzGrade)
   const rate = (g: Grade) => { grade(key, g); if (g === 'good') haptic.success(); else haptic.tap(); onDone() }
   const btn = (g: Grade, label: string) => (
     <button className={'hz-grade ' + g} onClick={() => rate(g)}>
-      <b>{label}</b><span>{inDays(nextInterval(card, g))}</span>
+      <b>{label}</b>
     </button>
   )
   return (

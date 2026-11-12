@@ -97,6 +97,7 @@ const DEFAULT_SETTINGS: Settings = {
   hzAr: false,
   hzSet: 'nawawi',
   qhPerDay: 3,
+  qhCheckAudio: true,
   qhDrill: 3,
   qhNext: false,
   qhRate: 1,

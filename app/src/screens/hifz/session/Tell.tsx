@@ -11,6 +11,7 @@ import { PlayDot } from './PlayDot'
 export function Tell({ item, review, children }: { item: QItem; review?: boolean; children: ReactNode }) {
   const tajweed = useStore((s) => s.tajweed)
   const tr = useStore((s) => s.translation)
+  const checkAudio = useStore((s) => s.qhCheckAudio)
   const current = usePlayer((s) => s.current)
   const [open, setOpen] = useState<Set<number>>(new Set())
   const all = open.size === item.ayahs.length
@@ -18,6 +19,12 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
     haptic.tick()
     setOpen((s) => new Set(s).add(n))
     usePlayer.getState().play([`${item.s}:${n}`], 0, null, { exact: true }) // проверка: только этот аят
+  }
+  /** «Проверить себя»: открыть все аяты и (если включено в настройках) сразу прослушать их по порядку */
+  const checkAll = () => {
+    haptic.tap()
+    setOpen(new Set(item.ayahs.map((a) => a.n)))
+    if (checkAudio) usePlayer.getState().play(item.ayahs.map((a) => `${item.s}:${a.n}`), 0, null, { exact: true })
   }
   return (
     <>
@@ -34,7 +41,7 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
       </div>
       {all ? children : (
         <div className="hz-act">
-          <button className="bigbtn" onClick={() => { haptic.tap(); setOpen(new Set(item.ayahs.map((a) => a.n))) }}><Icon id="open" />Проверить себя</button>
+          <button className="bigbtn" onClick={checkAll}><Icon id="open" />Проверить себя</button>
         </div>
       )}
     </>
