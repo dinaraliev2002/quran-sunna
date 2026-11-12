@@ -36,6 +36,16 @@ export function PlayerSettings({ onClose }: { onClose: () => void }) {
           <small className="hint">«Нет» — аяты звучат подряд без щелей. Пауза нужна, чтобы повторять вслух за чтецом.</small>
         </div>
 
+        <div className="fld"><label>Синхронизация: конец аята</label>
+          <Pills items={[[0, '0'], [60, '60 мс'], [120, '120 мс'], [180, '180 мс'], [250, '250 мс']]} value={st.plEndCut} set={(v) => st.set({ plEndCut: v })} />
+          <small className="hint">Звук гасится раньше границы аята. Если в конце аята слышно начало следующего — увеличьте; если съедается последний звук — уменьшите.</small>
+        </div>
+
+        <div className="fld"><label>Синхронизация: начало аята</label>
+          <Pills items={[[0, '0'], [30, '30 мс'], [50, '50 мс'], [100, '100 мс'], [150, '150 мс']]} value={st.plStartLead} set={(v) => st.set({ plStartLead: v })} />
+          <small className="hint">Звук включается раньше начала аята (при повторе и заучивании). Если начало аята срезано — увеличьте.</small>
+        </div>
+
         <div className="fld"><label>Таймер сна: считать</label>
           <Pills<'time' | 'suras'> items={[['time', 'по времени'], ['suras', 'по сурам']]} value={st.plSleepMode} set={(v) => st.set({ plSleepMode: v })} />
           {st.plSleepMode === 'time'

@@ -102,6 +102,8 @@ const DEFAULT_SETTINGS: Settings = {
   qhNext: false,
   qhRate: 1,
   plRate: 1,
+  plEndCut: 120,
+  plStartLead: 50,
   plGap: 0,
   plNext: 'stop',
   plSleepMode: 'time',
