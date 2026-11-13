@@ -27,38 +27,46 @@ export function useRecorder() {
   }, [])
   useEffect(() => () => { rec.current?.state === 'recording' && rec.current.stop(); cleanup() }, [cleanup])
 
+  /** Включить запись на потоке; сначала сама запись, потом полоски громкости (на iPhone наоборот ломает запись) */
+  const begin = useCallback((s: MediaStream, mime: string | undefined) => {
+    const r = new MediaRecorder(s, mime ? { mimeType: mime } : undefined)
+    const chunks: Blob[] = []
+    r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data) }
+    r.onstop = async () => {
+      const type = r.mimeType || mime || 'audio/webm'
+      cleanup()
+      setListening(false)
+      const blob = new Blob(chunks, { type })
+      if (blob.size < 2000) { setError('Запись слишком короткая — попробуйте ещё раз.'); return }
+      setBusy(true)
+      try { setText(await transcribe(blob)) }
+      catch (e) { setError('Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.') }
+      finally { setBusy(false) }
+    }
+    rec.current = r
+    r.start()
+    return r
+  }, [cleanup])
+
   const start = useCallback(async (): Promise<boolean> => {
     setText(''); setError(''); setLevels(Array(BARS).fill(0))
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
-      stream.current = s
-      try { stopMeter.current = attachMeter(s, (l) => setLevels((a) => [...a.slice(1), l])); setMetered(true) } catch { setMetered(false) }
-      const mime = pickMime()
-      const r = new MediaRecorder(s, mime ? { mimeType: mime } : undefined)
-      const chunks: Blob[] = []
-      r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data) }
-      r.onstop = async () => {
-        const type = r.mimeType || mime || 'audio/webm'
-        cleanup()
-        setListening(false)
-        const blob = new Blob(chunks, { type })
-        if (blob.size < 2000) { setError('Запись слишком короткая — попробуйте ещё раз.'); return }
-        setBusy(true)
-        try { setText(await transcribe(blob)) }
-        catch (e) { setError('Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.') }
-        finally { setBusy(false) }
-      }
-      rec.current = r
-      r.start()
-      setListening(true)
-      return true
-    } catch (e) {
-      cleanup()
-      const n = (e as DOMException)?.name
-      setError(n === 'NotAllowedError' || n === 'SecurityError' ? 'Окно не даёт доступ к микрофону (' + n + ').' : n === 'NotFoundError' ? 'Микрофон не найден.' : 'Не удалось включить микрофон' + (n ? ' (' + n + ')' : '') + '.')
-      return false
+    let fail: unknown
+    // 1) с шумоподавлением и нужным форматом; 2) если не вышло — самый простой вариант
+    for (const simple of [false, true]) {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ audio: simple ? true : { echoCancellation: true, noiseSuppression: true } })
+        stream.current = s
+        try { begin(s, simple ? undefined : pickMime()) }
+        catch (e) { cleanup(); throw e }
+        try { stopMeter.current = attachMeter(s, (l) => setLevels((a) => [...a.slice(1), l])); setMetered(true) } catch { setMetered(false) }
+        setListening(true)
+        return true
+      } catch (e) { fail = e; cleanup() }
     }
-  }, [cleanup])
+    const n = (fail as DOMException)?.name
+    setError(n === 'NotAllowedError' || n === 'SecurityError' ? 'Окно не даёт доступ к микрофону (' + n + ').' : n === 'NotFoundError' ? 'Микрофон не найден.' : 'Не удалось включить микрофон' + (n ? ' (' + n + ')' : '') + '.')
+    return false
+  }, [begin, cleanup])
 
   const stop = useCallback(() => { if (rec.current?.state === 'recording') rec.current.stop() }, [])
   return { supported, listening, busy, text, error, levels, metered, start, stop }
