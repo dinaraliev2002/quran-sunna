@@ -2,11 +2,13 @@
 //  1) Голос → текст: Groq (Whisper large-v3-turbo). Приложение присылает запись (multipart: поле audio).
 //  2) Решение «ошибка или нет»: DeepSeek смотрит на слова, которые алгоритм счёл ошибками, и говорит, какие из них можно
 //     засчитать (перестановка «посланнику Его» / «Его посланнику», ошибка распознавания, при желании — близкий синоним).
-// Секреты (Edge Functions → Secrets): GROQ_API_KEY, DEEPSEEK_API_KEY. Verify JWT — выключить, как у остальных функций.
+// Секреты (Edge Functions → Secrets): GROQ_API_KEY_APK, DEEPSEEK_API_KEY_APK (подходят и GROQ_API_KEY / DEEPSEEK_API_KEY). Verify JWT — выключить, как у остальных функций.
 // Расходы ограничены самими аккаунтами: у Groq лимиты бесплатного уровня, у DeepSeek — внесённый баланс.
 
-const GROQ = Deno.env.get('GROQ_API_KEY') ?? ''
-const DEEPSEEK = Deno.env.get('DEEPSEEK_API_KEY') ?? ''
+// ключ берём первый подходящий: только печатные ASCII-символы (случайно вставленная заглушка вроде «ВАШ_КЛЮЧ» не годится)
+const pick = (...names: string[]) => names.map((n) => (Deno.env.get(n) ?? '').trim()).find((v) => /^[!-~]{10,}$/.test(v)) ?? ''
+const GROQ = pick('GROQ_API_KEY_APK', 'GROQ_API_KEY')
+const DEEPSEEK = pick('DEEPSEEK_API_KEY_APK', 'DEEPSEEK_API_KEY')
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, OPTIONS' }
 const MAX_AUDIO = 12 * 1024 * 1024 // ~12 МБ: хватает на несколько минут речи
 
@@ -67,6 +69,7 @@ Deno.serve(async (req) => {
     if ((req.headers.get('content-type') ?? '').includes('multipart/form-data')) return json(await transcribe(await req.formData()))
     const b = await req.json()
     if (b.action === 'judge') return json(await judge(b))
+    if (b.action === 'status') return json({ groq: !!GROQ, deepseek: !!DEEPSEEK }) // подключены ли ключи (сами ключи не показываем)
     return json({ error: 'unknown action' }, 400)
   } catch (e) {
     return json({ error: String((e as Error).message ?? e) }, 500)

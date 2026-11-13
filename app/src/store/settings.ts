@@ -98,7 +98,7 @@ const DEFAULT_SETTINGS: Settings = {
   hzVoicePass: 95,
   hzVoiceNarr: false,
   hzVoiceLoose: true,
-  hzVoiceEngine: 'system', // после запуска функции stt-check станет 'cloud'
+  hzVoiceEngine: 'cloud',
   hzVoiceAi: true,
   hzSet: 'nawawi',
   qhPerDay: 3,
