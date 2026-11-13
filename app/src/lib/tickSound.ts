@@ -40,3 +40,8 @@ export function tickSound(soft = false) {
     o.stop(t + 0.07)
   } catch { /* звук не обязателен */ }
 }
+
+/** Перед включением микрофона отпускаем звуковую карту: на iPhone работающий Web Audio мешает записи */
+export function quietAudio() {
+  try { void ctx?.suspend() } catch { /* нечего приостанавливать */ }
+}

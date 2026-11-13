@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { attachMeter } from '../lib/micMeter'
 import { transcribe } from '../lib/voiceApi'
+import { quietAudio } from '../lib/tickSound'
 import { startWav } from '../lib/wavRecorder'
 import { BARS } from './useSpeech'
 
@@ -61,6 +62,8 @@ export function useRecorder() {
   const start = useCallback(async (): Promise<boolean> => {
     setText(''); setError(''); setLevels(Array(BARS).fill(0))
     let fail: unknown, step = 'микрофон'
+    quietAudio()
+    document.querySelectorAll('audio').forEach((a) => a.pause())
     // 1) с шумоподавлением и нужным форматом; 2) если не вышло — самый простой вариант
     for (const simple of [false, true]) {
       try {
@@ -74,7 +77,7 @@ export function useRecorder() {
       } catch (e) { fail = e; cleanup() }
     }
     const n = (fail as DOMException)?.name
-    setError(n === 'NotAllowedError' || n === 'SecurityError' ? 'Окно не даёт доступ к микрофону (' + n + ').' : n === 'NotFoundError' ? 'Микрофон не найден.' : 'Не удалось включить микрофон' + (n ? ' (' + n + ', шаг: ' + step + ')' : '') + '.')
+    setError(n === 'NotAllowedError' || n === 'SecurityError' ? 'Окно не даёт доступ к микрофону (' + n + ').' : n === 'NotFoundError' ? 'Микрофон не найден.' : 'Не удалось включить микрофон' + (n ? ' (' + n + ', шаг: ' + step + ((fail as Error)?.message ? ': ' + (fail as Error).message.slice(0, 80) : '') + ')' : '') + '.')
     return false
   }, [begin, cleanup])
 
