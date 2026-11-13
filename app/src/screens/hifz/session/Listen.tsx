@@ -4,7 +4,7 @@ import { type Ayah } from '../../../types/quran'
 import { haptic } from '../../../lib/telegram'
 import { usePlayer } from '../../../store/player'
 import { useStore } from '../../../store/settings'
-import { PAUSES, RATES } from './steps'
+import { RATES } from './steps'
 import { RepeatPick } from './RepeatPick'
 
 /** Прослушивание отрывка: каждый аят — N раз, весь отрывок — M кругов; цепочкой — с аята-связкой из прошлого отрывка */
@@ -37,10 +37,6 @@ export function Listen({ item, lead }: { item: QItem; lead: Ayah | null }) {
       <div className="qh-rep qh-rep-col">
         <span>Весь отрывок{item.a !== item.b ? ` (${item.b - item.a + 1} ${item.b - item.a + 1 < 5 ? 'аята' : 'аятов'})` : ''}</span>
         <RepeatPick value={all} onChange={(n) => set({ qhRepeatAll: n })} />
-      </div>
-      <div className="qh-rep">
-        <span>Пауза между повторами</span>
-        {PAUSES.map((n) => <button key={n} className={pause === n ? 'on' : ''} onClick={() => { haptic.tick(); set({ qhPause: n }) }}>{n ? `${n} с` : 'Нет'}</button>)}
       </div>
       <div className="qh-rep">
         <span>Скорость</span>

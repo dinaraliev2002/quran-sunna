@@ -24,6 +24,7 @@ export default function Settings() {
   const [open, setOpen] = useState<Picker>(null)
   const [playerOpen, setPlayerOpen] = useState(false)
   const [vibOpen, setVibOpen] = useState(false)
+  const [hzOpen, setHzOpen] = useState(false)
   const close = () => setOpen(null)
 
   const Choice = <T extends string>({ title, items, value, onPick }: { title: string; items: Record<T, string>; value: T; onPick: (v: T) => void }) => (
@@ -70,6 +71,10 @@ export default function Settings() {
         <button className="sitem" onClick={() => setPlayerOpen(true)}><span className="si" style={{ background: '#2F7D6B' }}><Icon id="play" /></span><span className="t">Плеер</span><span className="v">Скорость, таймер сна, пауза</span><Icon id="right" className="icon chev" /></button>
       </div>
 
+      <div className="group">
+        <button className="sitem" onClick={() => setHzOpen(true)}><span className="si" style={{ background: '#13704B' }}><Icon id="repeat" /></span><span className="t">Заучивание</span><span className="v">Пауза между повторами: {st.qhPause ? `${st.qhPause} с` : 'нет'}</span><Icon id="right" className="icon chev" /></button>
+      </div>
+
       {isNative && (
         <div className="group">
           <button className="sitem" onClick={() => setVibOpen(true)}><span className="si" style={{ background: '#7A5AC8' }}><Icon id="bell" /></span><span className="t">Вибрация</span><span className="v">{st.hapAll ? 'Включена' : 'Выключена'}</span><Icon id="right" className="icon chev" /></button>
@@ -102,6 +107,17 @@ export default function Settings() {
 
       {open === 'tr' && <Choice title="Перевод смыслов" items={TRANSLATIONS} value={st.translation} onPick={(v) => st.set({ translation: v })} />}
       {playerOpen && <PlayerSettings onClose={() => setPlayerOpen(false)} />}
+      {hzOpen && (
+        <Sheet onClose={() => setHzOpen(false)}>
+          <SheetHead title="Заучивание" sub="Прослушивание отрывка с повторами" onClose={() => setHzOpen(false)} />
+          <div className="body">
+            <div className="fld"><label>Пауза между повторами</label>
+              <div className="pills">{[0, 1, 2, 3].map((n) => <button key={n} className={st.qhPause === n ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ qhPause: n }) }}>{n ? `${n} с` : 'Нет'}</button>)}</div>
+              <small className="hint">Время перевести дыхание: пауза перед повтором аята и перед новым кругом, чтобы повторить за чтецом. Между разными аятами одного круга пауз нет.</small>
+            </div>
+          </div>
+        </Sheet>
+      )}
       {vibOpen && (
         <Sheet onClose={() => setVibOpen(false)}>
           <SheetHead title="Вибрация" sub="Отклик при листании и нажатиях" onClose={() => setVibOpen(false)} />
