@@ -4,7 +4,7 @@ import { useVoice } from '../../hooks/useVoice'
 import { BARS } from '../../hooks/useSpeech'
 import { applyAccepted, checkSpeech, flaggedWords, type CheckResult } from '../../lib/speechCheck'
 import { judgeWords } from '../../lib/voiceApi'
-import { haptic, inTelegram, openInBrowser } from '../../lib/telegram'
+import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import type { HifzItem } from '../../types/hifz'
 
@@ -21,7 +21,7 @@ export function referenceText(item: HifzItem, withNarrator: boolean) {
 export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const set = useStore((s) => s.set)
-  const { supported, listening, busy, text, error, levels, metered, start, stop, fellBack } = useVoice()
+  const { supported, listening, busy, text, error, levels, metered, start, stop } = useVoice()
   const [done, setDone] = useState(false)
 
   // после остановки отдаём распознанное наружу
@@ -55,8 +55,6 @@ export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
       )}
       {busy && <p className="hz-voice-ok">Распознаю речь…</p>}
       {error && <p className="hz-voice-err">{error}</p>}
-      {fellBack && inTelegram && !listening && <p className="hz-voice-hint">В окне Telegram облачная запись не получила микрофон, включено системное распознавание.</p>}
-      {(error || fellBack) && inTelegram && <button className="hz-voice-narr" onClick={() => { haptic.tap(); openInBrowser() }}>Открыть в браузере — там запись работает точнее</button>}
       {heard && <p className="hz-voice-ok"><Icon id="check" />Записано. Нажмите «Проверить себя» — увидите результат.</p>}
       {done && !listening && !busy && !text && !error && <p className="hz-voice-err">Ничего не услышал — попробуйте ещё раз.</p>}
     </div>
