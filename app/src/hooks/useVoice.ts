@@ -23,5 +23,5 @@ export function useVoice() {
     if (!ok && sys.supported) { setFallback(true); await sysStart() }
   }, [engine, cloudStart, sysStart, sys.supported])
 
-  return engine === 'cloud' ? { ...cloud, start, engine } : { ...sys, busy: false, start, engine }
+  return engine === 'cloud' ? { ...cloud, start, engine, fellBack: false } : { ...sys, busy: false, start, engine, fellBack: setting === 'cloud' && fallback }
 }

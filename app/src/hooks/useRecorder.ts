@@ -52,9 +52,10 @@ export function useRecorder() {
       r.start()
       setListening(true)
       return true
-    } catch {
+    } catch (e) {
       cleanup()
-      setError('Нет доступа к микрофону — разрешите его в настройках.')
+      const n = (e as DOMException)?.name
+      setError(n === 'NotAllowedError' || n === 'SecurityError' ? 'Окно не даёт доступ к микрофону (' + n + ').' : n === 'NotFoundError' ? 'Микрофон не найден.' : 'Не удалось включить микрофон' + (n ? ' (' + n + ')' : '') + '.')
       return false
     }
   }, [cleanup])

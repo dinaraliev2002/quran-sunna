@@ -46,6 +46,7 @@ interface TgWebApp {
   setBackgroundColor?(c: string): void
   setBottomBarColor?(c: string): void
   openTelegramLink?(url: string): void
+  openLink?(url: string, options?: { try_instant_view?: boolean }): void
   requestWriteAccess?(cb: (allowed: boolean) => void): void
   onEvent(e: string, cb: () => void): void
   offEvent(e: string, cb: () => void): void
@@ -161,6 +162,14 @@ export function openBot(start: 'feedback' | 'support') {
   const url = `https://t.me/quran_sunna_app_bot?start=${start}`
   if (isNative) Browser.open({ url }).catch(() => {})
   else if (inTelegram && at('6.1') && wa!.openTelegramLink) wa!.openTelegramLink(url)
+  else window.open(url, '_blank')
+}
+
+/** Открыть это же приложение во внешнем браузере (в окне Telegram на телефоне микрофону для облачной записи не всегда дают доступ) */
+export function openInBrowser() {
+  const url = location.origin + location.pathname
+  if (isNative) Browser.open({ url }).catch(() => {})
+  else if (inTelegram && wa!.openLink) wa!.openLink(url)
   else window.open(url, '_blank')
 }
 
