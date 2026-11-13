@@ -7,7 +7,7 @@ export interface WheelItem<T> { v: T; l: string }
 /** w — ширина одной ячейки, px (широкие подписи вроде «0,75×» — больше).
  *  Колесо выбора: значения в ряд, листаются вбок свайпом (докручивается само, как колесо); посередине «стеклышко» — значение под ним выбрано.
  *  При смене значения — лёгкая вибрация и тихий щелчок */
-export function WheelPick<T>({ items, value, onChange, w = 40 }: { items: WheelItem<T>[]; value: T; onChange: (v: T) => void; w?: number }) {
+export function WheelPick<T>({ items, value, onChange, w = 34 }: { items: WheelItem<T>[]; value: T; onChange: (v: T) => void; w?: number }) {
   const box = useRef<HTMLDivElement>(null)
   const idx = Math.max(0, items.findIndex((x) => x.v === value))
   const cur = useRef(idx)
@@ -15,6 +15,7 @@ export function WheelPick<T>({ items, value, onChange, w = 40 }: { items: WheelI
   const raf = useRef(0)
   const settle = useRef<ReturnType<typeof setTimeout>>(undefined)
   const touching = useRef(false)
+  const mounted = useRef(false)
 
   // крупность и яркость цифр — по расстоянию до стеклышка
   const paint = () => {
@@ -32,6 +33,9 @@ export function WheelPick<T>({ items, value, onChange, w = 40 }: { items: WheelI
   useLayoutEffect(() => {
     const el = box.current
     if (!el) return
+    // значение поменялось от самого колеса — не трогаем прокрутку (иначе гаснет инерция)
+    if (mounted.current && idx === cur.current) { paint(); return }
+    mounted.current = true
     if (Math.abs(el.scrollLeft - idx * w) > 2) { silent.current = true; el.scrollLeft = idx * w; setTimeout(() => { silent.current = false }, 120) }
     cur.current = idx
     paint()
