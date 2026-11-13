@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
-import { BARS, useSpeech } from '../../hooks/useSpeech'
-import { checkSpeech, type CheckResult } from '../../lib/speechCheck'
+import { useVoice } from '../../hooks/useVoice'
+import { BARS } from '../../hooks/useSpeech'
+import { applyAccepted, checkSpeech, flaggedWords, type CheckResult } from '../../lib/speechCheck'
+import { judgeWords } from '../../lib/voiceApi'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import type { HifzItem } from '../../types/hifz'
@@ -19,11 +21,11 @@ export function referenceText(item: HifzItem, withNarrator: boolean) {
 export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const set = useStore((s) => s.set)
-  const { supported, listening, text, error, levels, metered, start, stop } = useSpeech()
+  const { supported, listening, busy, text, error, levels, metered, start, stop } = useVoice()
   const [done, setDone] = useState(false)
 
   // после остановки отдаём распознанное наружу
-  useEffect(() => { if (done && !listening) onText(text) }, [done, listening, text, onText])
+  useEffect(() => { if (done && !listening && !busy) onText(text) }, [done, listening, busy, text, onText])
 
   if (!supported) {
     return <p className="hz-tip">Проверка голосом пока недоступна в этом окне: распознавание речи не поддерживается. Попробуйте открыть приложение в обычном браузере.</p>
@@ -33,7 +35,7 @@ export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
     haptic.tap()
     if (listening) { stop(); setDone(true) } else { setDone(false); onText(''); start() }
   }
-  const heard = done && !listening && !!text
+  const heard = done && !listening && !busy && !!text
 
   return (
     <div className="hz-voice">
@@ -51,24 +53,44 @@ export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
           ))}
         </div>
       )}
+      {busy && <p className="hz-voice-ok">Распознаю речь…</p>}
       {error && <p className="hz-voice-err">{error}</p>}
       {heard && <p className="hz-voice-ok"><Icon id="check" />Записано. Нажмите «Проверить себя» — увидите результат.</p>}
-      {done && !listening && !text && !error && <p className="hz-voice-err">Ничего не услышал — попробуйте ещё раз.</p>}
+      {done && !listening && !busy && !text && !error && <p className="hz-voice-err">Ничего не услышал — попробуйте ещё раз.</p>}
     </div>
   )
 }
 
-/** Сверка сказанного с хадисом (с учётом настроек); null — если ничего не говорили */
-export function useVoiceResult(item: HifzItem, spoken: string): CheckResult | null {
+/** Сверка сказанного с хадисом (с учётом настроек). Спорные слова сразу показываются как ошибки, затем ИИ (если включён) засчитывает те, что ошибкой не являются */
+export function useVoiceResult(item: HifzItem, spoken: string): { r: CheckResult | null; checking: boolean } {
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const loose = useStore((s) => s.hzVoiceLoose)
-  return useMemo(() => (spoken ? checkSpeech(referenceText(item, withNarr), spoken, !loose) : null), [item, spoken, withNarr, loose])
+  const ai = useStore((s) => s.hzVoiceAi)
+  const ref = useMemo(() => referenceText(item, withNarr), [item, withNarr])
+  const base = useMemo(() => (spoken ? checkSpeech(ref, spoken, !loose) : null), [ref, spoken, loose])
+  const [accepted, setAccepted] = useState<{ key: string; idx: number[] } | null>(null)
+  const [checking, setChecking] = useState(false)
+  const key = `${ref}|${spoken}|${loose}`
+  const last = useRef('')
+  useEffect(() => {
+    if (!ai || !base || !base.relevant) { setChecking(false); return }
+    const flagged = flaggedWords(base)
+    if (!flagged.length || last.current === key) return
+    last.current = key
+    setChecking(true)
+    judgeWords(ref, spoken, flagged, false)
+      .then((idx) => setAccepted({ key, idx }))
+      .catch(() => setAccepted({ key, idx: [] })) // ИИ недоступен — остаётся обычная сверка
+      .finally(() => setChecking(false))
+  }, [ai, base, key, ref, spoken])
+  const r = useMemo(() => (base && ai && accepted?.key === key ? applyAccepted(base, accepted.idx) : base), [base, ai, accepted, key])
+  return { r, checking: ai && checking }
 }
 
 const clean = (w: string) => w.replace(/[«»"“”.,;:!?()—–-]+/g, '')
 
 /** Процент — над текстом хадиса */
-export function VoiceScore({ r }: { r: CheckResult }) {
+export function VoiceScore({ r, checking }: { r: CheckResult; checking?: boolean }) {
   const pass = useStore((s) => s.hzVoicePass)
   if (!r.relevant) {
     return (
@@ -84,6 +106,8 @@ export function VoiceScore({ r }: { r: CheckResult }) {
         <b>{r.percent}%</b>
         <span>{r.percent >= pass ? 'Выучено!' : `Нужно ${pass}%`}</span>
       </div>
+      {checking && <p className="hz-voice-sum">ИИ проверяет спорные слова…</p>}
+      {r.words.some((w) => w.ai) && <p className="hz-voice-sum">ИИ засчитал слов: {r.words.filter((w) => w.ai).length} (в тексте они подчёркнуты точками) — это перестановка или ошибка распознавания, а не ошибка.</p>}
       {r.wrong + r.missed > 0 && <p className="hz-voice-sum">Ошибки подсвечены в тексте — нажмите на слово, чтобы увидеть, что вы сказали.</p>}
     </div>
   )

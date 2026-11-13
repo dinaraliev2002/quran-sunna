@@ -10,6 +10,8 @@ export interface CheckedWord {
   state: WordState
   /** что сказали вместо него (для ошибки) */
   said?: string
+  /** ИИ засчитал слово, хотя алгоритм счёл его ошибкой */
+  ai?: boolean
 }
 
 export interface CheckResult {
@@ -113,4 +115,17 @@ export function checkSpeech(reference: string, spoken: string, strict = false): 
   const bigOk = big.filter((x) => x.state === 'ok').length
   const relevant = big.length === 0 || bigOk / big.length >= 0.2
   return { words, percent, ok, wrong, missed, extra, relevant }
+}
+
+/** Спорные слова для ИИ: ошибки и пропуски (номер — позиция среди слов эталона) */
+export const flaggedWords = (r: CheckResult) =>
+  r.words.map((x, i) => ({ i, w: x.w, said: x.said, state: x.state })).filter((x) => x.state !== 'ok').map(({ i, w, said }) => ({ i, w, said }))
+
+/** Засчитать слова, которые одобрил ИИ, и пересчитать процент */
+export function applyAccepted(r: CheckResult, accept: number[]): CheckResult {
+  const set = new Set(accept)
+  const words = r.words.map((x, i) => (set.has(i) && x.state !== 'ok' ? { w: x.w, state: 'ok' as const, ai: true } : x))
+  const ok = words.filter((x) => x.state === 'ok').length
+  const wrong = words.filter((x) => x.state === 'wrong').length
+  return { ...r, words, ok, wrong, missed: words.length - ok - wrong, percent: words.length ? Math.round((ok / words.length) * 100) : 0 }
 }

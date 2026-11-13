@@ -168,7 +168,7 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
   const [open, setOpen] = useState(false)
   const [spoken, setSpoken] = useState('') // что сказали вслух (проверка голосом)
   const [sel, setSel] = useState<number | null>(null) // слово, на которое нажали в результате
-  const res = useVoiceResult(item, spoken)
+  const { r: res, checking } = useVoiceResult(item, spoken)
   const withNarr = useStore((s) => s.hzVoiceNarr)
   return (
     <>
@@ -186,7 +186,7 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
         {open && (
           <>
             <div className="hz-card-h"><span className="hz-no">{setOf(item.key).short}{item.key[0] !== 'u' ? ` · ${item.id}` : ''}</span><span className="hz-by">{item.by}</span></div>
-            {res && <VoiceScore r={res} />}
+            {res && <VoiceScore r={res} checking={checking} />}
             <HadithBody item={item} ar={showAr} marks={res?.relevant ? { words: res.words, all: withNarr, sel, onPick: (i) => { haptic.tick(); setSel(sel === i ? null : i) } } : undefined} />
             {res && <VoiceErrors r={res} />}
             <ListenBtn src={item.audio} range={item.range} />

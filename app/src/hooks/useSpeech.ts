@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { attachMeter } from '../lib/micMeter'
 
 // Системное распознавание речи (Web Speech API): бесплатно, без своего сервера.
 // Работает не везде: в Telegram на iPhone и в некоторых оболочках его нет — тогда supported = false.
@@ -51,21 +52,9 @@ export function useSpeech(lang = 'ru-RU') {
   const startMeter = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      const ctx = new AC()
-      const an = ctx.createAnalyser()
-      an.fftSize = 512
-      ctx.createMediaStreamSource(stream).connect(an)
-      const buf = new Uint8Array(an.fftSize)
-      const id = window.setInterval(() => {
-        an.getByteTimeDomainData(buf)
-        let peak = 0
-        for (const v of buf) peak = Math.max(peak, Math.abs(v - 128))
-        const lvl = Math.min(1, peak / 70)
-        setLevels((l) => [...l.slice(1), lvl])
-      }, 70)
+      const stopLevel = attachMeter(stream, (lvl) => setLevels((l) => [...l.slice(1), lvl]))
       setMetered(true)
-      meter.current = { stop: () => { clearInterval(id); stream.getTracks().forEach((t) => t.stop()); void ctx.close() } }
+      meter.current = { stop: () => { stopLevel(); stream.getTracks().forEach((t) => t.stop()) } }
     } catch { setMetered(false) }
   }, [])
 

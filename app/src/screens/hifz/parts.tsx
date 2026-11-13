@@ -67,7 +67,7 @@ export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; 
             const m = marks.words[i]
             if (!m) return <Fragment key={wi}>{w} </Fragment>
             return (
-              <span key={wi} className={'vw ' + m.state + (m.state !== 'ok' ? ' tap' : '') + (marks.sel === i ? ' sel' : '')}
+              <span key={wi} className={'vw ' + m.state + (m.ai ? ' ai' : '') + (m.state !== 'ok' ? ' tap' : '') + (marks.sel === i ? ' sel' : '')}
                 onClick={m.state !== 'ok' ? () => marks.onPick(i) : undefined}>{w} </span>
             )
           })}

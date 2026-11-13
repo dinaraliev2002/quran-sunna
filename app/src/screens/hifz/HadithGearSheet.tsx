@@ -23,6 +23,14 @@ export function HadithGearSheet({ onClose }: { onClose: () => void }) {
             {PASS.map((p) => <button key={p} className={st.hzVoicePass === p ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoicePass: p }) }}>{p}%</button>)}
           </div>
         </div>
+        <div>
+          <div className="qh-set-l">Распознавание речи<small>Облачное (Groq) обычно точнее и работает везде; системное — бесплатное, прямо на телефоне</small></div>
+          <div className="qh-chips">
+            <button className={st.hzVoiceEngine === 'cloud' ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoiceEngine: 'cloud' }) }}>Облачное</button>
+            <button className={st.hzVoiceEngine === 'system' ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoiceEngine: 'system' }) }}>Системное</button>
+          </div>
+        </div>
+        {sw(st.hzVoiceAi, 'ИИ-помощник', 'Засчитывает спорные слова, которые не ошибка: «посланнику Его» вместо «Его посланнику», неточное распознавание', () => st.set({ hzVoiceAi: !st.hzVoiceAi }))}
         {sw(st.hzVoiceNarr, 'Проверять и передатчика', 'Слова «Я слышал, как Посланник Аллаха сказал…» тоже сверяются', () => st.set({ hzVoiceNarr: !st.hzVoiceNarr }))}
         {sw(st.hzVoiceLoose, 'Прощать неточное распознавание', 'Если приложение расслышало слово чуть иначе (окончание, одна буква) — не считать ошибкой. Замена слова синонимом штрафуется всегда', () => st.set({ hzVoiceLoose: !st.hzVoiceLoose }))}
         {sw(st.hzDrills, 'Упражнения при заучивании', 'Пропуски слов, первые буквы, сборка из кусочков', () => st.set({ hzDrills: !st.hzDrills }))}
