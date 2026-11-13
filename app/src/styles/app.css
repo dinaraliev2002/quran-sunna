@@ -1786,3 +1786,13 @@ div.srow { cursor: pointer; }
 .vw.wrong { color: #D14B4B; text-decoration: underline wavy; text-underline-offset: 3px; }
 .vw.missed { color: #D14B4B; background: rgba(209, 75, 75, .14); border-radius: 4px; }
 .hz-voice-sum { font-size: 12.5px; opacity: .7; }
+.hz-wave { display: flex; align-items: center; justify-content: center; gap: 3px; height: 44px; }
+.hz-wave i { width: 4px; border-radius: 2px; background: #D14B4B; min-height: 4px; transition: height .07s linear; }
+.hz-wave i.dot { height: 4px; opacity: .5; animation: hz-dot 1s ease-in-out infinite; }
+@keyframes hz-dot { 50% { opacity: 1; transform: scaleY(2.2); } }
+.hz-voice-ok { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 600; color: var(--green); }
+.hz-voice-ok .icon { width: 16px; height: 16px; flex: none; }
+.hz-voice-list { font-size: 14px; line-height: 1.5; }
+.hz-voice-list b { display: block; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; opacity: .65; margin-bottom: 2px; }
+.hz-voice-list p { margin: 0; }
+.hz-tell.open .hz-voice-res { margin-bottom: 14px; }

@@ -7,7 +7,7 @@ import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import { HadithBody, ListenBtn, useHifzToday, WarnSheet } from './parts'
 import { SplitBtn } from './SplitEditor'
-import { VoiceCheck } from './VoiceCheck'
+import { VoiceCheck, VoiceResult } from './VoiceCheck'
 
 
 type Step = 'read' | 'gap3' | 'gap2' | 'gap1' | 'letters' | 'build' | 'tell'
@@ -163,6 +163,7 @@ function ReviewItem({ item, onDone }: { item: HifzItem; onDone: () => void }) {
 function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: boolean; review?: boolean; children: ReactNode }) {
   const [hint, setHint] = useState(false)
   const [open, setOpen] = useState(false)
+  const [spoken, setSpoken] = useState('') // что сказали вслух (проверка голосом)
   return (
     <>
       <div className={'hz-card hz-tell' + (open ? ' open' : '')}>
@@ -179,12 +180,13 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
         {open && (
           <>
             <div className="hz-card-h"><span className="hz-no">{setOf(item.key).short}{item.key[0] !== 'u' ? ` · ${item.id}` : ''}</span><span className="hz-by">{item.by}</span></div>
+            {spoken && <VoiceResult item={item} spoken={spoken} />}
             <HadithBody item={item} ar={showAr} />
             <ListenBtn src={item.audio} range={item.range} />
           </>
         )}
       </div>
-      {!open && <VoiceCheck key={item.key} item={item} />}
+      {!open && <VoiceCheck key={item.key} onText={setSpoken} />}
       {open ? children : (
         <div className="hz-act">
           <button className="bigbtn" onClick={() => { haptic.tap(); setOpen(true) }}><Icon id="open" />Проверить себя</button>
