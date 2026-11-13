@@ -27,7 +27,7 @@ export function useRecorder() {
   }, [])
   useEffect(() => () => { rec.current?.state === 'recording' && rec.current.stop(); cleanup() }, [cleanup])
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (): Promise<boolean> => {
     setText(''); setError(''); setLevels(Array(BARS).fill(0))
     try {
       const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
@@ -51,9 +51,11 @@ export function useRecorder() {
       rec.current = r
       r.start()
       setListening(true)
+      return true
     } catch {
       cleanup()
       setError('Нет доступа к микрофону — разрешите его в настройках.')
+      return false
     }
   }, [cleanup])
 
