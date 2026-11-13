@@ -7,6 +7,7 @@ import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import { HadithBody, ListenBtn, useHifzToday, WarnSheet } from './parts'
 import { SplitBtn } from './SplitEditor'
+import { VoiceCheck } from './VoiceCheck'
 
 
 type Step = 'read' | 'gap3' | 'gap2' | 'gap1' | 'letters' | 'build' | 'tell'
@@ -183,6 +184,7 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
           </>
         )}
       </div>
+      {!open && <VoiceCheck key={item.key} item={item} />}
       {open ? children : (
         <div className="hz-act">
           <button className="bigbtn" onClick={() => { haptic.tap(); setOpen(true) }}><Icon id="open" />Проверить себя</button>

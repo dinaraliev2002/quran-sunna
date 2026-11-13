@@ -1766,3 +1766,23 @@ div.srow { cursor: pointer; }
   background: linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .06)); border: 1px solid rgba(255, 255, 255, .45);
   backdrop-filter: saturate(1.5) brightness(1.08); -webkit-backdrop-filter: saturate(1.5) brightness(1.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -6px 10px rgba(217, 164, 65, .18), 0 4px 12px rgba(0, 0, 0, .16); }
+
+/* ===== сдача хадиса голосом ===== */
+.hz-voice { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin: 14px 0 4px; }
+.hz-voice-narr { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; font-weight: 600; padding: 4px 2px; }
+.hz-voice-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 16px; border-radius: 14px; font-size: 15px; font-weight: 700; color: var(--gold-ink); border: 1px solid rgba(217, 164, 65, .45); }
+.hz-voice-btn .icon { width: 20px; height: 20px; }
+.hz-voice-btn.rec { color: #fff; background: #D14B4B; border-color: #D14B4B; animation: hz-rec 1.2s ease-in-out infinite; }
+@keyframes hz-rec { 50% { opacity: .78; } }
+.hz-voice-live { font-size: 14px; color: var(--ink-2, inherit); opacity: .8; line-height: 1.45; }
+.hz-voice-err { font-size: 13px; color: #D14B4B; }
+.hz-voice-res { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); }
+.hz-voice-pct { display: flex; align-items: baseline; gap: 10px; }
+.hz-voice-pct b { font-size: 30px; font-weight: 800; color: #D14B4B; }
+.hz-voice-pct.good b { color: var(--green); }
+.hz-voice-pct span { font-size: 14px; font-weight: 700; }
+.hz-voice-words { font-size: 16px; line-height: 1.6; }
+.vw.ok { color: var(--green); }
+.vw.wrong { color: #D14B4B; text-decoration: underline wavy; text-underline-offset: 3px; }
+.vw.missed { color: #D14B4B; background: rgba(209, 75, 75, .14); border-radius: 4px; }
+.hz-voice-sum { font-size: 12.5px; opacity: .7; }

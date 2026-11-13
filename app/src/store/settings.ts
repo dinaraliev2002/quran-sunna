@@ -95,6 +95,8 @@ const DEFAULT_SETTINGS: Settings = {
   hzPerDay: 1,
   hzDrills: false,
   hzAr: false,
+  hzVoicePass: 95,
+  hzVoiceNarr: false,
   hzSet: 'nawawi',
   qhPerDay: 3,
   qhCheckAudio: true,

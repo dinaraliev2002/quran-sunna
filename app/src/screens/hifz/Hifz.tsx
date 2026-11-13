@@ -117,7 +117,18 @@ export default function Hifz() {
 
       <div className="hz-soon">
         <span className="hz-soon-ic"><Icon id="mic" /></span>
-        <div className="t"><b>Сдача голосом с проверкой ИИ</b><span>Рассказываете хадис — приложение показывает, что сказано верно, а что пропущено. Скоро.</span></div>
+        <div className="t"><b>Сдача голосом</b><span>В «Расскажи хадис» нажмите «Сказать вслух» — приложение покажет, что сказано верно, а что пропущено. Пока тест, на русском.</span></div>
+      </div>
+      <div className="group">
+        <div className="sitem">
+          <span className="si" style={{ background: '#2E9A6B' }}><Icon id="check" /></span>
+          <span className="t">Сколько % считать выученным<small className="hz-sub">Проверка голосом: от 80 до 100</small></span>
+          <span className="hz-step">
+            <button onClick={() => st.set({ hzVoicePass: Math.max(80, st.hzVoicePass - 5) })} disabled={st.hzVoicePass <= 80} aria-label="Меньше"><Icon id="minus" /></button>
+            <b>{st.hzVoicePass}</b>
+            <button onClick={() => st.set({ hzVoicePass: Math.min(100, st.hzVoicePass + 5) })} disabled={st.hzVoicePass >= 100} aria-label="Больше"><Icon id="plus" /></button>
+          </span>
+        </div>
       </div>
 
       {/* ===== хадисы набора ===== */}
