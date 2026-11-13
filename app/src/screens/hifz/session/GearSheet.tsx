@@ -2,7 +2,7 @@ import { Sheet, SheetHead } from '../../../components/ui'
 import { haptic } from '../../../lib/telegram'
 import { useStore } from '../../../store/settings'
 import { type Settings } from '../../../types/settings'
-import { RATES, rateL } from './steps'
+import { RatePick } from './RatePick'
 import { RepeatPick } from './RepeatPick'
 
 /** Шестерёнка урока: упражнения, перевод, чтец */
@@ -41,7 +41,7 @@ export function GearSheet({ onClose }: { onClose: () => void }) {
         </div>
         <div>
           <div className="qh-set-l">Скорость чтеца</div>
-          <div className="qh-chips">{RATES.map((r) => chip(r, st.qhRate, rateL(r), (v) => st.set({ qhRate: v })))}</div>
+          <RatePick value={st.qhRate} onChange={(v) => st.set({ qhRate: v })} />
         </div>
         <div>
           <div className="qh-set-l">Каждый аят при прослушивании</div>
