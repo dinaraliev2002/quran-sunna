@@ -1796,3 +1796,6 @@ div.srow { cursor: pointer; }
 .hz-voice-list b { display: block; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; opacity: .65; margin-bottom: 2px; }
 .hz-voice-list p { margin: 0; }
 .hz-tell.open .hz-voice-res { margin-bottom: 14px; }
+.vw.tap { cursor: pointer; }
+.vw.sel { outline: 2px solid rgba(209, 75, 75, .55); border-radius: 4px; }
+.hz-voice-say { font-size: 14px; padding: 8px 10px; border-radius: 10px; background: rgba(209, 75, 75, .1); }

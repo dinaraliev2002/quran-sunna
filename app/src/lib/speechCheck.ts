@@ -21,6 +21,8 @@ export interface CheckResult {
   missed: number
   /** сколько лишних слов сказано (после очистки оговорок) */
   extra: number
+  /** похоже ли сказанное на этот хадис: совпала ли хоть какая-то доля значимых слов (а не случайные «и», «что») */
+  relevant: boolean
 }
 
 /** слова-паразиты и «поправки», которые не считаем сказанным текстом */
@@ -106,5 +108,9 @@ export function checkSpeech(reference: string, spoken: string, strict = false): 
   const missed = n - ok - wrong
   // лишние слова (поправки, повторы) процент не снижают: важно, всё ли из хадиса сказано верно
   const percent = n ? Math.round((ok / n) * 100) : 0
-  return { words, percent, ok, wrong, missed, extra }
+  // значимые слова — от 4 букв: предлоги и союзы совпадают и в посторонней речи
+  const big = words.filter((x) => normWord(x.w).length >= 4)
+  const bigOk = big.filter((x) => x.state === 'ok').length
+  const relevant = big.length === 0 || bigOk / big.length >= 0.2
+  return { words, percent, ok, wrong, missed, extra, relevant }
 }

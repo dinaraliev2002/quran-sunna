@@ -62,9 +62,19 @@ export function VoiceResult({ item, spoken }: { item: HifzItem; spoken: string }
   const pass = useStore((s) => s.hzVoicePass)
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const r = useMemo(() => checkSpeech(referenceText(item, withNarr), spoken), [item, spoken, withNarr])
+  const [sel, setSel] = useState<number | null>(null) // слово, на которое нажали
   const wrong = r.words.filter((w) => w.state === 'wrong')
   const missed = r.words.filter((w) => w.state === 'missed')
   const clean = (w: string) => w.replace(/[«»"“”.,;:!?()—–-]+/g, '')
+  if (!r.relevant) {
+    return (
+      <div className="hz-voice-res">
+        <div className="hz-voice-pct"><b>0%</b><span>Не похоже на этот хадис</span></div>
+        <p className="hz-voice-sum">Сказанное почти не совпало с текстом хадиса — возможно, запись была не про него или микрофон не расслышал. Попробуйте ещё раз.</p>
+      </div>
+    )
+  }
+  const cur = sel === null ? null : r.words[sel]
   return (
     <div className="hz-voice-res">
       <div className={'hz-voice-pct' + (r.percent >= pass ? ' good' : '')}>
@@ -72,8 +82,12 @@ export function VoiceResult({ item, spoken }: { item: HifzItem; spoken: string }
         <span>{r.percent >= pass ? 'Выучено!' : `Нужно ${pass}%`}</span>
       </div>
       <p className="hz-voice-words">
-        {r.words.map((w, i) => <span key={i} className={'vw ' + w.state}>{w.w} </span>)}
+        {r.words.map((w, i) => (
+          <span key={i} className={'vw ' + w.state + (w.state !== 'ok' ? ' tap' : '') + (sel === i ? ' sel' : '')}
+            onClick={w.state !== 'ok' ? () => { haptic.tick(); setSel(sel === i ? null : i) } : undefined}>{w.w} </span>
+        ))}
       </p>
+      {cur && <p className="hz-voice-say">{cur.state === 'wrong' ? <>Вы сказали: <b>«{cur.said}»</b></> : <>Это слово вы пропустили</>}</p>}
       {wrong.length > 0 && (
         <div className="hz-voice-list">
           <b>Сказано неправильно</b>
