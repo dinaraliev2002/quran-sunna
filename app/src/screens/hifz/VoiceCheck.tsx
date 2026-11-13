@@ -40,6 +40,7 @@ export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
       <button className="hz-voice-narr" onClick={() => set({ hzVoiceNarr: !withNarr })}>
         <span className={'switch' + (withNarr ? ' on' : '')} />Проверить и передатчика
       </button>
+      {!listening && !done && <p className="hz-voice-hint">Говорите чётко и не спеша, в тихом месте, ближе к микрофону — так меньше ошибок распознавания.</p>}
       <button className={'hz-voice-btn' + (listening ? ' rec' : '')} onClick={toggle}>
         <Icon id="mic" />{listening ? 'Закончить запись' : done ? 'Сказать ещё раз' : 'Сказать вслух'}
       </button>
@@ -64,12 +65,11 @@ export function useVoiceResult(item: HifzItem, spoken: string): CheckResult | nu
   return useMemo(() => (spoken ? checkSpeech(referenceText(item, withNarr), spoken, !loose) : null), [item, spoken, withNarr, loose])
 }
 
-/** Итог проверки на открытом хадисе: процент, что сказано не так, что пропущено. Сам текст с подсветкой — в HadithBody (marks) */
-export function VoiceResult({ r, sel }: { r: CheckResult; sel: number | null }) {
+const clean = (w: string) => w.replace(/[«»"“”.,;:!?()—–-]+/g, '')
+
+/** Процент — над текстом хадиса */
+export function VoiceScore({ r }: { r: CheckResult }) {
   const pass = useStore((s) => s.hzVoicePass)
-  const wrong = r.words.filter((w) => w.state === 'wrong')
-  const missed = r.words.filter((w) => w.state === 'missed')
-  const clean = (w: string) => w.replace(/[«»"“”.,;:!?()—–-]+/g, '')
   if (!r.relevant) {
     return (
       <div className="hz-voice-res">
@@ -78,15 +78,24 @@ export function VoiceResult({ r, sel }: { r: CheckResult; sel: number | null }) 
       </div>
     )
   }
-  const cur = sel === null ? null : r.words[sel]
   return (
     <div className="hz-voice-res">
       <div className={'hz-voice-pct' + (r.percent >= pass ? ' good' : '')}>
         <b>{r.percent}%</b>
         <span>{r.percent >= pass ? 'Выучено!' : `Нужно ${pass}%`}</span>
       </div>
-      {(wrong.length > 0 || missed.length > 0) && <p className="hz-voice-sum">Ошибки подсвечены в тексте ниже — нажмите на слово, чтобы увидеть, что вы сказали.</p>}
-      {cur && <p className="hz-voice-say">{cur.state === 'wrong' ? <>Вы сказали: <b>«{cur.said}»</b></> : <>Это слово вы пропустили</>}</p>}
+      {r.wrong + r.missed > 0 && <p className="hz-voice-sum">Ошибки подсвечены в тексте — нажмите на слово, чтобы увидеть, что вы сказали.</p>}
+    </div>
+  )
+}
+
+/** Что сказано неправильно и что пропущено — под текстом хадиса */
+export function VoiceErrors({ r }: { r: CheckResult }) {
+  const wrong = r.words.filter((w) => w.state === 'wrong')
+  const missed = r.words.filter((w) => w.state === 'missed')
+  if (!r.relevant || wrong.length + missed.length === 0) return null
+  return (
+    <div className="hz-voice-res below">
       {wrong.length > 0 && (
         <div className="hz-voice-list">
           <b>Сказано неправильно</b>

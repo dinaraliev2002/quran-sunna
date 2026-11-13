@@ -52,10 +52,13 @@ export interface BodyMarks { words: CheckedWord[]; all: boolean; sel: number | n
 
 export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; marks?: BodyMarks }) {
   let k = 0
+  const cur = marks && marks.sel !== null ? marks.words[marks.sel] : null
   return (
     <div className="hz-text">
       {item.intro && <p className="hz-intro">{item.intro}</p>}
-      {item.ru.map((p, pi) => (
+      {item.ru.map((p, pi) => {
+        const k0 = k
+        const para = (
         <p key={pi}>
           {!marks ? p : p.split(/\s+/).filter(Boolean).map((w, wi) => {
             const inRange = marks.all || pi > item.start[0] || (pi === item.start[0] && wi >= item.start[1])
@@ -69,7 +72,11 @@ export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; 
             )
           })}
         </p>
-      ))}
+        )
+        // «Вы сказали…» — прямо под абзацем, где нажали на слово
+        const here = marks && marks.sel !== null && cur && marks.sel >= k0 && marks.sel < k
+        return here ? <Fragment key={pi}>{para}<p className="hz-voice-say">{cur.state === 'wrong' ? <>Вы сказали: <b>«{cur.said}»</b></> : <>Это слово вы пропустили</>}</p></Fragment> : para
+      })}
       {ar && item.ar.map((p, i) => <p key={'a' + i} className="hz-ar" dir="rtl">{p}</p>)}
       <div className="hz-src">{item.src}</div>
     </div>

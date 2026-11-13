@@ -7,7 +7,7 @@ import { rateL, RATES } from './session/steps'
 const H = 40 // высота одной цифры в колонке, px
 const ITEMS = [...RATES].reverse() // сверху — быстрее, снизу — медленнее
 
-interface Dial { left: number; top: number; w: number; sel: number; start: number }
+interface Dial { left: number; top: number; w: number; sel: number; start: number; out?: boolean }
 
 /**
  * Кнопка скорости озвучки: коротко нажать — следующая скорость; зажать и повести вверх-вниз —
@@ -45,27 +45,32 @@ export function HoldRate({ value, onChange }: { value: number; onChange: (r: num
     const sel = Math.max(0, Math.min(ITEMS.length - 1, g.current.start + Math.round(dy / H)))
     setDial((d) => {
       if (!d || d.sel === sel) return d
-      haptic.tick(); tickSound(); onChange(ITEMS[sel])
+      haptic.tick(); tickSound(true); onChange(ITEMS[sel])
       return { ...d, sel }
     })
+  }
+  /** убираем колонку с анимацией сворачивания */
+  const close = () => {
+    setDial((d) => (d && !d.out ? { ...d, out: true } : d))
+    setTimeout(() => setDial((d) => (d?.out ? null : d)), 170)
   }
   const up = () => {
     clearTimeout(g.current.timer)
     if (!g.current.opened) { haptic.tick(); onChange(RATES[(RATES.indexOf(value) + 1) % RATES.length] ?? 1) } // короткое нажатие
     g.current.opened = false
-    setDial(null)
+    close()
   }
 
   return (
     <>
       <button ref={btn} className="hz-rate" aria-label="Скорость озвучки: нажмите, чтобы сменить, или зажмите и ведите вверх-вниз"
-        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { clearTimeout(g.current.timer); g.current.opened = false; setDial(null) }}
+        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { clearTimeout(g.current.timer); g.current.opened = false; close() }}
         onContextMenu={(e) => e.preventDefault()}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(RATES[(RATES.indexOf(value) + 1) % RATES.length] ?? 1) } }}>
         {rateL(value)}
       </button>
       {dial && createPortal(
-        <div className="hz-hold" style={{ left: dial.left, top: dial.top, width: dial.w, height: ITEMS.length * H, transformOrigin: `50% ${dial.start * H + H / 2}px` }}>
+        <div className={'hz-hold' + (dial.out ? ' out' : '')} style={{ left: dial.left, top: dial.top, width: dial.w, height: ITEMS.length * H, transformOrigin: `50% ${dial.start * H + H / 2}px` }}>
           {ITEMS.map((r, i) => <span key={r} className={i === dial.sel ? 'on' : ''} style={{ height: H }}>{rateL(r)}</span>)}
         </div>, document.body)}
     </>

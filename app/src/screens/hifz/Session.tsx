@@ -8,7 +8,7 @@ import { useStore } from '../../store/settings'
 import { HadithBody, ListenBtn, useHifzToday, WarnSheet } from './parts'
 import { SplitBtn } from './SplitEditor'
 import { HadithGearSheet } from './HadithGearSheet'
-import { useVoiceResult, VoiceCheck, VoiceResult } from './VoiceCheck'
+import { useVoiceResult, VoiceCheck, VoiceErrors, VoiceScore } from './VoiceCheck'
 
 
 type Step = 'read' | 'gap3' | 'gap2' | 'gap1' | 'letters' | 'build' | 'tell'
@@ -186,8 +186,9 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
         {open && (
           <>
             <div className="hz-card-h"><span className="hz-no">{setOf(item.key).short}{item.key[0] !== 'u' ? ` · ${item.id}` : ''}</span><span className="hz-by">{item.by}</span></div>
-            {res && <VoiceResult r={res} sel={sel} />}
+            {res && <VoiceScore r={res} />}
             <HadithBody item={item} ar={showAr} marks={res?.relevant ? { words: res.words, all: withNarr, sel, onPick: (i) => { haptic.tick(); setSel(sel === i ? null : i) } } : undefined} />
+            {res && <VoiceErrors r={res} />}
             <ListenBtn src={item.audio} range={item.range} />
           </>
         )}
