@@ -114,12 +114,17 @@ export function VoiceScore({ r, checking }: { r: CheckResult; checking?: boolean
 }
 
 /** Что сказано неправильно и что пропущено — под текстом хадиса */
-export function VoiceErrors({ r }: { r: CheckResult }) {
+export function VoiceErrors({ r, spoken }: { r: CheckResult; spoken: string }) {
+  const engine = useStore((s) => s.hzVoiceEngine)
   const wrong = r.words.filter((w) => w.state === 'wrong')
   const missed = r.words.filter((w) => w.state === 'missed')
   if (!r.relevant || wrong.length + missed.length === 0) return null
   return (
     <div className="hz-voice-res below">
+      <details className="hz-voice-heard">
+        <summary>Как вас услышало приложение ({engine === 'cloud' ? 'облачное' : 'системное'} распознавание)</summary>
+        <p>{spoken || '—'}</p>
+      </details>
       {wrong.length > 0 && (
         <div className="hz-voice-list">
           <b>Сказано неправильно</b>

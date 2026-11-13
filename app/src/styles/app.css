@@ -1811,3 +1811,7 @@ div.srow { cursor: pointer; }
 .hz-voice-hint { font-size: 12.5px; opacity: .65; line-height: 1.4; }
 .hz-voice-res.below { margin-top: 12px; }
 .vw.ai { text-decoration: underline dotted; text-underline-offset: 3px; }
+
+.hz-voice-heard { font-size: 13px; color: var(--text-2, #888); margin: 0 0 10px; }
+.hz-voice-heard summary { cursor: pointer; }
+.hz-voice-heard p { margin: 6px 0 0; line-height: 1.5; }

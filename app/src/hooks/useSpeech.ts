@@ -44,9 +44,10 @@ export function useSpeech(lang = 'ru-RU') {
   const rec = useRef<Rec | null>(null)
   const finals = useRef('')
   const meter = useRef<{ stop: () => void } | null>(null)
+  const want = useRef(false) // человек ещё не нажал «закончить»: если распознавание само оборвалось на паузе — запускаем снова
 
   const stopMeter = useCallback(() => { meter.current?.stop(); meter.current = null }, [])
-  useEffect(() => () => { rec.current?.stop(); stopMeter() }, [stopMeter])
+  useEffect(() => () => { want.current = false; rec.current?.stop(); stopMeter() }, [stopMeter])
 
   /** Громкость микрофона → полоски; если не вышло, остаются просто точки */
   const startMeter = useCallback(async () => {
@@ -62,6 +63,7 @@ export function useSpeech(lang = 'ru-RU') {
     const C = Ctor()
     if (!C) return
     finals.current = ''
+    want.current = true
     setText('')
     setError('')
     setLevels(Array(BARS).fill(0))
@@ -80,11 +82,14 @@ export function useSpeech(lang = 'ru-RU') {
       setText((finals.current + interim).trim())
     }
     r.onerror = (e) => { if (e.error !== 'aborted') setError(ERRORS[e.error] ?? 'Не удалось распознать речь.') }
-    r.onend = () => { stopMeter(); setListening(false); if (finals.current.trim()) setText(finals.current.trim()) }
+    r.onend = () => {
+      if (want.current) { try { r.start(); return } catch { /* не вышло — завершаем как обычно */ } }
+      stopMeter(); setListening(false); if (finals.current.trim()) setText(finals.current.trim())
+    }
     rec.current = r
     try { r.start(); setListening(true) } catch { stopMeter(); setError('Не удалось включить микрофон.') }
   }, [lang, startMeter, stopMeter])
 
-  const stop = useCallback(() => rec.current?.stop(), [])
+  const stop = useCallback(() => { want.current = false; rec.current?.stop() }, [])
   return { supported, listening, text, error, levels, metered, start, stop }
 }

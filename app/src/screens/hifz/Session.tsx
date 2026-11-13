@@ -188,7 +188,7 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
             <div className="hz-card-h"><span className="hz-no">{setOf(item.key).short}{item.key[0] !== 'u' ? ` · ${item.id}` : ''}</span><span className="hz-by">{item.by}</span></div>
             {res && <VoiceScore r={res} checking={checking} />}
             <HadithBody item={item} ar={showAr} marks={res?.relevant ? { words: res.words, all: withNarr, sel, onPick: (i) => { haptic.tick(); setSel(sel === i ? null : i) } } : undefined} />
-            {res && <VoiceErrors r={res} />}
+            {res && <VoiceErrors r={res} spoken={spoken} />}
             <ListenBtn src={item.audio} range={item.range} />
           </>
         )}
