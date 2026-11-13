@@ -1754,3 +1754,5 @@ div.srow { cursor: pointer; }
 .qm-panel.edit .qm-ic { width: 34px; height: 34px; border-radius: 11px; }
 .qm-panel.edit .qm-t { flex: 1; font-size: 14px; }
 .build-info { text-align: center; font-size: 11px; color: var(--text-2); opacity: .6; margin: 18px 0 0; }
+.qw-ayah .qw.wl { background: rgba(217, 164, 65, .45); border-radius: 8px; } /* заучивание: слово, которое сейчас читает чтец */
+.sheet .body.qh-set { padding-bottom: var(--mp-pad, 0px); transition: padding-bottom .45s cubic-bezier(.22, 1, .36, 1); } /* настройки заучивания: последние пункты не прячутся под плеером */

@@ -1,6 +1,7 @@
 import { arDigits } from '../../../lib/data'
 import { wordCaption } from '../../../lib/wbwPhrases'
 import { pageFont, pagePalette, useFontReady } from '../../../lib/fonts'
+import { useWordOf } from '../../../lib/wordSync'
 import { useUi } from '../../../store/ui'
 import type { Ayah } from '../../../types/quran'
 import { GlyphWord } from './GlyphWord'
@@ -10,8 +11,9 @@ import { QpcText } from './QpcText'
  * Аят по словам для заучивания: глифы страницы мусхафа (с таджвидом), скрытые слова — пустые рамки той же ширины.
  * hide(i) — скрыто ли слово i; нажатие на скрытое слово — onPeek(i).
  */
-export function AyahWords({ a, tajweed, hide, onPeek, tr, after }: { a: Ayah; tajweed: boolean; hide?: (i: number) => boolean; onPeek?: (i: number) => void; tr?: string[] | null; after?: React.ReactNode }) {
+export function AyahWords({ a, tajweed, hide, onPeek, tr, after, ayahKey }: { a: Ayah; tajweed: boolean; hide?: (i: number) => boolean; onPeek?: (i: number) => void; tr?: string[] | null; after?: React.ReactNode; ayahKey?: string }) {
   const theme = useUi((s) => s.theme)
+  const cur = useWordOf(ayahKey) // звучащее слово (0 — нет): подсвечивается, пока чтец его читает
   const family = pageFont(a.p, tajweed, theme)
   const ready = useFontReady(family)
   const gl = a.g.split(' ')
@@ -26,8 +28,8 @@ export function AyahWords({ a, tajweed, hide, onPeek, tr, after }: { a: Ayah; ta
         const word = glyph ? <GlyphWord glyph={gl[i]} family={family} ready={ready} style={st!} /> : colored ? <span className="wa" dangerouslySetInnerHTML={{ __html: parts[i] }} /> : <span className="wa">{w}</span>
         const t = <span className="wt">{wordCaption(tr, i)}</span>
         return hide?.(i)
-          ? <button key={i} className="w gap" onClick={() => onPeek?.(i)} aria-label="Показать слово">{word}{t}</button>
-          : <div key={i} className="w">{word}{t}</div>
+          ? <button key={i} className={'w gap' + (cur === i + 1 ? ' wl' : '')} onClick={() => onPeek?.(i)} aria-label="Показать слово">{word}{t}</button>
+          : <div key={i} className={'w' + (cur === i + 1 ? ' wl' : '')}>{word}{t}</div>
       })}
       {glyph ? <QpcText page={a.p} glyphs={gl[gl.length - 1]} tajweed={tajweed} className="wbw-end" /> : <span className="wbw-end qw txt end">{arDigits(a.n)}</span>}
       {after}
@@ -38,8 +40,8 @@ export function AyahWords({ a, tajweed, hide, onPeek, tr, after }: { a: Ayah; ta
       {a.w.map((w, i) => {
         const inner = glyph ? gl[i] : colored ? <span dangerouslySetInnerHTML={{ __html: parts[i] }} /> : w
         return hide?.(i)
-          ? <button key={i} className={'qw gap' + (glyph ? '' : ' txt')} onClick={() => onPeek?.(i)} aria-label="Показать слово"><span>{inner}</span></button>
-          : <span key={i} className={'qw' + (glyph ? '' : ' txt')}>{inner}</span>
+          ? <button key={i} className={'qw gap' + (glyph ? '' : ' txt') + (cur === i + 1 ? ' wl' : '')} onClick={() => onPeek?.(i)} aria-label="Показать слово"><span>{inner}</span></button>
+          : <span key={i} className={'qw' + (glyph ? '' : ' txt') + (cur === i + 1 ? ' wl' : '')}>{inner}</span>
       })}
       {glyph ? <span className="qw end">{gl[gl.length - 1]}</span> : <span className="qw txt end">{arDigits(a.n)}</span>}
       {after}

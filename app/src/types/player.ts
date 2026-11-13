@@ -27,7 +27,8 @@ export interface SurahTiming { a: [number, number][]; w?: [number, number, numbe
 
 export type PauseMode = 0 | 2000 | 5000 | 'len'
 
-/** lead — сколько первых аятов очереди звучат один раз за круг (связка с прошлым отрывком), остальные — repeatEach раз */
-export interface MemoOptions { repeatEach: number; repeatRange: number; pause: PauseMode; hideText: boolean; lead?: number }
+/** rest — пауза (мс) перед повтором того же аята и перед новым кругом (аят → следующий аят идёт без неё)
+ *  lead — сколько первых аятов очереди звучат один раз за круг (связка с прошлым отрывком), остальные — repeatEach раз */
+export interface MemoOptions { repeatEach: number; repeatRange: number; pause: PauseMode; hideText: boolean; lead?: number; rest?: number }
 
 export type Sleep = { mode: 'time'; until: number } | { mode: 'suras'; left: number }

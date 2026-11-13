@@ -2,7 +2,7 @@ import { Sheet, SheetHead } from '../../../components/ui'
 import { haptic } from '../../../lib/telegram'
 import { useStore } from '../../../store/settings'
 import { type Settings } from '../../../types/settings'
-import { RATES, rateL } from './steps'
+import { PAUSES, RATES, rateL } from './steps'
 import { RepeatPick } from './RepeatPick'
 
 /** Шестерёнка урока: упражнения, перевод, чтец */
@@ -50,6 +50,10 @@ export function GearSheet({ onClose }: { onClose: () => void }) {
         <div>
           <div className="qh-set-l">Весь отрывок при прослушивании<small>Сколько раз подряд прослушать все аяты отрывка целиком</small></div>
           <RepeatPick value={st.qhRepeatAll} onChange={(v) => st.set({ qhRepeatAll: v })} />
+        </div>
+        <div>
+          <div className="qh-set-l">Пауза между повторами<small>Перед повтором аята и перед новым кругом — время вдохнуть и повторить за чтецом</small></div>
+          <div className="qh-chips">{PAUSES.map((n) => chip(n, st.qhPause, n ? `${n} с` : 'Без паузы', (v) => st.set({ qhPause: v })))}</div>
         </div>
         {sw(st.qhChain, 'Слушать цепочкой', 'Последний аят прошлого отрывка переносится в новый: вчера 1–5, сегодня 5, 6–10. Так новое связывается с выученным', () => st.set({ qhChain: !st.qhChain }))}
       </div>

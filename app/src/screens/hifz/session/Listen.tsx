@@ -4,7 +4,7 @@ import { type Ayah } from '../../../types/quran'
 import { haptic } from '../../../lib/telegram'
 import { usePlayer } from '../../../store/player'
 import { useStore } from '../../../store/settings'
-import { RATES } from './steps'
+import { PAUSES, RATES } from './steps'
 import { RepeatPick } from './RepeatPick'
 
 /** Прослушивание отрывка: каждый аят — N раз, весь отрывок — M кругов; цепочкой — с аята-связкой из прошлого отрывка */
@@ -13,6 +13,7 @@ export function Listen({ item, lead }: { item: QItem; lead: Ayah | null }) {
   const all = useStore((s) => s.qhRepeatAll)
   const chain = useStore((s) => s.qhChain)
   const rate = useStore((s) => s.qhRate)
+  const pause = useStore((s) => s.qhPause)
   const set = useStore((s) => s.set)
   const status = usePlayer((s) => s.status)
   const playing = status === 'playing' || status === 'loading'
@@ -24,7 +25,7 @@ export function Listen({ item, lead }: { item: QItem; lead: Ayah | null }) {
     const keys = item.ayahs.map((a) => `${item.s}:${a.n}`)
     // цепочкой: перед новым отрывком звучит последний аят прошлого — он связывает выученное с новым
     const link = chain && lead ? [`${item.s}:${lead.n}`] : []
-    p.play([...link, ...keys], 0, { repeatEach: rep, repeatRange: all, pause: 0, hideText: false, lead: link.length })
+    p.play([...link, ...keys], 0, { repeatEach: rep, repeatRange: all, pause: 0, hideText: false, lead: link.length, rest: pause * 1000 })
   }
   return (
     <div className="hz-card">
@@ -36,6 +37,10 @@ export function Listen({ item, lead }: { item: QItem; lead: Ayah | null }) {
       <div className="qh-rep qh-rep-col">
         <span>Весь отрывок{item.a !== item.b ? ` (${item.b - item.a + 1} ${item.b - item.a + 1 < 5 ? 'аята' : 'аятов'})` : ''}</span>
         <RepeatPick value={all} onChange={(n) => set({ qhRepeatAll: n })} />
+      </div>
+      <div className="qh-rep">
+        <span>Пауза между повторами</span>
+        {PAUSES.map((n) => <button key={n} className={pause === n ? 'on' : ''} onClick={() => { haptic.tick(); set({ qhPause: n }) }}>{n ? `${n} с` : 'Нет'}</button>)}
       </div>
       <div className="qh-rep">
         <span>Скорость</span>

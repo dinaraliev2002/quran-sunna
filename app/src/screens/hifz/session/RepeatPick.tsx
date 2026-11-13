@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { haptic } from '../../../lib/telegram'
 
-const PRESETS = [1, 3, 5]
+const PRESETS = [1, 3, 5, 10]
 
 /** Выбор числа повторов: 1×, 3×, 5× или своё число (кнопки − и +) */
 export function RepeatPick({ value, onChange, max = 30 }: { value: number; onChange: (n: number) => void; max?: number }) {

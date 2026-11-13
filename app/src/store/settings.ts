@@ -130,6 +130,7 @@ const DEFAULT_SETTINGS: Settings = {
   qhGoal: null,
   qhRepeat: 3,
   qhRepeatAll: 1,
+  qhPause: 0,
   qhPos: null,
   hzRate: 1,
   rem: { review: { on: false, t: '20:00' }, morning: { on: false, t: '07:00' }, evening: { on: false, t: '18:30' }, friday: { on: false, t: '10:00' }, streak: { on: false, t: '21:00' } },

@@ -264,9 +264,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
       const pause = m.pause === 'len' ? dur : m.pause
       // аяты-связки (первые lead) звучат один раз за круг, остальные — repeatEach раз
       const reps = i < (m.lead ?? 0) ? 1 : m.repeatEach
-      if (m.each < reps) { set({ memo: { ...m, each: m.each + 1 } }); return after(pause, () => startAt(i)) }
+      const rest = m.rest ?? 0
+      if (m.each < reps) { set({ memo: { ...m, each: m.each + 1 } }); return after(pause + rest, () => startAt(i)) }
       if (i < s.queue.length - 1) { set({ memo: { ...m, each: 1 } }); return after(pause, () => goNext(i + 1)) }
-      if (m.repeatRange === 0 || m.round < m.repeatRange) { set({ memo: { ...m, each: 1, round: m.round + 1 } }); return after(pause, () => startAt(0)) }
+      if (m.repeatRange === 0 || m.round < m.repeatRange) { set({ memo: { ...m, each: 1, round: m.round + 1 } }); return after(pause + rest, () => startAt(0)) }
       return finish()
     }
     if (i < s.queue.length - 1 || surahEnd()) after(gapMs(dur), () => goNext(i + 1))
