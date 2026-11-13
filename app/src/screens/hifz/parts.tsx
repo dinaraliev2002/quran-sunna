@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead } from '../../components/ui'
 import { dayNum, hadithProgress, loadTimings, MAX_NEW, partsOf, setById, type HifzItem } from '../../lib/hifz'
+import { normWord, type CheckedWord } from '../../lib/speechCheck'
 import { haptic } from '../../lib/telegram'
 import { dayStr, useStore } from '../../store/settings'
 import { WORD_PARSE } from '../../store/wordSheet'
+import { HoldRate } from './HoldRate'
 
 /** Что на сегодня: хадисы на повтор (из всех наборов), сколько новых осталось по плану (из выбранного набора) */
 export function useHifzToday() {
@@ -45,18 +47,34 @@ export function WarnSheet({ onOk, onClose }: { onOk: () => void; onClose: () => 
 }
 
 /** Текст хадиса: вводные слова, перевод, арабский, источник */
-export function HadithBody({ item, ar }: { item: HifzItem; ar?: boolean }) {
+/** Результат проверки голосом, наложенный на текст: слова, которые сверялись (с передатчиком — с самого начала) */
+export interface BodyMarks { words: CheckedWord[]; all: boolean; sel: number | null; onPick: (i: number) => void }
+
+export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; marks?: BodyMarks }) {
+  let k = 0
   return (
     <div className="hz-text">
       {item.intro && <p className="hz-intro">{item.intro}</p>}
-      {item.ru.map((p, i) => <p key={i}>{p}</p>)}
+      {item.ru.map((p, pi) => (
+        <p key={pi}>
+          {!marks ? p : p.split(/\s+/).filter(Boolean).map((w, wi) => {
+            const inRange = marks.all || pi > item.start[0] || (pi === item.start[0] && wi >= item.start[1])
+            if (!inRange || !normWord(w)) return <Fragment key={wi}>{w} </Fragment>
+            const i = k++
+            const m = marks.words[i]
+            if (!m) return <Fragment key={wi}>{w} </Fragment>
+            return (
+              <span key={wi} className={'vw ' + m.state + (m.state !== 'ok' ? ' tap' : '') + (marks.sel === i ? ' sel' : '')}
+                onClick={m.state !== 'ok' ? () => marks.onPick(i) : undefined}>{w} </span>
+            )
+          })}
+        </p>
+      ))}
       {ar && item.ar.map((p, i) => <p key={'a' + i} className="hz-ar" dir="rtl">{p}</p>)}
       <div className="hz-src">{item.src}</div>
     </div>
   )
 }
-
-const RATES = [0.75, 1, 1.25, 1.5]
 
 /**
  * «Слушать»: озвучка хадиса (заранее записана нейронным голосом) и скорость; если файла нет — кнопок нет.
@@ -98,14 +116,13 @@ export function ListenBtn({ src, range, lead }: { src?: string; range?: [number,
     a.playbackRate = rate
     a.play().catch(() => setState('idle'))
   }
-  const nextRate = () => { haptic.tick(); set({ hzRate: RATES[(RATES.indexOf(rate) + 1) % RATES.length] ?? 1 }) }
   return (
     <div className="hz-listen-row">
       {lead}
       <button className={'hz-listen' + (state === 'play' ? ' on' : '')} onClick={toggle}>
         <Icon id={state === 'play' ? 'pause' : 'sound'} />{state === 'play' ? 'Пауза' : state === 'load' ? 'Загрузка…' : range ? 'Слушать часть' : 'Слушать'}
       </button>
-      <button className="hz-rate" onClick={nextRate} aria-label="Скорость озвучки">{String(rate).replace('.', ',')}×</button>
+      <HoldRate value={rate} onChange={(r) => set({ hzRate: r })} />
     </div>
   )
 }

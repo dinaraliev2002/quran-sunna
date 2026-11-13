@@ -7,7 +7,8 @@ import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import { HadithBody, ListenBtn, useHifzToday, WarnSheet } from './parts'
 import { SplitBtn } from './SplitEditor'
-import { VoiceCheck, VoiceResult } from './VoiceCheck'
+import { HadithGearSheet } from './HadithGearSheet'
+import { useVoiceResult, VoiceCheck, VoiceResult } from './VoiceCheck'
 
 
 type Step = 'read' | 'gap3' | 'gap2' | 'gap1' | 'letters' | 'build' | 'tell'
@@ -30,6 +31,7 @@ function Session({ mode }: { mode: 'learn' | 'review' }) {
   const [search] = useSearchParams()
   const [queue, setQueue] = useState<HifzItem[] | null>(null)
   const [done, setDone] = useState(0)
+  const [gear, setGear] = useState(false)
 
   // очередь собирается один раз при открытии
   useEffect(() => {
@@ -58,8 +60,9 @@ function Session({ mode }: { mode: 'learn' | 'review' }) {
       <div className="azc-top">
         <button className="icon-btn" onClick={() => nav(-1)} aria-label="Назад"><Icon id="close" /></button>
         <div className="ttl"><b>{title}</b><span>{queue && item ? `${done + 1} из ${done + queue.length} · ${setOf(item.key).short}` : 'Хадисы'}</span></div>
-        <span style={{ width: 44 }} />
+        <button className="icon-btn" onClick={() => { haptic.tap(); setGear(true) }} aria-label="Настройки"><Icon id="gear" /></button>
       </div>
+      {gear && <HadithGearSheet onClose={() => setGear(false)} />}
       {!queue ? <div className="loading">Загрузка…</div>
         : !item ? <Finish mode={mode} count={done} />
           : mode === 'learn' ? <LearnItem key={item.key} item={item} onDone={next} onSplit={(parts) => setQueue((q) => [parts[0], ...q!.slice(1).filter((x) => baseOf(x.key) !== baseOf(parts[0].key))])} />
@@ -164,6 +167,9 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
   const [hint, setHint] = useState(false)
   const [open, setOpen] = useState(false)
   const [spoken, setSpoken] = useState('') // что сказали вслух (проверка голосом)
+  const [sel, setSel] = useState<number | null>(null) // слово, на которое нажали в результате
+  const res = useVoiceResult(item, spoken)
+  const withNarr = useStore((s) => s.hzVoiceNarr)
   return (
     <>
       <div className={'hz-card hz-tell' + (open ? ' open' : '')}>
@@ -180,8 +186,8 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
         {open && (
           <>
             <div className="hz-card-h"><span className="hz-no">{setOf(item.key).short}{item.key[0] !== 'u' ? ` · ${item.id}` : ''}</span><span className="hz-by">{item.by}</span></div>
-            {spoken && <VoiceResult item={item} spoken={spoken} />}
-            <HadithBody item={item} ar={showAr} />
+            {res && <VoiceResult r={res} sel={sel} />}
+            <HadithBody item={item} ar={showAr} marks={res?.relevant ? { words: res.words, all: withNarr, sel, onPick: (i) => { haptic.tick(); setSel(sel === i ? null : i) } } : undefined} />
             <ListenBtn src={item.audio} range={item.range} />
           </>
         )}

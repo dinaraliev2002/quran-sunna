@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { BARS, useSpeech } from '../../hooks/useSpeech'
-import { checkSpeech } from '../../lib/speechCheck'
+import { checkSpeech, type CheckResult } from '../../lib/speechCheck'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import type { HifzItem } from '../../types/hifz'
 
 /** Эталон: сам хадис; с передатчиком — ещё и слова до слов Пророка ﷺ («Я слышал, как… сказал») */
-function referenceText(item: HifzItem, withNarrator: boolean) {
+export function referenceText(item: HifzItem, withNarrator: boolean) {
   const paras = item.ru.map((p, i) => (i === item.start[0] ? p.split(/\s+/).filter(Boolean).slice(withNarrator ? 0 : item.start[1]).join(' ') : p))
   return (withNarrator ? paras : paras.slice(item.start[0])).join(' ')
 }
@@ -57,12 +57,16 @@ export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
   )
 }
 
-/** Результат сверки — показывается на открытом тексте хадиса: что верно, где ошибка, что пропущено */
-export function VoiceResult({ item, spoken }: { item: HifzItem; spoken: string }) {
-  const pass = useStore((s) => s.hzVoicePass)
+/** Сверка сказанного с хадисом (с учётом настроек); null — если ничего не говорили */
+export function useVoiceResult(item: HifzItem, spoken: string): CheckResult | null {
   const withNarr = useStore((s) => s.hzVoiceNarr)
-  const r = useMemo(() => checkSpeech(referenceText(item, withNarr), spoken), [item, spoken, withNarr])
-  const [sel, setSel] = useState<number | null>(null) // слово, на которое нажали
+  const loose = useStore((s) => s.hzVoiceLoose)
+  return useMemo(() => (spoken ? checkSpeech(referenceText(item, withNarr), spoken, !loose) : null), [item, spoken, withNarr, loose])
+}
+
+/** Итог проверки на открытом хадисе: процент, что сказано не так, что пропущено. Сам текст с подсветкой — в HadithBody (marks) */
+export function VoiceResult({ r, sel }: { r: CheckResult; sel: number | null }) {
+  const pass = useStore((s) => s.hzVoicePass)
   const wrong = r.words.filter((w) => w.state === 'wrong')
   const missed = r.words.filter((w) => w.state === 'missed')
   const clean = (w: string) => w.replace(/[«»"“”.,;:!?()—–-]+/g, '')
@@ -81,12 +85,7 @@ export function VoiceResult({ item, spoken }: { item: HifzItem; spoken: string }
         <b>{r.percent}%</b>
         <span>{r.percent >= pass ? 'Выучено!' : `Нужно ${pass}%`}</span>
       </div>
-      <p className="hz-voice-words">
-        {r.words.map((w, i) => (
-          <span key={i} className={'vw ' + w.state + (w.state !== 'ok' ? ' tap' : '') + (sel === i ? ' sel' : '')}
-            onClick={w.state !== 'ok' ? () => { haptic.tick(); setSel(sel === i ? null : i) } : undefined}>{w.w} </span>
-        ))}
-      </p>
+      {(wrong.length > 0 || missed.length > 0) && <p className="hz-voice-sum">Ошибки подсвечены в тексте ниже — нажмите на слово, чтобы увидеть, что вы сказали.</p>}
       {cur && <p className="hz-voice-say">{cur.state === 'wrong' ? <>Вы сказали: <b>«{cur.said}»</b></> : <>Это слово вы пропустили</>}</p>}
       {wrong.length > 0 && (
         <div className="hz-voice-list">
