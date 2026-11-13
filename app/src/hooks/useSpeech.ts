@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { setPlayback, setRecording } from '../lib/audioSession'
 import { attachMeter } from '../lib/micMeter'
 
 // Системное распознавание речи (Web Speech API): бесплатно, без своего сервера.
@@ -46,11 +47,12 @@ export function useSpeech(lang = 'ru-RU') {
   const meter = useRef<{ stop: () => void } | null>(null)
   const want = useRef(false) // человек ещё не нажал «закончить»: если распознавание само оборвалось на паузе — запускаем снова
 
-  const stopMeter = useCallback(() => { meter.current?.stop(); meter.current = null }, [])
+  const stopMeter = useCallback(() => { meter.current?.stop(); meter.current = null; setPlayback() }, [])
   useEffect(() => () => { want.current = false; rec.current?.stop(); stopMeter() }, [stopMeter])
 
   /** Громкость микрофона → полоски; если не вышло, остаются просто точки */
   const startMeter = useCallback(async () => {
+    setRecording()
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const stopLevel = attachMeter(stream, (lvl) => setLevels((l) => [...l.slice(1), lvl]))

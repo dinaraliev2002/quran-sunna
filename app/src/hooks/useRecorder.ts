@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { attachMeter } from '../lib/micMeter'
 import { transcribe } from '../lib/voiceApi'
+import { setPlayback, setRecording } from '../lib/audioSession'
 import { quietAudio } from '../lib/tickSound'
 import { startWav } from '../lib/wavRecorder'
 import { BARS } from './useSpeech'
@@ -26,6 +27,7 @@ export function useRecorder() {
   const cleanup = useCallback(() => {
     stopMeter.current?.(); stopMeter.current = null
     stream.current?.getTracks().forEach((t) => t.stop()); stream.current = null
+    setPlayback()
   }, [])
   useEffect(() => () => { ctl.current?.stop(); cleanup() }, [cleanup])
 
@@ -68,6 +70,7 @@ export function useRecorder() {
     for (const simple of [false, true]) {
       try {
         step = 'микрофон'
+        setRecording() // после неудачной попытки cleanup вернул «playback»
         const s = await navigator.mediaDevices.getUserMedia({ audio: simple ? true : { echoCancellation: true, noiseSuppression: true } })
         stream.current = s
         step = 'запись'

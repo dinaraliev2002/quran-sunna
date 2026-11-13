@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { useStore as useSettings } from './settings'
+import { setPlayback } from '../lib/audioSession'
 import { cachedBlob } from '../lib/net'
 import { localFileUrl, useFiles } from '../lib/nativeFiles'
 import { ayahKey, loadReciteIndex, loadTiming, suraKey, surahUrl, timingNow } from '../lib/recite'
@@ -65,8 +66,7 @@ el.preload = 'auto'
 // короткая тишина: «разблокирует» звук на iPhone в момент нажатия, пока ищем запись суры
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='
 // iOS 17+: звук приложения — «медиа», а не «звук игры» (не глушится беззвучным режимом)
-const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
-if (session) try { session.type = 'playback' } catch { /* старая версия */ }
+setPlayback()
 
 let reciter = 'alafasy'
 export const setReciter = (r: string) => { reciter = RECITERS[r] ? r : 'alafasy' }
