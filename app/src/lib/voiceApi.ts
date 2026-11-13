@@ -3,7 +3,7 @@ const ENDPOINT = 'https://ynqbnqkihojqlawhhiqg.supabase.co/functions/v1/stt-chec
 
 /** Голос → текст */
 export async function transcribe(blob: Blob): Promise<string> {
-  const ext = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm'
+  const ext = blob.type.includes('wav') ? 'wav' : blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm'
   const form = new FormData()
   form.append('audio', blob, `rec.${ext}`)
   const r = await fetch(ENDPOINT, { method: 'POST', body: form })
