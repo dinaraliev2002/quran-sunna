@@ -21,6 +21,7 @@ import { useChapterProgress } from './azkar/Azkar'
 import { useHifzToday } from './hifz/parts'
 import { dayNum } from '../lib/hifz'
 import { loadWordCards } from '../lib/wordCards'
+import { WORD_PARSE } from '../store/wordSheet'
 import { useQhToday } from '../hooks/useQuranHifz'
 import { QpcText } from './reader/views'
 
@@ -291,16 +292,23 @@ export default function Home() {
         <Sheet onClose={() => setMemo(false)}>
           <SheetHead title="Заучивание" sub="Что сегодня повторить и выучить" onClose={() => setMemo(false)} />
           <div className="memo-list">
-            <button className="list-item" onClick={() => nav(hz.due.length ? '/hifz/review' : '/hifz')}>
-              <div className="ib"><Icon id="scroll" /></div>
-              <div className="t"><b>Хадисы</b><span>{hzSub}</span></div>
-              {hz.due.length > 0 ? <span className="az-count">{hz.due.length}</span> : <Icon id="right" className="icon chev-s" />}
-            </button>
             <button className="list-item" onClick={() => nav(qh.due.length ? '/hifz/quran/review' : '/hifz/quran')}>
               <div className="ib"><Icon id="book" /></div>
               <div className="t"><b>Коран</b><span>{qhSub}</span></div>
               {qh.due.length > 0 ? <span className="az-count">{qh.due.length}</span> : <Icon id="right" className="icon chev-s" />}
             </button>
+            <button className="list-item" onClick={() => nav(hz.due.length ? '/hifz/review' : '/hifz')}>
+              <div className="ib"><Icon id="scroll" /></div>
+              <div className="t"><b>Хадисы</b><span>{hzSub}</span></div>
+              {hz.due.length > 0 ? <span className="az-count">{hz.due.length}</span> : <Icon id="right" className="icon chev-s" />}
+            </button>
+            {WORD_PARSE && (
+              <button className="list-item" onClick={() => nav('/hifz/words')}>
+                <div className="ib"><Icon id="font" /></div>
+                <div className="t"><b>Слова Корана</b><span>{wordsDue ? `${wordsDue} ${plural(wordsDue, 'слово', 'слова', 'слов')} на повтор` : 'Частые арабские слова: карточки и повторение'}</span></div>
+                {wordsDue > 0 ? <span className="az-count">{wordsDue}</span> : <Icon id="right" className="icon chev-s" />}
+              </button>
+            )}
             <button className="list-item" onClick={() => nav('/names')}>
               <div className="ib"><Icon id="star" /></div>
               <div className="t"><b>99 имён Аллаха</b><span>Выучено {learned.length} из 99 · карточки и тест</span></div>
@@ -310,7 +318,7 @@ export default function Home() {
         </Sheet>
       )}
       <Tour id="home" steps={[
-        { el: '.h-memo', title: 'Заучивание', text: 'Хадисы, Коран и имена Аллаха. Число на значке — сколько выученного ждёт повторения сегодня.' },
+        { el: '.h-memo', title: 'Заучивание', text: 'Коран, хадисы, слова и имена Аллаха. Число на значке — сколько выученного ждёт повторения сегодня.' },
         { el: '.h-me', title: 'Ваш профиль', text: 'Статистика чтения, серия дней и план заучивания.' },
       ]} />
     </div>

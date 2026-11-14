@@ -11,11 +11,10 @@ import { HadithGearSheet } from './HadithGearSheet'
 import { useVoiceResult, VoiceCheck, VoiceErrors, VoiceScore } from './VoiceCheck'
 
 
-type Step = 'read' | 'gap3' | 'gap2' | 'gap1' | 'build' | 'tell'
-const DRILLS: Step[] = ['gap3', 'gap2', 'gap1', 'build']
+type Step = 'read' | 'gap3' | 'gap2' | 'build' | 'tell'
+const DRILLS: Step[] = ['gap3', 'gap2', 'build']
 const STEP_NAME: Record<Step, string> = {
-  read: 'Чтение', gap3: 'Пропуски · каждое третье слово', gap2: 'Пропуски · половина слов', gap1: 'Пропуски · все слова',
-  build: 'Собери хадис', tell: 'Расскажи по памяти',
+  read: 'Чтение', gap3: 'Пропуски · каждое третье слово', gap2: 'Пропуски · половина слов',  build: 'Собери хадис', tell: 'Расскажи по памяти',
 }
 
 // Урок заучивания (mode = learn) и повторение (mode = review).
@@ -109,7 +108,7 @@ function LearnItem({ item, onDone, onSplit }: { item: HifzItem; onDone: () => vo
         </>
       )}
 
-      {(step === 'gap3' || step === 'gap2' || step === 'gap1') && (
+      {(step === 'gap3' || step === 'gap2') && (
         <>
           <div className="hz-card">
             <p className="hz-q-s">Хадис <b>{item.q}</b></p>
@@ -205,9 +204,9 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
 }
 
 /** Текст с пропусками или первыми буквами; нажатие на слово показывает его */
-function Drill({ item, kind }: { item: HifzItem; kind: 'gap3' | 'gap2' | 'gap1' }) {
+function Drill({ item, kind }: { item: HifzItem; kind: 'gap3' | 'gap2' }) {
   const words = useMemo(() => toWords(item.ru, item.start), [item])
-  const every = kind === 'gap3' ? 3 : kind === 'gap2' ? 2 : 1
+  const every = kind === 'gap3' ? 3 : 2
   const mask = useMemo(() => hiddenMask(words, every, kind === 'gap2' ? 1 : 0), [words, every, kind])
   const [shown, setShown] = useState<Set<string>>(new Set())
   const [all, setAll] = useState(false)

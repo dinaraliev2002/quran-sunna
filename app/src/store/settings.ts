@@ -94,7 +94,7 @@ const DEFAULT_SETTINGS: Settings = {
   hdTrSize: 17,
   hzPerDay: 1,
   hzDrills: false,
-  hzDrillSet: ['gap3', 'gap2', 'gap1', 'build'],
+  hzDrillSet: ['gap3', 'gap2', 'build'],
   hzAr: false,
   hzVoicePass: 90,
   hzVoiceNarr: false,
