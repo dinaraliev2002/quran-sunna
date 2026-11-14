@@ -9,6 +9,7 @@ import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import { HadithBody, HifzTabs, StageDots, useHifzToday, WarnSheet } from './parts'
 import { SplitControl } from './SplitEditor'
+import { DrillPicker } from './DrillPicker'
 
 // Раздел «Заучивание»: что на сегодня (повтор по всем наборам и новые по плану), выбор набора, план, список хадисов
 export default function Hifz() {
@@ -101,9 +102,10 @@ export default function Hifz() {
         </div>
         <button className="sitem" onClick={() => st.set({ hzDrills: !st.hzDrills })}>
           <span className="si" style={{ background: '#C98A2B' }}><Icon id="words" /></span>
-          <span className="t">Упражнения при заучивании<small className="hz-sub">Пропуски слов, первые буквы, сборка из кусочков</small></span>
+          <span className="t">Упражнения при заучивании<small className="hz-sub">Включите и выберите, какие проходить</small></span>
           <span className={'switch' + (st.hzDrills ? ' on' : '')} />
         </button>
+        {st.hzDrills && <DrillPicker />}
         <button className="sitem" onClick={() => st.set({ hzAr: !st.hzAr })}>
           <span className="si" style={{ background: '#3E7CB1' }}><Icon id="font" /></span>
           <span className="t">Арабский текст</span>

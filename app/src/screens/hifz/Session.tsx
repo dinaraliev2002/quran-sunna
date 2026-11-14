@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { plural } from '../../lib/plural'
-import { baseOf, bodyWords, dayNum, expand, firstLetter, hiddenMask, loadByKeys, loadHifzSet, LONG_WORDS, MAX_NEW, setOf, shuffled, toChunks, toWords, type Grade, type HifzItem } from '../../lib/hifz'
+import { baseOf, bodyWords, dayNum, expand, hiddenMask, loadByKeys, loadHifzSet, LONG_WORDS, MAX_NEW, setOf, shuffled, toChunks, toWords, type Grade, type HifzItem } from '../../lib/hifz'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import { HadithBody, ListenBtn, useHifzToday, WarnSheet } from './parts'
@@ -11,11 +11,11 @@ import { HadithGearSheet } from './HadithGearSheet'
 import { useVoiceResult, VoiceCheck, VoiceErrors, VoiceScore } from './VoiceCheck'
 
 
-type Step = 'read' | 'gap3' | 'gap2' | 'gap1' | 'letters' | 'build' | 'tell'
-const DRILLS: Step[] = ['gap3', 'gap2', 'gap1', 'letters', 'build']
+type Step = 'read' | 'gap3' | 'gap2' | 'gap1' | 'build' | 'tell'
+const DRILLS: Step[] = ['gap3', 'gap2', 'gap1', 'build']
 const STEP_NAME: Record<Step, string> = {
   read: 'Чтение', gap3: 'Пропуски · каждое третье слово', gap2: 'Пропуски · половина слов', gap1: 'Пропуски · все слова',
-  letters: 'Первые буквы', build: 'Собери хадис', tell: 'Расскажи по памяти',
+  build: 'Собери хадис', tell: 'Расскажи по памяти',
 }
 
 // Урок заучивания (mode = learn) и повторение (mode = review).
@@ -80,7 +80,8 @@ function LearnItem({ item, onDone, onSplit }: { item: HifzItem; onDone: () => vo
   const canSplit = !!item.part || bodyWords(item) >= 15
   const showAr = useStore((s) => s.hzAr)
   const learn = useStore((s) => s.hifzLearn)
-  const steps: Step[] = useMemo(() => ['read', ...(drills ? DRILLS : []), 'tell'], [drills])
+  const chosen = useStore((s) => s.hzDrillSet)
+  const steps: Step[] = useMemo(() => ['read', ...(drills ? DRILLS.filter((d) => chosen.includes(d)) : []), 'tell'], [drills, chosen])
   const [i, setI] = useState(0)
   const step = steps[i]
   const go = (k: number) => { haptic.tap(); setI(k); document.querySelector('.hz-s .nml-body')?.scrollTo(0, 0) }
@@ -108,7 +109,7 @@ function LearnItem({ item, onDone, onSplit }: { item: HifzItem; onDone: () => vo
         </>
       )}
 
-      {(step === 'gap3' || step === 'gap2' || step === 'gap1' || step === 'letters') && (
+      {(step === 'gap3' || step === 'gap2' || step === 'gap1') && (
         <>
           <div className="hz-card">
             <p className="hz-q-s">Хадис <b>{item.q}</b></p>
@@ -204,7 +205,7 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
 }
 
 /** Текст с пропусками или первыми буквами; нажатие на слово показывает его */
-function Drill({ item, kind }: { item: HifzItem; kind: 'gap3' | 'gap2' | 'gap1' | 'letters' }) {
+function Drill({ item, kind }: { item: HifzItem; kind: 'gap3' | 'gap2' | 'gap1' }) {
   const words = useMemo(() => toWords(item.ru, item.start), [item])
   const every = kind === 'gap3' ? 3 : kind === 'gap2' ? 2 : 1
   const mask = useMemo(() => hiddenMask(words, every, kind === 'gap2' ? 1 : 0), [words, every, kind])
@@ -217,9 +218,8 @@ function Drill({ item, kind }: { item: HifzItem; kind: 'gap3' | 'gap2' | 'gap1' 
         <p key={pi}>
           {p.map((w, wi) => {
             const id = `${pi}.${wi}`
-            const hide = !all && !shown.has(id) && (kind === 'letters' ? w.letter && w.body : mask[pi][wi])
+            const hide = !all && !shown.has(id) && mask[pi][wi]
             if (!hide) return <span key={wi}>{w.w} </span>
-            if (kind === 'letters') return <button key={wi} className="hz-fl" onClick={() => peek(id)}>{firstLetter(w.w)}</button>
             // пропуск: знаки препинания по краям остаются видны
             const m = w.w.match(/^([^a-zа-яё]*)(.*?)([^a-zа-яё]*)$/i)!
             return <span key={wi}>{m[1]}<button className="hz-gap" style={{ width: `${Math.max(2, m[2].length * 0.55)}em` }} onClick={() => peek(id)} aria-label="Показать слово" />{m[3]} </span>

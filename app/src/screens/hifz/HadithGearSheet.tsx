@@ -1,6 +1,7 @@
 import { Sheet, SheetHead } from '../../components/ui'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
+import { DrillPicker } from './DrillPicker'
 
 const PASS = [80, 85, 90, 95, 100]
 
@@ -33,7 +34,8 @@ export function HadithGearSheet({ onClose }: { onClose: () => void }) {
         {sw(st.hzVoiceAi, 'ИИ-помощник', 'Засчитывает спорные слова, которые не ошибка: «посланнику Его» вместо «Его посланнику», неточное распознавание', () => st.set({ hzVoiceAi: !st.hzVoiceAi }))}
         {sw(st.hzVoiceNarr, 'Проверять и передатчика', 'Слова «Я слышал, как Посланник Аллаха сказал…» тоже сверяются', () => st.set({ hzVoiceNarr: !st.hzVoiceNarr }))}
         {sw(st.hzVoiceLoose, 'Прощать неточное распознавание', 'Если приложение расслышало слово чуть иначе (окончание, одна буква) — не считать ошибкой. Замена слова синонимом штрафуется всегда', () => st.set({ hzVoiceLoose: !st.hzVoiceLoose }))}
-        {sw(st.hzDrills, 'Упражнения при заучивании', 'Пропуски слов, первые буквы, сборка из кусочков', () => st.set({ hzDrills: !st.hzDrills }))}
+        {sw(st.hzDrills, 'Упражнения при заучивании', 'Включите и выберите, какие проходить', () => st.set({ hzDrills: !st.hzDrills }))}
+        {st.hzDrills && <DrillPicker />}
         {sw(st.hzAr, 'Арабский текст', 'Показывать арабский при чтении хадиса', () => st.set({ hzAr: !st.hzAr }))}
       </div>
     </Sheet>
