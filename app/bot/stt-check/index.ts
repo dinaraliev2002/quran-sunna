@@ -1,14 +1,23 @@
 // Проверка речи при заучивании (Supabase Edge Function «stt-check»).
-//  1) Голос → текст: Groq (Whisper large-v3-turbo). Приложение присылает запись (multipart: поле audio).
+//  1) Голос → текст: Groq (Whisper large-v3 или turbo). Приложение присылает запись (multipart: audio, model, lang, init).
 //  2) Решение «ошибка или нет»: DeepSeek смотрит на слова, которые алгоритм счёл ошибками, и говорит, какие из них можно
 //     засчитать (перестановка «посланнику Его» / «Его посланнику», ошибка распознавания, при желании — близкий синоним).
 // Секреты (Edge Functions → Secrets): GROQ_API_KEY_APK, DEEPSEEK_API_KEY_APK (подходят и GROQ_API_KEY / DEEPSEEK_API_KEY). Verify JWT — выключить, как у остальных функций.
-// Расходы ограничены самими аккаунтами: у Groq лимиты бесплатного уровня, у DeepSeek — внесённый баланс.
+// Защита от чужих запросов и перерасхода (таблица qs_voice_usage, функция qs_voice_add):
+//  • из Telegram приложение присылает initData — подпись проверяется ключом бота (BOT_TOKEN, тот же, что у quran-bot);
+//  • без Telegram (браузер) — учёт по адресу (хеш IP), лимит меньше;
+//  • лимиты в секундах речи в день: на человека и на всех вместе; у ИИ-помощника — число запросов в день.
+//    Меняются секретами VOICE_TG_SEC, VOICE_WEB_SEC, VOICE_ALL_SEC, VOICE_JUDGE (по умолчанию — ниже).
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 // ключ берём первый подходящий: только печатные ASCII-символы (случайно вставленная заглушка вроде «ВАШ_КЛЮЧ» не годится)
 const pick = (...names: string[]) => names.map((n) => (Deno.env.get(n) ?? '').trim()).find((v) => /^[!-~]{10,}$/.test(v)) ?? ''
 const GROQ = pick('GROQ_API_KEY_APK', 'GROQ_API_KEY')
 const DEEPSEEK = pick('DEEPSEEK_API_KEY_APK', 'DEEPSEEK_API_KEY')
+const TOKEN = Deno.env.get('BOT_TOKEN') ?? ''
+const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+const num = (n: string, d: number) => Number(Deno.env.get(n) ?? '') || d
+const LIMIT = { tg: num('VOICE_TG_SEC', 30 * 60), web: num('VOICE_WEB_SEC', 10 * 60), all: num('VOICE_ALL_SEC', 5 * 3600), judge: num('VOICE_JUDGE', 300) }
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, OPTIONS' }
 const MAX_AUDIO = 12 * 1024 * 1024 // ~12 МБ: хватает на несколько минут речи
 
@@ -16,8 +25,51 @@ const MAX_AUDIO = 12 * 1024 * 1024 // ~12 МБ: хватает на нескол
 type Any = any
 const json = (body: Any, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'content-type': 'application/json' } })
 
-/** Голос → текст через Groq. Подсказка у Whisper общая: полный текст хадиса не даём, иначе он «дорисует» его вместо услышанного */
-async function transcribe(form: FormData) {
+const enc = new TextEncoder()
+const hmac = async (key: Uint8Array | string, msg: string) => {
+  const k = await crypto.subtle.importKey('raw', typeof key === 'string' ? enc.encode(key) : key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  return new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(msg)))
+}
+const hex = (b: Uint8Array) => [...b].map((x) => x.toString(16).padStart(2, '0')).join('')
+
+/** Подпись Telegram верна — возвращаем id пользователя (сессия мини-приложения может жить долго, берём неделю) */
+async function tgUser(raw: string): Promise<number | null> {
+  if (!raw || !TOKEN) return null
+  const p = new URLSearchParams(raw)
+  const hash = p.get('hash'); p.delete('hash')
+  if (!hash) return null
+  const str = [...p.entries()].map(([k, v]) => `${k}=${v}`).sort().join('\n')
+  if (hex(await hmac(await hmac('WebAppData', TOKEN), str)) !== hash) return null
+  if (Date.now() / 1000 - Number(p.get('auth_date') ?? 0) > 7 * 86400) return null
+  try { return Number(JSON.parse(p.get('user') ?? 'null')?.id) || null } catch { return null }
+}
+
+interface Who { key: string; tg: boolean }
+async function who(req: Request, init: string): Promise<Who> {
+  const id = await tgUser(init)
+  if (id) return { key: 'tg:' + id, tg: true }
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'none'
+  return { key: 'ip:' + hex(await hmac('stt-check', ip)).slice(0, 16), tg: false }
+}
+
+const today = () => new Date().toISOString().slice(0, 10)
+async function used(key: string) {
+  const { data } = await db.from('qs_voice_usage').select('audio_sec, judge').eq('key', key).eq('day', today()).maybeSingle()
+  return { sec: Number(data?.audio_sec ?? 0), judge: Number(data?.judge ?? 0) }
+}
+const add = (key: string, s: number, c: number, j: number) => db.rpc('qs_voice_add', { k: key, d: today(), s, c, j })
+
+class Limit extends Error {}
+/** Хватает ли лимита на распознавание */
+async function canListen(w: Who) {
+  const [me, all] = await Promise.all([used(w.key), used('*')])
+  if (all.sec >= LIMIT.all) throw new Limit('Сегодня проверка голосом перегружена — попробуйте завтра.')
+  if (me.sec >= (w.tg ? LIMIT.tg : LIMIT.web)) throw new Limit(w.tg ? 'Дневной лимит проверок голосом исчерпан — продолжим завтра.' : 'Дневной лимит проверок в браузере исчерпан. В приложении в Telegram лимит больше.')
+}
+
+/** Голос → текст через Groq (Whisper; без подсказки — с ней он повторял её вместо речи) */
+async function transcribe(form: FormData, w: Who) {
+  await canListen(w)
   if (!GROQ) throw new Error('нет GROQ_API_KEY')
   const file = form.get('audio')
   if (!(file instanceof File)) throw new Error('нет записи')
@@ -27,21 +79,28 @@ async function transcribe(form: FormData) {
   // модель: turbo (быстрее, дешевле) или полная large-v3 (точнее); выбирает приложение
   const model = String(form.get('model') ?? '') === 'whisper-large-v3' ? 'whisper-large-v3' : 'whisper-large-v3-turbo'
   out.append('model', model)
-  out.append('language', 'ru')
-  out.append('response_format', 'json')
+  out.append('language', String(form.get('lang') ?? '') === 'ar' ? 'ar' : 'ru') // ar — арабский (хадисы, Коран)
+  out.append('response_format', 'verbose_json') // с длительностью и уверенностью по кускам
   out.append('temperature', '0')
   // подсказку не даём: Whisper начинал повторять её вместо речи и выкидывал куски длинных записей
   if (String(form.get('prompt') ?? '') === '1') out.append('prompt', 'Хадис Пророка Мухаммада. Посланник Аллаха сказал.')
   const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', { method: 'POST', headers: { authorization: `Bearer ${GROQ}` }, body: out })
   if (!r.ok) throw new Error(`Groq ${r.status}: ${(await r.text()).slice(0, 200)}`)
   const j = await r.json()
-  return { text: String(j.text ?? '').trim() }
+  const sec = Number(j.duration) || file.size / 6000 // если длительности нет — грубо по размеру
+  await Promise.all([add(w.key, sec, 1, 0), add('*', sec, 1, 0)])
+  // куски, где модели почти уверена, что речи нет, — это её «додумки» в тишине («شكرا», «موسيقى», «Продолжение следует…»)
+  const segs: Any[] = Array.isArray(j.segments) ? j.segments : []
+  const text = segs.length ? segs.filter((g) => !(Number(g.no_speech_prob) > 0.8)).map((g) => String(g.text ?? '')).join('') : String(j.text ?? '')
+  return { text: text.trim() }
 }
 
 /** Какие спорные слова эталона можно засчитать */
-async function judge(b: Any) {
+async function judge(b: Any, w: Who) {
   const flagged: { i: number; w: string; said?: string }[] = Array.isArray(b.flagged) ? b.flagged.slice(0, 80) : []
   if (!DEEPSEEK || !flagged.length) return { accept: [] as number[] }
+  if ((await used(w.key)).judge >= LIMIT.judge) return { accept: [] as number[], limit: true } // без ИИ — обычная сверка
+  await add(w.key, 0, 0, 1)
   const syn = !!b.syn
   const system = [
     'Ты помогаешь проверять заучивание хадиса по русскому переводу. Человек проговорил хадис вслух, речь распознана автоматически и может содержать ошибки распознавания.',
@@ -69,12 +128,16 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'POST' }, 405)
   try {
-    if ((req.headers.get('content-type') ?? '').includes('multipart/form-data')) return json(await transcribe(await req.formData()))
+    if ((req.headers.get('content-type') ?? '').includes('multipart/form-data')) {
+      const form = await req.formData()
+      return json(await transcribe(form, await who(req, String(form.get('init') ?? ''))))
+    }
     const b = await req.json()
-    if (b.action === 'judge') return json(await judge(b))
+    if (b.action === 'judge') return json(await judge(b, await who(req, String(b.init ?? ''))))
     if (b.action === 'status') return json({ groq: !!GROQ, deepseek: !!DEEPSEEK }) // подключены ли ключи (сами ключи не показываем)
     return json({ error: 'unknown action' }, 400)
   } catch (e) {
+    if (e instanceof Limit) return json({ error: e.message, limit: true }, 429)
     return json({ error: String((e as Error).message ?? e) }, 500)
   }
 })

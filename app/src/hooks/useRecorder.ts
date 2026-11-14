@@ -33,7 +33,7 @@ export function useRecorder() {
   useEffect(() => () => { ctl.current?.stop(); cleanup() }, [cleanup])
 
   const model = () => (useStore.getState().hzVoiceModel === 'turbo' ? 'whisper-large-v3-turbo' : 'whisper-large-v3')
-  const failText = (e: unknown) => 'Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.'
+  const failText = (e: unknown) => ((e as Error & { limit?: boolean }).limit ? (e as Error).message + ' Можно переключиться на системное распознавание в настройках.' : 'Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.')
 
   /** Части записи распознаются по мере готовности; в конце ждём все и склеиваем по порядку */
   const finishParts = useCallback(async (parts: Promise<string>[]) => {

@@ -1,5 +1,6 @@
 // Облачная проверка речи: запись → текст (Groq Whisper), спорные слова → решение ИИ (DeepSeek). Функция stt-check, см. bot/stt-check.
 import { splitAudio } from './audioChunks'
+import { tgInitData } from './telegram'
 
 const ENDPOINT = 'https://ynqbnqkihojqlawhhiqg.supabase.co/functions/v1/stt-check'
 
@@ -9,9 +10,10 @@ export async function transcribe(blob: Blob, model = 'whisper-large-v3'): Promis
   const form = new FormData()
   form.append('audio', blob, `rec.${ext}`)
   form.append('model', model)
+  form.append('init', tgInitData()) // подпись Telegram: по ней считаются лимиты
   const r = await fetch(ENDPOINT, { method: 'POST', body: form })
   const j = await r.json().catch(() => ({}))
-  if (!r.ok) throw new Error(j.error || `Ошибка ${r.status}`)
+  if (!r.ok) throw Object.assign(new Error(j.error || `Ошибка ${r.status}`), { limit: !!j.limit })
   return String(j.text ?? '')
 }
 
@@ -28,7 +30,7 @@ export interface Flagged { i: number; w: string; said?: string }
 export async function judgeWords(ref: string, said: string, flagged: Flagged[], syn: boolean): Promise<number[]> {
   const r = await fetch(ENDPOINT, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action: 'judge', ref, said, flagged, syn }),
+    body: JSON.stringify({ action: 'judge', ref, said, flagged, syn, init: tgInitData() }),
   })
   const j = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(j.error || `Ошибка ${r.status}`)
