@@ -31,6 +31,15 @@ export function HadithGearSheet({ onClose }: { onClose: () => void }) {
             <button className={st.hzVoiceEngine === 'system' ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoiceEngine: 'system' }) }}>Системное</button>
           </div>
         </div>
+        {st.hzVoiceEngine === 'cloud' && (
+          <div>
+            <div className="qh-set-l">Модель распознавания<small>Точная — меньше ошибок; быстрая — чуть быстрее и в 3 раза дешевле</small></div>
+            <div className="qh-chips">
+              <button className={st.hzVoiceModel === 'full' ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoiceModel: 'full' }) }}>Точная</button>
+              <button className={st.hzVoiceModel === 'turbo' ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoiceModel: 'turbo' }) }}>Быстрая</button>
+            </div>
+          </div>
+        )}
         {sw(st.hzVoiceAi, 'ИИ-помощник', 'Засчитывает спорные слова, которые не ошибка: «посланнику Его» вместо «Его посланнику», неточное распознавание', () => st.set({ hzVoiceAi: !st.hzVoiceAi }))}
         {sw(st.hzVoiceNarr, 'Проверять и передатчика', 'Слова «Я слышал, как Посланник Аллаха сказал…» тоже сверяются', () => st.set({ hzVoiceNarr: !st.hzVoiceNarr }))}
         {sw(st.hzVoiceLoose, 'Прощать неточное распознавание', 'Если приложение расслышало слово чуть иначе (окончание, одна буква) — не считать ошибкой. Замена слова синонимом штрафуется всегда', () => st.set({ hzVoiceLoose: !st.hzVoiceLoose }))}

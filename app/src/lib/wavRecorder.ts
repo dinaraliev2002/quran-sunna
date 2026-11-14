@@ -37,17 +37,29 @@ function encode(parts: Float32Array[], inRate: number): Blob {
   const all = new Float32Array(n)
   let o = 0
   for (const p of parts) { all.set(p, o); o += p.length }
-  // понижаем частоту до 16 кГц (среднее по окну — без лишнего «звона»)
+  return wavBlob(toRate(all, inRate))
+}
+
+/** Понизить частоту до 16 кГц (среднее по окну — без лишнего «звона») */
+export function toRate(all: Float32Array, inRate: number): Float32Array {
   const ratio = inRate / RATE
+  if (ratio <= 1) return all
+  const n = all.length
   const len = Math.floor(n / ratio)
-  const pcm = new Int16Array(len)
+  const out = new Float32Array(len)
   for (let i = 0; i < len; i++) {
     const a = Math.floor(i * ratio), b = Math.max(a + 1, Math.floor((i + 1) * ratio))
     let sum = 0
     for (let j = a; j < b && j < n; j++) sum += all[j]
-    const v = Math.max(-1, Math.min(1, sum / (b - a)))
-    pcm[i] = v < 0 ? v * 0x8000 : v * 0x7fff
+    out[i] = sum / (b - a)
   }
+  return out
+}
+
+/** Звук 16 кГц → файл WAV */
+export function wavBlob(x: Float32Array): Blob {
+  const pcm = new Int16Array(x.length)
+  for (let i = 0; i < x.length; i++) { const v = Math.max(-1, Math.min(1, x[i])); pcm[i] = v < 0 ? v * 0x8000 : v * 0x7fff }
   const buf = new ArrayBuffer(44 + pcm.length * 2)
   const dv = new DataView(buf)
   const str = (off: number, s: string) => { for (let i = 0; i < s.length; i++) dv.setUint8(off + i, s.charCodeAt(i)) }
@@ -58,3 +70,5 @@ function encode(parts: Float32Array[], inRate: number): Blob {
   new Int16Array(buf, 44).set(pcm)
   return new Blob([buf], { type: 'audio/wav' })
 }
+
+export const WAV_RATE = RATE

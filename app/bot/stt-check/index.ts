@@ -24,11 +24,14 @@ async function transcribe(form: FormData) {
   if (file.size > MAX_AUDIO) throw new Error('запись слишком длинная')
   const out = new FormData()
   out.append('file', file, file.name || 'rec.webm')
-  out.append('model', 'whisper-large-v3-turbo')
+  // модель: turbo (быстрее, дешевле) или полная large-v3 (точнее); выбирает приложение
+  const model = String(form.get('model') ?? '') === 'whisper-large-v3' ? 'whisper-large-v3' : 'whisper-large-v3-turbo'
+  out.append('model', model)
   out.append('language', 'ru')
   out.append('response_format', 'json')
   out.append('temperature', '0')
-  out.append('prompt', 'Хадис Пророка Мухаммада. Посланник Аллаха сказал.')
+  // подсказку не даём: Whisper начинал повторять её вместо речи и выкидывал куски длинных записей
+  if (String(form.get('prompt') ?? '') === '1') out.append('prompt', 'Хадис Пророка Мухаммада. Посланник Аллаха сказал.')
   const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', { method: 'POST', headers: { authorization: `Bearer ${GROQ}` }, body: out })
   if (!r.ok) throw new Error(`Groq ${r.status}: ${(await r.text()).slice(0, 200)}`)
   const j = await r.json()

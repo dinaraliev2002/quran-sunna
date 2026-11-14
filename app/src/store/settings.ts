@@ -100,6 +100,7 @@ const DEFAULT_SETTINGS: Settings = {
   hzVoiceNarr: false,
   hzVoiceLoose: true,
   hzVoiceEngine: 'cloud',
+  hzVoiceModel: 'full',
   hzVoiceAi: true,
   hzSet: 'nawawi',
   qhPerDay: 3,

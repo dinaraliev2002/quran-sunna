@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { attachMeter } from '../lib/micMeter'
-import { transcribe } from '../lib/voiceApi'
+import { transcribe, transcribeLong } from '../lib/voiceApi'
+import { useStore } from '../store/settings'
 import { setPlayback, setRecording } from '../lib/audioSession'
 import { quietAudio } from '../lib/tickSound'
 import { startWav } from '../lib/wavRecorder'
@@ -31,35 +32,80 @@ export function useRecorder() {
   }, [])
   useEffect(() => () => { ctl.current?.stop(); cleanup() }, [cleanup])
 
-  /** Готовый звук ушёл на распознавание */
-  const finish = useCallback(async (blob: Blob) => {
+  const model = () => (useStore.getState().hzVoiceModel === 'turbo' ? 'whisper-large-v3-turbo' : 'whisper-large-v3')
+  const failText = (e: unknown) => 'Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.'
+
+  /** Части записи распознаются по мере готовности; в конце ждём все и склеиваем по порядку */
+  const finishParts = useCallback(async (parts: Promise<string>[]) => {
     cleanup()
     setListening(false)
-    if (blob.size < 2000) { setError('Запись слишком короткая — попробуйте ещё раз.'); return }
     setBusy(true)
-    try { setText(await transcribe(blob)) }
-    catch (e) { setError('Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.') }
+    try {
+      const t = (await Promise.all(parts)).map((x) => x.trim()).filter(Boolean).join(' ')
+      if (!t && !parts.length) setError('Запись слишком короткая — попробуйте ещё раз.')
+      setText(t)
+    } catch (e) { setError(failText(e)) }
     finally { setBusy(false) }
   }, [cleanup])
 
-  /** Включить запись на потоке: сначала обычная (MediaRecorder), если не вышла — своя запись WAV */
+  /** Запасная запись WAV: целиком после остановки (длинную режем на части уже потом) */
+  const finishWav = useCallback(async (blob: Blob) => {
+    if (blob.size < 2000) { cleanup(); setListening(false); setError('Запись слишком короткая — попробуйте ещё раз.'); return }
+    await finishParts([transcribeLong(blob, model())])
+  }, [cleanup, finishParts])
+
+  /**
+   * Включить запись на потоке. Обычная (MediaRecorder) пишется частями ~20–28 с: новая часть начинается в паузе между словами,
+   * готовая сразу уходит на распознавание (Whisper на цельной записи в пару минут выкидывает куски, по частям — нет).
+   * Если MediaRecorder не запускается — своя запись WAV.
+   */
   const begin = useCallback((s: MediaStream, mime: string | undefined): string => {
     try {
-      const r = new MediaRecorder(s, mime ? { mimeType: mime } : undefined)
-      const chunks: Blob[] = []
-      r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data) }
-      r.onstop = () => { void finish(new Blob(chunks, { type: r.mimeType || mime || 'audio/webm' })) }
-      r.start()
-      ctl.current = { stop: () => { if (r.state === 'recording') r.stop() } }
-      try { stopMeter.current = attachMeter(s, (l) => setLevels((a) => [...a.slice(1), l])); setMetered(true) } catch { setMetered(false) }
+      const parts: Promise<string>[] = []
+      let cur: MediaRecorder | null = null
+      let segStart = 0, quietSince = 0, stopping = false, closed = 0
+      const opts = mime ? { mimeType: mime } : undefined
+      const startPart = () => {
+        const r = new MediaRecorder(s, opts)
+        const chunks: Blob[] = []
+        r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data) }
+        parts.push(new Promise<string>((res, rej) => {
+          r.onstop = () => {
+            const blob = new Blob(chunks, { type: r.mimeType || mime || 'audio/webm' })
+            if (blob.size < 2000) res('')
+            else transcribe(blob, model()).then(res, rej)
+            closed++
+            if (stopping && closed === parts.length) void finishParts(parts)
+          }
+        }))
+        r.start()
+        cur = r
+        segStart = Date.now(); quietSince = 0
+      }
+      const rotate = () => { const old = cur; startPart(); if (old?.state === 'recording') old.stop() } // новая часть до остановки старой — без щели
+      startPart()
+      // где резать: после 20 с — в первой паузе (тихо 0,3 с), в любом случае — к 28 с
+      const tick = (lvl: number) => {
+        const now = Date.now(), t = now - segStart
+        if (lvl < 0.08) quietSince = quietSince || now
+        else quietSince = 0
+        if (!stopping && ((t > 20000 && quietSince && now - quietSince > 300) || t > 28000)) rotate()
+      }
+      try { stopMeter.current = attachMeter(s, (l) => { setLevels((a) => [...a.slice(1), l]); tick(l) }); setMetered(true) }
+      catch {
+        setMetered(false)
+        const id = window.setInterval(() => tick(1), 1000) // без громкости режем просто по времени
+        stopMeter.current = () => clearInterval(id)
+      }
+      ctl.current = { stop: () => { stopping = true; if (cur?.state === 'recording') cur.stop() } }
       return 'media'
     } catch {
       const w = startWav(s, (l) => setLevels((a) => [...a.slice(1), l]))
       setMetered(true)
-      ctl.current = { stop: () => { void w.stop().then(finish) } }
+      ctl.current = { stop: () => { void w.stop().then(finishWav) } }
       return 'wav'
     }
-  }, [finish])
+  }, [finishParts, finishWav])
 
   const start = useCallback(async (): Promise<boolean> => {
     setText(''); setError(''); setLevels(Array(BARS).fill(0))
