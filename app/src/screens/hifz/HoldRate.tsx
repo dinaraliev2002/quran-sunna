@@ -45,7 +45,7 @@ export function HoldRate({ value, onChange }: { value: number; onChange: (r: num
     const sel = Math.max(0, Math.min(ITEMS.length - 1, g.current.start + Math.round(dy / H)))
     setDial((d) => {
       if (!d || d.sel === sel) return d
-      haptic.tick(); tickSound(true); onChange(ITEMS[sel])
+      haptic.tick(); tickSound(2); onChange(ITEMS[sel])
       return { ...d, sel }
     })
   }

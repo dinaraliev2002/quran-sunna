@@ -71,6 +71,7 @@ export const expand = (items: HifzItem[], split: Record<string, Split>) => items
 /** Слова перевода с номером абзаца */
 export const ruWords = (it: HifzItem) => it.ru.flatMap((p, pi) => p.split(/\s+/).filter(Boolean).map((w) => ({ w, pi })))
 /** Сколько слов до начала самих слов Пророка ﷺ (они всегда в первой части) */
+const k0 = (b: number, introLen: number) => (b === 0 ? 0 : introLen + b)
 const preWords = (it: HifzItem) => it.ru.slice(0, it.start[0]).join(' ').split(/\s+/).filter(Boolean).length + it.start[1]
 
 /** Разрезы «поровну на n частей» — по концам предложений (или абзацев), примерно равные */
@@ -95,6 +96,29 @@ export function autoCuts(it: HifzItem, n: number): number[] {
   return cuts.slice(1)
 }
 
+/**
+ * Арабский текст по частям. Пословной связи арабского с переводом нет, поэтому граница части переносится по доле слов
+ * (вместе с вводными словами) и сдвигается к ближайшему концу предложения или цитаты — так арабский режется там же, где перевод.
+ */
+export function splitArabic(ar: string[], fr: number[]): string[][] {
+  const words = ar.join(' ').split(/\s+/).filter(Boolean)
+  if (!words.length) return fr.map(() => [])
+  const kind = (w: string) => (/[.!؟?﴾]$/.test(w) ? 8 : /[;؛]$/.test(w) ? 5 : /[:,،]$/.test(w) ? 2 : 0)
+  const cuts: number[] = [0]
+  fr.slice(1, -1).forEach((f) => {
+    const target = Math.round(f * words.length)
+    const size = words.length / (fr.length - 1)
+    let best = target, bestScore = -Infinity
+    for (let i = cuts[cuts.length - 1] + 2; i < words.length - 1; i++) {
+      const score = kind(words[i - 1]) - (30 * Math.abs(i - target)) / size
+      if (score > bestScore) { bestScore = score; best = i }
+    }
+    cuts.push(best)
+  })
+  cuts.push(words.length)
+  return cuts.slice(0, -1).map((c, k) => [words.slice(c, cuts[k + 1]).join(' ')])
+}
+
 /** Разбить хадис на части: поровну на n или по своим разрезам */
 export function splitItem(it: HifzItem, split: Split): HifzItem[] {
   const words = ruWords(it)
@@ -103,6 +127,9 @@ export function splitItem(it: HifzItem, split: Split): HifzItem[] {
   const n = bounds.length - 1
   const first = preWords(it)
   const introLen = it.intro.split(/\s+/).filter(Boolean).length
+  // доля текста (вводные слова + перевод), с которой начинается каждая часть, — по ней режем и арабский
+  const fr = [...bounds.slice(0, -1).map((b) => (k0(b, introLen) / (introLen + words.length))), 1]
+  const arParts = splitArabic(it.ar, fr)
   return Array.from({ length: n }, (_, k) => {
     const ws = words.slice(bounds[k], bounds[k + 1])
     const ru: string[] = []
@@ -116,6 +143,7 @@ export function splitItem(it: HifzItem, split: Split): HifzItem[] {
       whole: it,
       // озвучка части: с первого слова части (у первой — с вводных слов) до начала следующей
       range: [k === 0 ? 0 : introLen + bounds[k], introLen + bounds[k + 1]] as [number, number],
+      ar: arParts[k],
       intro: k === 0 ? it.intro : '',
       ru: k === 0 ? ru : ['…' + ru[0], ...ru.slice(1)],
       start: k === 0 ? it.start : [0, 0] as [number, number],

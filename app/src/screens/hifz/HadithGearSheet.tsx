@@ -1,5 +1,6 @@
 import { Sheet, SheetHead } from '../../components/ui'
 import { haptic } from '../../lib/telegram'
+import { ARABIC_FONTS } from '../../lib/azkar'
 import { useStore } from '../../store/settings'
 import { DrillPicker } from './DrillPicker'
 
@@ -46,6 +47,25 @@ export function HadithGearSheet({ onClose }: { onClose: () => void }) {
         {sw(st.hzDrills, 'Упражнения при заучивании', 'Включите и выберите, какие проходить', () => st.set({ hzDrills: !st.hzDrills }))}
         {st.hzDrills && <DrillPicker />}
         {sw(st.hzAr, 'Арабский текст', 'Показывать арабский при чтении хадиса', () => st.set({ hzAr: !st.hzAr }))}
+        {st.hzAr && (
+          <>
+            <div>
+              <div className="qh-set-l">Шрифт арабского текста<small>Общий с хадисами и азкарами</small></div>
+              <div className="az-fonts">
+                {(Object.keys(ARABIC_FONTS) as (keyof typeof ARABIC_FONTS)[]).map((k) => (
+                  <button key={k} className={(st.azFont ?? 'sch') === k ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ azFont: k }) }}>
+                    <span style={{ fontFamily: ARABIC_FONTS[k].css }}>قَالَ النَّبِيُّ ﷺ</span>
+                    <b>{ARABIC_FONTS[k].name}</b>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="qh-set-l">Размер арабского текста</div>
+              <div className="stepper"><small>{st.hdArSize}</small><button onClick={() => st.set({ hdArSize: Math.max(16, st.hdArSize - 2) })}>−</button><button onClick={() => st.set({ hdArSize: Math.min(40, st.hdArSize + 2) })}>+</button></div>
+            </div>
+          </>
+        )}
       </div>
     </Sheet>
   )

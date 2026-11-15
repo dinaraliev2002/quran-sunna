@@ -955,7 +955,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 /* текст хадиса */
 .hz-text p { font-size: 16.5px; line-height: 1.62; margin-bottom: 10px; }
 .hz-text .hz-intro { font-size: 14px; color: var(--text-2); font-style: italic; }
-.hz-text .hz-ar { font-family: "Amiri", serif; font-size: 23px; line-height: 1.9; text-align: right; color: var(--text); }
+.hz-text .hz-ar { font-family: var(--az-font, "Amiri"), serif; font-size: var(--hd-ar, 23px); line-height: 1.9; text-align: right; color: var(--text); }
 .hz-src { font-size: 12px; font-weight: 800; color: var(--gold-ink); margin-top: 4px; }
 
 /* урок */

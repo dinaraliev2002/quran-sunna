@@ -15,7 +15,7 @@ const isIos = Capacitor.getPlatform() === 'ios'
 const isAndroid = Capacitor.getPlatform() === 'android'
 const impact = (style: ImpactStyle) => isNative && Haptics.impact({ style }).catch(() => {})
 // Android: свой модуль с системным откликом касания (мягче, чем вибромотор плагина Haptics)
-const Feedback = registerPlugin<{ perform: (o: { kind: string }) => Promise<void>; excludeEdge: (o: { top: number; height: number }) => Promise<void> }>('Feedback')
+const Feedback = registerPlugin<{ perform: (o: { kind: string }) => Promise<void>; vibe: (o: { n: number }) => Promise<void>; excludeEdge: (o: { top: number; height: number }) => Promise<void> }>('Feedback')
 
 /** Android-приложение: не даёт системному жесту «назад» (свайп от правого края) перехватить полоску с язычком панели.
  *  top/height — CSS-пиксели; height = 0 снимает исключение. В Telegram и браузере ничего не делает (там жесты не отключить). */
@@ -299,4 +299,23 @@ export function cloudSet(key: string, value: string) {
   try { localStorage.setItem(key, value) } catch { /* ignore */ }
   // лимит CloudStorage — 4096 символов на значение
   if (hasCloud() && value.length <= 4096) wa!.CloudStorage.setItem(key, value)
+}
+
+/**
+ * Пробные вибрации колеса выбора (№ 1–10; 10 — без вибрации). Telegram умеет только свои стили отклика, поэтому там
+ * вариант — это стиль (или два подряд); в приложении Android — настоящие импульсы заданной длины и силы (FeedbackPlugin.vibe).
+ */
+export const VIBES = ['Прежняя', 'Мягкий толчок', 'Лёгкая', 'Едва заметная', 'Средняя', 'Двойная лёгкая', 'Низкий гул', 'Чёткий щелчок', 'Системный тик', 'Без вибрации']
+export function vibe(n: number) {
+  if (n >= 10) return
+  if (n === 1) return haptic.tick()
+  if (isNative && isAndroid) return void Feedback.vibe({ n }).catch(() => {})
+  const iosStyle: Record<number, ImpactStyle> = { 2: ImpactStyle.Light, 3: ImpactStyle.Light, 4: ImpactStyle.Light, 5: ImpactStyle.Medium, 6: ImpactStyle.Light, 7: ImpactStyle.Medium, 8: ImpactStyle.Light }
+  if (isNative) { if (n === 9) return haptic.tick(); const st = iosStyle[n] ?? ImpactStyle.Light; impact(st); if (n === 6) setTimeout(() => impact(st), 45); return }
+  if (!(inTelegram && at('6.1'))) return
+  const h = wa!.HapticFeedback
+  const tg: Record<number, string> = { 2: 'soft', 3: 'light', 4: 'soft', 5: 'medium', 6: 'soft', 7: 'soft', 8: 'rigid' }
+  if (n === 9) return h.selectionChanged()
+  h.impactOccurred(tg[n] as 'soft')
+  if (n === 6) setTimeout(() => h.impactOccurred('soft'), 45)
 }

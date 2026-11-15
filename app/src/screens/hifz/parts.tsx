@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
+import { ARABIC_FONTS } from '../../lib/azkar'
 import { Sheet, SheetHead } from '../../components/ui'
 import { dayNum, hadithProgress, loadTimings, MAX_NEW, partsOf, setById, type HifzItem } from '../../lib/hifz'
 import { normWord, type CheckedWord } from '../../lib/speechCheck'
@@ -53,8 +54,11 @@ export interface BodyMarks { words: CheckedWord[]; all: boolean; sel: number | n
 export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; marks?: BodyMarks }) {
   let k = 0
   const cur = marks && marks.sel !== null ? marks.words[marks.sel] : null
+  const font = useStore((s) => s.azFont) ?? 'sch'
+  const size = useStore((s) => s.hdArSize)
   return (
-    <div className="hz-text">
+    <div className="hz-text" style={{ ['--az-font' as string]: ARABIC_FONTS[font].css, ['--hd-ar' as string]: size + 'px' }}>
+      {ar && item.ar.map((p, i) => <p key={'a' + i} className="hz-ar" dir="rtl">{p}</p>)}
       {item.intro && <p className="hz-intro">{item.intro}</p>}
       {item.ru.map((p, pi) => {
         const k0 = k
@@ -77,7 +81,6 @@ export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; 
         const here = marks && marks.sel !== null && cur && marks.sel >= k0 && marks.sel < k
         return here ? <Fragment key={pi}>{para}<p className="hz-voice-say">{cur.state === 'wrong' ? <>Вы сказали: <b>«{cur.said}»</b></> : <>Это слово вы пропустили</>}</p></Fragment> : para
       })}
-      {ar && item.ar.map((p, i) => <p key={'a' + i} className="hz-ar" dir="rtl">{p}</p>)}
       <div className="hz-src">{item.src}</div>
     </div>
   )
