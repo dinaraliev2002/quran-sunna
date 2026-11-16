@@ -2,14 +2,20 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { useVoice } from '../../hooks/useVoice'
 import { BARS } from '../../hooks/useSpeech'
-import { applyAccepted, checkSpeech, flaggedWords, type CheckResult } from '../../lib/speechCheck'
+import { arSpan, arTokens } from '../../lib/arabicSpeech'
+import { applyAccepted, checkSpeech, flaggedWords, type CheckResult, type VoiceLang } from '../../lib/speechCheck'
 import { judgeWords } from '../../lib/voiceApi'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import type { HifzItem } from '../../types/hifz'
 
 /** Эталон: сам хадис; с передатчиком — ещё и слова до слов Пророка ﷺ («Я слышал, как… сказал») */
-export function referenceText(item: HifzItem, withNarrator: boolean) {
+export function referenceText(item: HifzItem, withNarrator: boolean, lang: VoiceLang = 'ru') {
+  if (lang === 'ar') {
+    const toks = arTokens(item.ar)
+    const [a, b] = arSpan(toks, withNarrator, item.key[0] === 'n')
+    return toks.slice(a, b).join(' ')
+  }
   const paras = item.ru.map((p, i) => (i === item.start[0] ? p.split(/\s+/).filter(Boolean).slice(withNarrator ? 0 : item.start[1]).join(' ') : p))
   return (withNarrator ? paras : paras.slice(item.start[0])).join(' ')
 }
@@ -20,6 +26,7 @@ export function referenceText(item: HifzItem, withNarrator: boolean) {
  */
 export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
   const withNarr = useStore((s) => s.hzVoiceNarr)
+  const lang = useStore((s) => s.hzVoiceLang)
   const set = useStore((s) => s.set)
   const { supported, listening, busy, text, error, levels, metered, start, stop } = useVoice()
   const [done, setDone] = useState(false)
@@ -39,10 +46,14 @@ export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
 
   return (
     <div className="hz-voice">
+      <div className="qh-chips hz-voice-lang" role="group" aria-label="Язык ответа">
+        <button className={lang === 'ru' ? 'on' : ''} disabled={listening} onClick={() => { haptic.tick(); set({ hzVoiceLang: 'ru' }) }}>По-русски</button>
+        <button className={lang === 'ar' ? 'on' : ''} disabled={listening} onClick={() => { haptic.tick(); set({ hzVoiceLang: 'ar' }) }}>По-арабски</button>
+      </div>
       <button className="hz-voice-narr" onClick={() => set({ hzVoiceNarr: !withNarr })}>
         <span className={'switch' + (withNarr ? ' on' : '')} />Проверить и передатчика
       </button>
-      {!listening && !done && <p className="hz-voice-hint">Говорите чётко и не спеша, в тихом месте, ближе к микрофону — так меньше ошибок распознавания.</p>}
+      {!listening && !done && <p className="hz-voice-hint">Говорите чётко и не спеша, в тихом месте, ближе к микрофону — так меньше ошибок распознавания.{lang === 'ar' ? ' По-арабски проверяются слова и пропуски; огласовки (харакаты) пока не проверяются.' : ''}</p>}
       <button className={'hz-voice-btn' + (listening ? ' rec' : '')} onClick={toggle}>
         <Icon id="mic" />{listening ? 'Закончить запись' : done ? 'Сказать ещё раз' : 'Сказать вслух'}
       </button>
@@ -66,11 +77,12 @@ export function useVoiceResult(item: HifzItem, spoken: string): { r: CheckResult
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const loose = useStore((s) => s.hzVoiceLoose)
   const ai = useStore((s) => s.hzVoiceAi)
-  const ref = useMemo(() => referenceText(item, withNarr), [item, withNarr])
-  const base = useMemo(() => (spoken ? checkSpeech(ref, spoken, !loose) : null), [ref, spoken, loose])
+  const lang = useStore((s) => s.hzVoiceLang)
+  const ref = useMemo(() => referenceText(item, withNarr, lang), [item, withNarr, lang])
+  const base = useMemo(() => (spoken && ref ? checkSpeech(ref, spoken, !loose, lang) : null), [ref, spoken, loose, lang])
   const [accepted, setAccepted] = useState<{ key: string; idx: number[] } | null>(null)
   const [checking, setChecking] = useState(false)
-  const key = `${ref}|${spoken}|${loose}`
+  const key = `${ref}|${spoken}|${loose}|${lang}`
   const last = useRef('')
   useEffect(() => {
     if (!ai || !base || !base.relevant) { setChecking(false); return }
@@ -78,7 +90,7 @@ export function useVoiceResult(item: HifzItem, spoken: string): { r: CheckResult
     if (!flagged.length || last.current === key) return
     last.current = key
     setChecking(true)
-    judgeWords(ref, spoken, flagged, false)
+    judgeWords(ref, spoken, flagged, false, lang)
       .then((idx) => setAccepted({ key, idx }))
       .catch(() => setAccepted({ key, idx: [] })) // ИИ недоступен — остаётся обычная сверка
       .finally(() => setChecking(false))

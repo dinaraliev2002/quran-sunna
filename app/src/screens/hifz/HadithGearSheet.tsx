@@ -41,6 +41,13 @@ export function HadithGearSheet({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         )}
+        <div>
+          <div className="qh-set-l">Язык ответа<small>По-арабски проверяются слова и пропуски; огласовки пока не проверяются</small></div>
+          <div className="qh-chips">
+            <button className={st.hzVoiceLang === 'ru' ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoiceLang: 'ru' }) }}>По-русски</button>
+            <button className={st.hzVoiceLang === 'ar' ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoiceLang: 'ar' }) }}>По-арабски</button>
+          </div>
+        </div>
         {sw(st.hzVoiceAi, 'ИИ-помощник', 'Засчитывает спорные слова, которые не ошибка: «посланнику Его» вместо «Его посланнику», неточное распознавание', () => st.set({ hzVoiceAi: !st.hzVoiceAi }))}
         {sw(st.hzVoiceNarr, 'Проверять и передатчика', 'Слова «Я слышал, как Посланник Аллаха сказал…» тоже сверяются', () => st.set({ hzVoiceNarr: !st.hzVoiceNarr }))}
         {sw(st.hzVoiceLoose, 'Прощать неточное распознавание', 'Если приложение расслышало слово чуть иначе (окончание, одна буква) — не считать ошибкой. Замена слова синонимом штрафуется всегда', () => st.set({ hzVoiceLoose: !st.hzVoiceLoose }))}

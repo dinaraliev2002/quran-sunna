@@ -5,7 +5,8 @@ import { Icon } from '../../components/Icon'
 import { ARABIC_FONTS } from '../../lib/azkar'
 import { Sheet, SheetHead } from '../../components/ui'
 import { dayNum, hadithProgress, loadTimings, MAX_NEW, partsOf, setById, type HifzItem } from '../../lib/hifz'
-import { normWord, type CheckedWord } from '../../lib/speechCheck'
+import { analyzeAr, arSpan, arTokens } from '../../lib/arabicSpeech'
+import { normWord, type CheckedWord, type VoiceLang } from '../../lib/speechCheck'
 import { haptic } from '../../lib/telegram'
 import { dayStr, useStore } from '../../store/settings'
 import { WORD_PARSE } from '../../store/wordSheet'
@@ -49,37 +50,66 @@ export function WarnSheet({ onOk, onClose }: { onOk: () => void; onClose: () => 
 
 /** Текст хадиса: вводные слова, перевод, арабский, источник */
 /** Результат проверки голосом, наложенный на текст: слова, которые сверялись (с передатчиком — с самого начала) */
-export interface BodyMarks { words: CheckedWord[]; all: boolean; sel: number | null; onPick: (i: number) => void }
+export interface BodyMarks { words: CheckedWord[]; all: boolean; sel: number | null; onPick: (i: number) => void; lang?: VoiceLang }
 
 export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; marks?: BodyMarks }) {
   let k = 0
+  const arMode = marks?.lang === 'ar'
+  const mk = marks && !arMode ? marks : undefined // отметки на русском тексте
   const cur = marks && marks.sel !== null ? marks.words[marks.sel] : null
   const font = useStore((s) => s.azFont) ?? 'sch'
   const size = useStore((s) => s.hdArSize)
+  // отметки на арабском тексте: номер слова эталона — по тому же разбору, что и при сверке
+  const toks = arMode ? arTokens(item.ar) : []
+  const [sa, sb] = arMode && marks ? arSpan(toks, marks.all, item.key[0] === 'n') : [0, 0]
+  const an = arMode ? analyzeAr(toks.slice(sa, sb)) : []
+  let g = 0
+  let ak = 0
+  const say = (m: CheckedWord) => <p className="hz-voice-say">{m.state === 'wrong' ? <>Вы сказали: <b dir="rtl">«{m.said}»</b></> : <>Это слово вы пропустили</>}</p>
   return (
     <div className="hz-text" style={{ ['--az-font' as string]: ARABIC_FONTS[font].css, ['--hd-ar' as string]: size + 'px' }}>
-      {ar && item.ar.map((p, i) => <p key={'a' + i} className="hz-ar" dir="rtl">{p}</p>)}
+      {(ar || arMode) && item.ar.map((p, i) => {
+        if (!arMode || !marks) return <p key={'a' + i} className="hz-ar" dir="rtl">{p}</p>
+        const k0 = ak
+        const para = (
+          <p key={'a' + i} className="hz-ar" dir="rtl">
+            {p.split(/\s+/).filter(Boolean).map((w, wi) => {
+              const gi = g++
+              if (gi < sa || gi >= sb || !an[gi - sa]?.count) return <Fragment key={wi}>{w} </Fragment>
+              const n = ak++
+              const m = marks.words[n]
+              if (!m) return <Fragment key={wi}>{w} </Fragment>
+              return (
+                <span key={wi} className={'vw ' + m.state + (m.ai ? ' ai' : '') + (m.state !== 'ok' ? ' tap' : '') + (marks.sel === n ? ' sel' : '')}
+                  onClick={m.state !== 'ok' ? () => marks.onPick(n) : undefined}>{w} </span>
+              )
+            })}
+          </p>
+        )
+        const here = marks.sel !== null && cur && marks.sel >= k0 && marks.sel < ak
+        return here ? <Fragment key={'a' + i}>{para}{say(cur)}</Fragment> : para
+      })}
       {item.intro && <p className="hz-intro">{item.intro}</p>}
       {item.ru.map((p, pi) => {
         const k0 = k
         const para = (
         <p key={pi}>
-          {!marks ? p : p.split(/\s+/).filter(Boolean).map((w, wi) => {
-            const inRange = marks.all || pi > item.start[0] || (pi === item.start[0] && wi >= item.start[1])
+          {!mk ? p : p.split(/\s+/).filter(Boolean).map((w, wi) => {
+            const inRange = mk.all || pi > item.start[0] || (pi === item.start[0] && wi >= item.start[1])
             if (!inRange || !normWord(w)) return <Fragment key={wi}>{w} </Fragment>
             const i = k++
-            const m = marks.words[i]
+            const m = mk.words[i]
             if (!m) return <Fragment key={wi}>{w} </Fragment>
             return (
-              <span key={wi} className={'vw ' + m.state + (m.ai ? ' ai' : '') + (m.state !== 'ok' ? ' tap' : '') + (marks.sel === i ? ' sel' : '')}
-                onClick={m.state !== 'ok' ? () => marks.onPick(i) : undefined}>{w} </span>
+              <span key={wi} className={'vw ' + m.state + (m.ai ? ' ai' : '') + (m.state !== 'ok' ? ' tap' : '') + (mk.sel === i ? ' sel' : '')}
+                onClick={m.state !== 'ok' ? () => mk.onPick(i) : undefined}>{w} </span>
             )
           })}
         </p>
         )
         // «Вы сказали…» — прямо под абзацем, где нажали на слово
-        const here = marks && marks.sel !== null && cur && marks.sel >= k0 && marks.sel < k
-        return here ? <Fragment key={pi}>{para}<p className="hz-voice-say">{cur.state === 'wrong' ? <>Вы сказали: <b>«{cur.said}»</b></> : <>Это слово вы пропустили</>}</p></Fragment> : para
+        const here = mk && mk.sel !== null && cur && mk.sel >= k0 && mk.sel < k
+        return here ? <Fragment key={pi}>{para}{say(cur)}</Fragment> : para
       })}
       <div className="hz-src">{item.src}</div>
     </div>

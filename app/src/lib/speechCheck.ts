@@ -1,6 +1,10 @@
 // Сверка сказанного вслух с текстом хадиса. Без ИИ: обычное выравнивание слов.
 // Слова, которых нет в сказанном, — «пропущено»; другое слово на том же месте — «ошибка»;
 // лишние слова (оговорки, «ой, не то», повторы) почти не снижают результат.
+// Язык сверки: русский перевод (ru) или арабский текст (ar, без огласовок — см. arabicSpeech.ts).
+import { analyzeAr, spokenAr } from './arabicSpeech'
+
+export type VoiceLang = 'ru' | 'ar'
 
 export type WordState = 'ok' | 'wrong' | 'missed'
 
@@ -34,11 +38,16 @@ const FIX_PHRASES = [/\bне то\b/g, /\bнет не так\b/g, /\bнет не
 
 export const normWord = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]/g, '')
 
-/** слова текста для сверки: без знаков и без ﷺ */
-export const refWords = (text: string) => text.split(/\s+/).map((w) => ({ w, n: normWord(w) })).filter((x) => x.n)
+/** слова текста для сверки: без знаков и без ﷺ (w — как в тексте, n — в общем виде) */
+export function refWords(text: string, lang: VoiceLang = 'ru') {
+  const toks = text.split(/\s+/).filter(Boolean)
+  if (lang === 'ar') { const a = analyzeAr(toks); return toks.map((w, i) => ({ w, n: a[i].n, c: a[i].count })).filter((x) => x.c).map(({ w, n }) => ({ w, n })) }
+  return toks.map((w) => ({ w, n: normWord(w) })).filter((x) => x.n)
+}
 
 /** Сказанное → список слов без оговорок */
-export function spokenWords(text: string): string[] {
+export function spokenWords(text: string, lang: VoiceLang = 'ru'): string[] {
+  if (lang === 'ar') return spokenAr(text)
   let t = text.toLowerCase().replace(/ё/g, 'е')
   for (const re of FIX_PHRASES) t = t.replace(re, ' ')
   return t.split(/\s+/).map(normWord).filter((w) => w && !FILLERS.has(w))
@@ -67,10 +76,11 @@ export function sameWord(ref: string, said: string, strict: boolean) {
 
 const EXTRA = 0.25 // цена лишнего слова (оговорки не должны сильно ронять результат)
 
-/** Сверка. strict — без поблажек на неточное распознавание (по умолчанию выключено) */
-export function checkSpeech(reference: string, spoken: string, strict = false): CheckResult {
-  const R = refWords(reference)
-  const S = spokenWords(spoken)
+/** Сверка. strict — без поблажек на неточное распознавание (по умолчанию выключено); в арабском поблажек нет всегда: буква — это ошибка */
+export function checkSpeech(reference: string, spoken: string, strict = false, lang: VoiceLang = 'ru'): CheckResult {
+  if (lang === 'ar') strict = true
+  const R = refWords(reference, lang)
+  const S = spokenWords(spoken, lang)
   const n = R.length
   const m = S.length
   // d[i][j] — лучшая цена выравнивания первых i слов эталона и j сказанных
@@ -110,8 +120,8 @@ export function checkSpeech(reference: string, spoken: string, strict = false): 
   const missed = n - ok - wrong
   // лишние слова (поправки, повторы) процент не снижают: важно, всё ли из хадиса сказано верно
   const percent = n ? Math.round((ok / n) * 100) : 0
-  // значимые слова — от 4 букв: предлоги и союзы совпадают и в посторонней речи
-  const big = words.filter((x) => normWord(x.w).length >= 4)
+  // значимые слова — от 4 букв (в арабском от 3): предлоги и союзы совпадают и в посторонней речи
+  const big = R.filter((x) => x.n.length >= (lang === 'ar' ? 3 : 4)).map((x) => words[R.indexOf(x)])
   const bigOk = big.filter((x) => x.state === 'ok').length
   const relevant = big.length === 0 || bigOk / big.length >= 0.2
   return { words, percent, ok, wrong, missed, extra, relevant }

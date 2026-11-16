@@ -32,6 +32,7 @@ export function useRecorder() {
   }, [])
   useEffect(() => () => { ctl.current?.stop(); cleanup() }, [cleanup])
 
+  const lng = () => useStore.getState().hzVoiceLang
   const model = () => (useStore.getState().hzVoiceModel === 'turbo' ? 'whisper-large-v3-turbo' : 'whisper-large-v3')
   const failText = (e: unknown) => ((e as Error & { limit?: boolean }).limit ? (e as Error).message + ' Можно переключиться на системное распознавание в настройках.' : 'Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.')
 
@@ -51,7 +52,7 @@ export function useRecorder() {
   /** Запасная запись WAV: целиком после остановки (длинную режем на части уже потом) */
   const finishWav = useCallback(async (blob: Blob) => {
     if (blob.size < 2000) { cleanup(); setListening(false); setError('Запись слишком короткая — попробуйте ещё раз.'); return }
-    await finishParts([transcribeLong(blob, model())])
+    await finishParts([transcribeLong(blob, model(), lng())])
   }, [cleanup, finishParts])
 
   /**
@@ -73,7 +74,7 @@ export function useRecorder() {
           r.onstop = () => {
             const blob = new Blob(chunks, { type: r.mimeType || mime || 'audio/webm' })
             if (blob.size < 2000) res('')
-            else transcribe(blob, model()).then(res, rej)
+            else transcribe(blob, model(), lng()).then(res, rej)
             closed++
             if (stopping && closed === parts.length) void finishParts(parts)
           }

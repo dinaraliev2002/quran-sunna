@@ -99,6 +99,7 @@ const DEFAULT_SETTINGS: Settings = {
   hzDrillSet: ['gap3', 'gap2', 'build'],
   hzAr: false,
   hzVoicePass: 90,
+  hzVoiceLang: 'ru',
   hzVoiceNarr: false,
   hzVoiceLoose: true,
   hzVoiceEngine: 'cloud',

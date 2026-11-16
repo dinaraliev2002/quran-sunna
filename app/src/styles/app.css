@@ -1815,3 +1815,6 @@ div.srow { cursor: pointer; }
 .hz-voice-heard { font-size: 13px; color: var(--text-2, #888); margin: 0 0 10px; }
 .hz-voice-heard summary { cursor: pointer; }
 .hz-voice-heard p { margin: 6px 0 0; line-height: 1.5; }
+
+.hz-voice-lang { justify-content: center; margin-bottom: 8px; }
+.hz-voice-lang button:disabled { opacity: .5; }
