@@ -187,8 +187,8 @@ a { color: inherit; text-decoration: none; }
 .sbanner .sb-cart { fill: var(--paper); stroke: var(--gold); stroke-width: 1.2; }
 .sbanner .sb-star { fill: none; stroke: var(--gold); stroke-width: 1; }
 .sbanner .sb-star circle { fill: var(--gold); stroke: none; opacity: .8; }
-.sbanner .sb-name { position: absolute; inset: 0; display: grid; place-items: center; font-family: "SurahNames"; color: var(--text); font-size: 31px; line-height: 1; padding-top: 2px; }
-.sbanner.compact .sb-name { font-size: 1.3em; }
+.sbanner .sb-name { position: absolute; inset: 0; display: grid; place-items: center; font-family: "SurahNames"; color: var(--text); font-size: 46px; line-height: 1; padding-top: 2px; }
+.sbanner.compact .sb-name { font-size: 1.9em; }
 /* «История суры» под заголовком суры; в мусхафе — значок на краю рамки заголовка */
 .s-story { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 6px 14px 6px 11px; border-radius: 11px; font-size: 12.5px; font-weight: 700; color: var(--gold-ink); border: 1px solid rgba(217, 164, 65, .35); background: var(--surface); }
 .s-story .icon { width: 15px; height: 15px; }
@@ -438,7 +438,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .mushaf { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .mushaf .ln span.press { background: rgba(217, 164, 65, .22); border-radius: 4px; transition: background .3s; }
 /* название суры в верхней плашке и в списке — каллиграфией */
-.rtitle .sname, .srow .r .sname { font-family: "SurahNames"; color: var(--gold-ink); font-size: 25px; line-height: 1; flex: none; }
+.rtitle .sname, .srow .r .sname { font-family: "SurahNames"; color: var(--gold-ink); font-size: 36px; line-height: 1; flex: none; }
 .srow .r .sname { font-size: 26px; color: var(--text); }
 
 /* свайп между сурами в режиме «Сура» */
@@ -609,7 +609,7 @@ tajweed.iqlab { color: var(--tj-iqlab); }
 .h-sec h2 { font-size: 18px; font-weight: 800; } .h-sec button { font-size: 13px; font-weight: 800; color: var(--emerald-bright); }
 .h-recent { display: flex; gap: 10px; overflow-x: auto; padding: 0 16px 6px; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
 .h-rc { flex: none; width: 150px; padding: 12px 14px 14px; border-radius: 20px; background: var(--surface); text-align: left; scroll-snap-align: start; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 8px 18px rgba(0, 0, 0, .05); }
-.h-rc-name { font-family: "SurahNames"; font-size: 32px; color: var(--gold-ink); line-height: 1.25; }
+.h-rc-name { font-family: "SurahNames"; font-size: 46px; color: var(--gold-ink); line-height: 1.25; }
 .h-rc b { font-size: 14px; font-weight: 800; } .h-rc small { font-size: 11.5px; color: var(--text-2); font-weight: 600; }
 .h-aod { text-align: center; padding: 24px 18px 16px; border: 1px solid rgba(217, 164, 65, .35);
   background: radial-gradient(120% 80% at 50% 0%, rgba(217, 164, 65, .12), transparent 60%), var(--surface); }

@@ -116,7 +116,8 @@ export function tafsirFor(tf: Record<string, string>, ayah: number, total: numbe
 }
 
 export const arDigits = (n: number) => n.toLocaleString('ar-EG')
-export const surahGlyph = (id: number) => 'surah' + pad(id)
+// шрифт названий сур v2: цифры «002» превращаются в «سورة البقرة» (в v1 «سورة» стояло не с той стороны)
+export const surahGlyph = (id: number) => pad(id)
 
 /** Хизб и четверть: 1 хизб = 4 четверти, 2 хизба = 1 джуз */
 export const hizbOf = (r: number) => ({ hizb: Math.ceil(r / 4), quarter: (r - 1) % 4 }) // quarter: 0 — начало, 1 — ¼, 2 — ½, 3 — ¾
