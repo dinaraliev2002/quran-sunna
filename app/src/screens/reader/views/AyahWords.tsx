@@ -11,7 +11,7 @@ import { QpcText } from './QpcText'
  * Аят по словам для заучивания: глифы страницы мусхафа (с таджвидом), скрытые слова — пустые рамки той же ширины.
  * hide(i) — скрыто ли слово i; нажатие на скрытое слово — onPeek(i).
  */
-export function AyahWords({ a, tajweed, hide, onPeek, tr, after, ayahKey }: { a: Ayah; tajweed: boolean; hide?: (i: number) => boolean; onPeek?: (i: number) => void; tr?: string[] | null; after?: React.ReactNode; ayahKey?: string }) {
+export function AyahWords({ a, tajweed, hide, onPeek, tr, after, ayahKey, mark }: { a: Ayah; tajweed: boolean; hide?: (i: number) => boolean; onPeek?: (i: number) => void; tr?: string[] | null; after?: React.ReactNode; ayahKey?: string; mark?: (i: number) => string | undefined }) {
   const theme = useUi((s) => s.theme)
   const cur = useWordOf(ayahKey) // звучащее слово (0 — нет): подсвечивается, пока чтец его читает
   const family = pageFont(a.p, tajweed, theme)
@@ -41,7 +41,7 @@ export function AyahWords({ a, tajweed, hide, onPeek, tr, after, ayahKey }: { a:
         const inner = glyph ? gl[i] : colored ? <span dangerouslySetInnerHTML={{ __html: parts[i] }} /> : w
         return hide?.(i)
           ? <button key={i} className={'qw gap' + (glyph ? '' : ' txt') + (cur === i + 1 ? ' wl' : '')} onClick={() => onPeek?.(i)} aria-label="Показать слово"><span>{inner}</span></button>
-          : <span key={i} className={'qw' + (glyph ? '' : ' txt') + (cur === i + 1 ? ' wl' : '')}>{inner}</span>
+          : <span key={i} className={'qw' + (glyph ? '' : ' txt') + (cur === i + 1 ? ' wl' : '') + (mark?.(i) ? ' vw ' + mark(i) : '')}>{inner}</span>
       })}
       {glyph ? <span className="qw end">{gl[gl.length - 1]}</span> : <span className="qw txt end">{arDigits(a.n)}</span>}
       {after}

@@ -3,9 +3,14 @@
 
 const MARKS = /[ؐ-ًؚ-ٰٟۖ-ۭـ]/g
 
+/** Слова, у которых усмановское написание (кинжальный алиф ـٰ) отличается от обычного, которым пишет распознавание */
+const OSMANI_FIX: Record<string, string> = { الرحمان: 'الرحمن', هاذا: 'هذا', هاذه: 'هذه', ذالك: 'ذلك', لاكن: 'لكن', لاكنا: 'لكنا', اولايك: 'اوليك', الاه: 'اله', اللاه: 'الله', طاها: 'طه', ياس: 'يس' }
+
 /** Слово без огласовок и с единым написанием букв: أإآٱ→ا, ى→ي, ة→ه, ؤ→و, ئ→ي, ء убран; всё, кроме арабских букв, отброшено */
-export const normAr = (s: string) =>
-  s.replace(MARKS, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/ک/g, 'ك').replace(/ی/g, 'ي').replace(/ء/g, '').replace(/[^ء-ي]/g, '')
+export const normAr = (s: string) => {
+  const n = s.replace(/ٰ/g, 'ا').replace(MARKS, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/ک/g, 'ك').replace(/ی/g, 'ي').replace(/ء/g, '').replace(/[^ء-ي]/g, '')
+  return OSMANI_FIX[n] ?? n
+}
 
 /** Слова-формулы, которые произносят вслух, а в тексте они значком (ﷺ) или в скобках: не считаются ни словами хадиса, ни лишними */
 const PHRASES = ['صلي الله عليه وسلم', 'رضي الله عنهما', 'رضي الله عنها', 'رضي الله عنه', 'عليه السلام', 'صلي الله عليه واله وسلم']
@@ -30,7 +35,7 @@ export function analyzeAr(tokens: string[]): ArTok[] {
   let pre = ''
   for (let i = 0; i < out.length; i++) {
     if (!out[i].count) continue
-    if (out[i].n === 'و' || out[i].n === 'ف') { pre += out[i].n; out[i].count = false; continue }
+    if (out[i].n === 'و' || out[i].n === 'ف' || out[i].n === 'يا') { pre += out[i].n; out[i].count = false; continue }
     if (pre) { out[i].n = pre + out[i].n; pre = '' }
   }
   return out

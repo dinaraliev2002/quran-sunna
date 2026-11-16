@@ -24,11 +24,11 @@ export function referenceText(item: HifzItem, withNarrator: boolean, lang: Voice
  * Запись голоса перед «Проверить себя»: пока идёт запись — только полоски громкости (текст не показываем),
  * результат сверки появляется уже после «Проверить себя» (VoiceResult).
  */
-export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
+export function VoiceCheck({ onText, quran }: { onText: (text: string) => void; quran?: boolean }) {
   const withNarr = useStore((s) => s.hzVoiceNarr)
-  const lang = useStore((s) => s.hzVoiceLang)
+  const lang = useStore((s) => (quran ? 'ar' : s.hzVoiceLang))
   const set = useStore((s) => s.set)
-  const { supported, listening, busy, text, error, levels, metered, start, stop } = useVoice()
+  const { supported, listening, busy, text, error, levels, metered, start, stop } = useVoice(quran ? 'ar' : undefined)
   const [done, setDone] = useState(false)
 
   // после остановки отдаём распознанное наружу
@@ -46,13 +46,13 @@ export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
 
   return (
     <div className="hz-voice">
-      <div className="qh-chips hz-voice-lang" role="group" aria-label="Язык ответа">
+      {!quran && <div className="qh-chips hz-voice-lang" role="group" aria-label="Язык ответа">
         <button className={lang === 'ru' ? 'on' : ''} disabled={listening} onClick={() => { haptic.tick(); set({ hzVoiceLang: 'ru' }) }}>По-русски</button>
         <button className={lang === 'ar' ? 'on' : ''} disabled={listening} onClick={() => { haptic.tick(); set({ hzVoiceLang: 'ar' }) }}>По-арабски</button>
-      </div>
-      <button className="hz-voice-narr" onClick={() => set({ hzVoiceNarr: !withNarr })}>
+      </div>}
+      {!quran && <button className="hz-voice-narr" onClick={() => set({ hzVoiceNarr: !withNarr })}>
         <span className={'switch' + (withNarr ? ' on' : '')} />Проверить и передатчика
-      </button>
+      </button>}
       {!listening && !done && <p className="hz-voice-hint">Говорите чётко и не спеша, в тихом месте, ближе к микрофону — так меньше ошибок распознавания.{lang === 'ar' ? ' По-арабски проверяются слова и пропуски; огласовки (харакаты) пока не проверяются.' : ''}</p>}
       <button className={'hz-voice-btn' + (listening ? ' rec' : '')} onClick={toggle}>
         <Icon id="mic" />{listening ? 'Закончить запись' : done ? 'Сказать ещё раз' : 'Сказать вслух'}
@@ -72,13 +72,18 @@ export function VoiceCheck({ onText }: { onText: (text: string) => void }) {
   )
 }
 
-/** Сверка сказанного с хадисом (с учётом настроек). Спорные слова сразу показываются как ошибки, затем ИИ (если включён) засчитывает те, что ошибкой не являются */
+/** Сверка сказанного с хадисом (с учётом настроек) */
 export function useVoiceResult(item: HifzItem, spoken: string): { r: CheckResult | null; checking: boolean } {
   const withNarr = useStore((s) => s.hzVoiceNarr)
-  const loose = useStore((s) => s.hzVoiceLoose)
-  const ai = useStore((s) => s.hzVoiceAi)
   const lang = useStore((s) => s.hzVoiceLang)
   const ref = useMemo(() => referenceText(item, withNarr, lang), [item, withNarr, lang])
+  return useVoiceCheck(ref, lang, spoken)
+}
+
+/** Ядро сверки: спорные слова сразу показываются как ошибки, затем ИИ (если включён) засчитывает те, что ошибкой не являются */
+export function useVoiceCheck(ref: string, lang: VoiceLang, spoken: string): { r: CheckResult | null; checking: boolean } {
+  const loose = useStore((s) => s.hzVoiceLoose)
+  const ai = useStore((s) => s.hzVoiceAi)
   const base = useMemo(() => (spoken && ref ? checkSpeech(ref, spoken, !loose, lang) : null), [ref, spoken, loose, lang])
   const [accepted, setAccepted] = useState<{ key: string; idx: number[] } | null>(null)
   const [checking, setChecking] = useState(false)
@@ -94,7 +99,7 @@ export function useVoiceResult(item: HifzItem, spoken: string): { r: CheckResult
       .then((idx) => setAccepted({ key, idx }))
       .catch(() => setAccepted({ key, idx: [] })) // ИИ недоступен — остаётся обычная сверка
       .finally(() => setChecking(false))
-  }, [ai, base, key, ref, spoken])
+  }, [ai, base, key, ref, spoken, lang])
   const r = useMemo(() => (base && ai && accepted?.key === key ? applyAccepted(base, accepted.idx) : base), [base, ai, accepted, key])
   return { r, checking: ai && checking }
 }

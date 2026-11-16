@@ -13,7 +13,7 @@ export const recorderSupported = () =>
 const pickMime = () => ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find((m) => MediaRecorder.isTypeSupported(m))
 
 /** Облачное распознавание: пишем голос, после «Закончить запись» отправляем на сервер (Groq Whisper) и получаем текст */
-export function useRecorder() {
+export function useRecorder(forced?: 'ru' | 'ar') {
   const supported = recorderSupported()
   const [listening, setListening] = useState(false)
   const [busy, setBusy] = useState(false) // запись ушла на распознавание
@@ -32,7 +32,7 @@ export function useRecorder() {
   }, [])
   useEffect(() => () => { ctl.current?.stop(); cleanup() }, [cleanup])
 
-  const lng = () => useStore.getState().hzVoiceLang
+  const lng = () => forced ?? useStore.getState().hzVoiceLang
   const model = () => (useStore.getState().hzVoiceModel === 'turbo' ? 'whisper-large-v3-turbo' : 'whisper-large-v3')
   const failText = (e: unknown) => ((e as Error & { limit?: boolean }).limit ? (e as Error).message + ' Можно переключиться на системное распознавание в настройках.' : 'Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.')
 

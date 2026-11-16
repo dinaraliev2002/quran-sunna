@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Icon } from '../../../components/Icon'
 import { type QItem } from '../../../types/hifzQuran'
 import { haptic } from '../../../lib/telegram'
@@ -6,6 +6,8 @@ import { usePlayer } from '../../../store/player'
 import { useStore } from '../../../store/settings'
 import { AyahWords } from '../../reader/views'
 import { PlayDot } from './PlayDot'
+import { useVoiceCheck, VoiceCheck, VoiceErrors, VoiceScore } from '../VoiceCheck'
+import { quranMarks, quranRef } from './quranVoice'
 
 /** По памяти: виден перевод, арабский размыт; нажатие на аят — открыть и послушать; «Проверить себя» — открыть всё */
 export function Tell({ item, review, children }: { item: QItem; review?: boolean; children: ReactNode }) {
@@ -14,6 +16,10 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
   const checkAudio = useStore((s) => s.qhCheckAudio)
   const current = usePlayer((s) => s.current)
   const [open, setOpen] = useState<Set<number>>(new Set())
+  const [spoken, setSpoken] = useState('') // что сказали вслух (проверка голосом)
+  const ref = useMemo(() => quranRef(item).text, [item])
+  const { r: res, checking } = useVoiceCheck(ref, 'ar', spoken)
+  const mark = useMemo(() => quranMarks(item, res?.relevant ? res.words : undefined), [item, res])
   const all = open.size === item.ayahs.length
   const reveal = (n: number) => {
     haptic.tick()
@@ -30,15 +36,22 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
     <>
       <div className="hz-card">
         <p className="hz-tip" style={{ marginTop: 0 }}>Прочитайте отрывок по памяти{review ? '' : ' — вслух или про себя'}. Подсказка — перевод. Нажмите на аят, чтобы проверить себя и послушать.</p>
-        {item.ayahs.map((a) => (
+        {item.ayahs.map((a, ai) => (
           <div key={a.n} className={'qh-ayah' + (current === `${item.s}:${a.n}` ? ' playing' : '')}>
             <div className="qh-tr"><b>{a.n}</b>{tr === 'aa' ? a.aa : a.ku}</div>
             {open.has(a.n)
-              ? <AyahWords a={a} tajweed={tajweed} after={<PlayDot k={`${item.s}:${a.n}`} />} />
+              ? <AyahWords a={a} tajweed={tajweed} after={<PlayDot k={`${item.s}:${a.n}`} />} mark={mark ? (i) => mark(ai, i) : undefined} />
               : <div className="qh-hid" onClick={() => reveal(a.n)}><div className="qh-blur"><AyahWords a={a} tajweed={tajweed} /></div><span className="qh-reveal-l">Нажмите, чтобы открыть</span></div>}
           </div>
         ))}
       </div>
+      {!all && <VoiceCheck quran onText={setSpoken} />}
+      {all && res && (
+        <div className="hz-card">
+          <VoiceScore r={res} checking={checking} />
+          <VoiceErrors r={res} spoken={spoken} />
+        </div>
+      )}
       {all ? children : (
         <div className="hz-act">
           <button className="bigbtn" onClick={checkAll}><Icon id="open" />Проверить себя</button>
