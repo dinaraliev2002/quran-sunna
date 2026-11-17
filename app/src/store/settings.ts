@@ -100,6 +100,7 @@ const DEFAULT_SETTINGS: Settings = {
   hzAr: false,
   hzVoicePass: 90,
   hzVoiceLang: 'ru',
+  hzHarakat: true,
   hzVoiceNarr: false,
   hzVoiceLoose: true,
   hzVoiceEngine: 'cloud',

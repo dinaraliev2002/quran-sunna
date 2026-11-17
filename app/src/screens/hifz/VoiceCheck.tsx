@@ -53,7 +53,7 @@ export function VoiceCheck({ onText, quran }: { onText: (text: string) => void; 
       {!quran && <button className="hz-voice-narr" onClick={() => set({ hzVoiceNarr: !withNarr })}>
         <span className={'switch' + (withNarr ? ' on' : '')} />Проверить и передатчика
       </button>}
-      {!listening && !done && <p className="hz-voice-hint">Говорите чётко и не спеша, в тихом месте, ближе к микрофону — так меньше ошибок распознавания.{lang === 'ar' ? ' По-арабски проверяются слова и пропуски; огласовки (харакаты) пока не проверяются.' : ''}</p>}
+      {!listening && !done && <p className="hz-voice-hint">Говорите чётко и не спеша, в тихом месте, ближе к микрофону — так меньше ошибок распознавания.{lang === 'ar' ? ' По-арабски проверяются слова и пропуски; огласовки (харакаты) — если включено в настройках и распознавание их пишет.' : ''}</p>}
       <button className={'hz-voice-btn' + (listening ? ' rec' : '')} onClick={toggle}>
         <Icon id="mic" />{listening ? 'Закончить запись' : done ? 'Сказать ещё раз' : 'Сказать вслух'}
       </button>
@@ -84,10 +84,11 @@ export function useVoiceResult(item: HifzItem, spoken: string): { r: CheckResult
 export function useVoiceCheck(ref: string, lang: VoiceLang, spoken: string): { r: CheckResult | null; checking: boolean } {
   const loose = useStore((s) => s.hzVoiceLoose)
   const ai = useStore((s) => s.hzVoiceAi)
-  const base = useMemo(() => (spoken && ref ? checkSpeech(ref, spoken, !loose, lang) : null), [ref, spoken, loose, lang])
+  const harakat = useStore((s) => s.hzHarakat)
+  const base = useMemo(() => (spoken && ref ? checkSpeech(ref, spoken, !loose, lang, harakat) : null), [ref, spoken, loose, lang, harakat])
   const [accepted, setAccepted] = useState<{ key: string; idx: number[] } | null>(null)
   const [checking, setChecking] = useState(false)
-  const key = `${ref}|${spoken}|${loose}|${lang}`
+  const key = `${ref}|${spoken}|${loose}|${lang}|${harakat}`
   const last = useRef('')
   useEffect(() => {
     if (!ai || !base || !base.relevant) { setChecking(false); return }

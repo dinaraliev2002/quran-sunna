@@ -2,6 +2,8 @@
 //  1) Голос → текст: Groq (Whisper large-v3 или turbo). Приложение присылает запись (multipart: audio, model, lang, init).
 //  2) Решение «ошибка или нет»: DeepSeek смотрит на слова, которые алгоритм счёл ошибками, и говорит, какие из них можно
 //     засчитать (перестановка «посланнику Его» / «Его посланнику», ошибка распознавания, при желании — близкий синоним).
+//  Арабский (lang=ar) может распознавать Gemini — он пишет с огласовками и не исправляет ошибки. Включается секретом VOICE_AR_ENGINE=gemini
+//  (нужен GEMINI_API_KEY); при сбое Gemini запись уходит в Groq.
 // Секреты (Edge Functions → Secrets): GROQ_API_KEY_APK, DEEPSEEK_API_KEY_APK (подходят и GROQ_API_KEY / DEEPSEEK_API_KEY). Verify JWT — выключить, как у остальных функций.
 // Защита от чужих запросов и перерасхода (таблица qs_voice_usage, функция qs_voice_add):
 //  • из Telegram приложение присылает initData — подпись проверяется ключом бота (BOT_TOKEN, тот же, что у quran-bot);
@@ -9,11 +11,13 @@
 //  • лимиты в секундах речи в день: на человека и на всех вместе; у ИИ-помощника — число запросов в день.
 //    Меняются секретами VOICE_TG_SEC, VOICE_WEB_SEC, VOICE_ALL_SEC, VOICE_JUDGE (по умолчанию — ниже).
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { encodeBase64 } from 'jsr:@std/encoding@1/base64'
 
 // ключ берём первый подходящий: только печатные ASCII-символы (случайно вставленная заглушка вроде «ВАШ_КЛЮЧ» не годится)
 const pick = (...names: string[]) => names.map((n) => (Deno.env.get(n) ?? '').trim()).find((v) => /^[!-~]{10,}$/.test(v)) ?? ''
 const GROQ = pick('GROQ_API_KEY_APK', 'GROQ_API_KEY')
 const DEEPSEEK = pick('DEEPSEEK_API_KEY_APK', 'DEEPSEEK_API_KEY')
+const GEMINI = pick('GEMINI_API_KEY')
 const TOKEN = Deno.env.get('BOT_TOKEN') ?? ''
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 const num = (n: string, d: number) => Number(Deno.env.get(n) ?? '') || d
@@ -67,13 +71,52 @@ async function canListen(w: Who) {
   if (me.sec >= (w.tg ? LIMIT.tg : LIMIT.web)) throw new Limit(w.tg ? 'Дневной лимит проверок голосом исчерпан — продолжим завтра.' : 'Дневной лимит проверок в браузере исчерпан. В приложении в Telegram лимит больше.')
 }
 
+/** Арабский распознаёт Gemini, если включён секретом VOICE_AR_ENGINE=gemini (иначе, как раньше, Groq). Модель — секрет GEMINI_MODEL. */
+const GEM_MODEL = Deno.env.get('GEMINI_MODEL')?.trim() || 'gemini-3.8-flash'
+const GEM_THINK = Deno.env.get('VOICE_GEM_THINK')?.trim() || '' // уровень «размышлений» (low/…); пусто — по умолчанию модели
+const AR_GEMINI = (Deno.env.get('VOICE_AR_ENGINE') ?? '').trim() === 'gemini' && !!GEMINI
+const GEM_PROMPT = [
+  'Transcribe this Arabic speech exactly as it was pronounced, word by word.',
+  'Write the Arabic text WITH full diacritics (tashkeel: fatha, damma, kasra, sukun, shadda, tanween) on every word, exactly as the speaker pronounced them.',
+  'Do NOT correct any mistakes: if the speaker said a wrong letter, wrong vowel, doubled a letter or skipped a word, write it as heard. Do NOT add words that were not said and do not complete the text from memory.',
+  'If the speaker stammers and repeats the first syllable of a word before saying it, write the word once. Do not write sounds like "uh".',
+  'Output only the Arabic transcript on one line: no translation, no comments, no quotes, no markdown.',
+].join(' ')
+
+/** Голос → текст через Gemini: пишет как сказано, с огласовками (Whisper их не пишет и «исправляет» ошибки) */
+async function transcribeGemini(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const mime = (file.type || 'audio/wav').split(';')[0]
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEM_MODEL}:generateContent`, {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': GEMINI },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: GEM_PROMPT }, { inline_data: { mime_type: mime, data: encodeBase64(bytes) } }] }],
+      generationConfig: { temperature: 0, ...(GEM_THINK ? { thinkingConfig: { thinkingLevel: GEM_THINK } } : {}) },
+    }),
+    signal: AbortSignal.timeout(60000),
+  })
+  if (!r.ok) throw new Error(`Gemini ${r.status}: ${(await r.text()).slice(0, 200)}`)
+  const j = await r.json()
+  const text = (j.candidates?.[0]?.content?.parts ?? []).map((p: Any) => p.text ?? '').join('').replace(/[`*"«»]/g, '').trim()
+  if (!text) throw new Error('Gemini: пустой ответ')
+  // длительность: у WAV 16 кГц моно — 32 000 байт в секунду, у сжатых форматов грубо 6 000
+  return { text, sec: /wav/i.test(mime) ? Math.max(1, (bytes.length - 44) / 32000) : bytes.length / 6000 }
+}
+
 /** Голос → текст через Groq (Whisper; без подсказки — с ней он повторял её вместо речи) */
 async function transcribe(form: FormData, w: Who) {
   await canListen(w)
-  if (!GROQ) throw new Error('нет GROQ_API_KEY')
   const file = form.get('audio')
   if (!(file instanceof File)) throw new Error('нет записи')
   if (file.size > MAX_AUDIO) throw new Error('запись слишком длинная')
+  if (AR_GEMINI && String(form.get('lang') ?? '') === 'ar') {
+    try {
+      const g = await transcribeGemini(file)
+      await Promise.all([add(w.key, g.sec, 1, 0), add('*', g.sec, 1, 0)])
+      return { text: g.text, engine: 'gemini' }
+    } catch (e) { console.error('gemini → groq:', String((e as Error).message ?? e)) } // не вышло (лимит, формат, сбой) — запасной Groq
+  }
+  if (!GROQ) throw new Error('нет GROQ_API_KEY')
   const out = new FormData()
   out.append('file', file, file.name || 'rec.webm')
   // модель: turbo (быстрее, дешевле) или полная large-v3 (точнее); выбирает приложение
@@ -92,7 +135,7 @@ async function transcribe(form: FormData, w: Who) {
   // куски, где модели почти уверена, что речи нет, — это её «додумки» в тишине («شكرا», «موسيقى», «Продолжение следует…»)
   const segs: Any[] = Array.isArray(j.segments) ? j.segments : []
   const text = segs.length ? segs.filter((g) => !(Number(g.no_speech_prob) > 0.8)).map((g) => String(g.text ?? '')).join('') : String(j.text ?? '')
-  return { text: text.trim() }
+  return { text: text.trim(), engine: 'groq' }
 }
 
 /** Какие спорные слова эталона можно засчитать */
@@ -141,7 +184,7 @@ Deno.serve(async (req) => {
     }
     const b = await req.json()
     if (b.action === 'judge') return json(await judge(b, await who(req, String(b.init ?? ''))))
-    if (b.action === 'status') return json({ groq: !!GROQ, deepseek: !!DEEPSEEK }) // подключены ли ключи (сами ключи не показываем)
+    if (b.action === 'status') return json({ groq: !!GROQ, deepseek: !!DEEPSEEK, gemini: !!GEMINI, arEngine: AR_GEMINI ? 'gemini' : 'groq' }) // подключены ли ключи (сами ключи не показываем)
     return json({ error: 'unknown action' }, 400)
   } catch (e) {
     if (e instanceof Limit) return json({ error: e.message, limit: true }, 429)

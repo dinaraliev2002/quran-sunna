@@ -2,7 +2,7 @@
 // Слова, которых нет в сказанном, — «пропущено»; другое слово на том же месте — «ошибка»;
 // лишние слова (оговорки, «ой, не то», повторы) почти не снижают результат.
 // Язык сверки: русский перевод (ru) или арабский текст (ar, без огласовок — см. arabicSpeech.ts).
-import { analyzeAr, spokenAr } from './arabicSpeech'
+import { analyzeAr, hasVowels, spokenAr, spokenArFull, vowelDiff } from './arabicSpeech'
 
 export type VoiceLang = 'ru' | 'ar'
 
@@ -16,6 +16,8 @@ export interface CheckedWord {
   said?: string
   /** ИИ засчитал слово, хотя алгоритм счёл его ошибкой */
   ai?: boolean
+  /** ошибка только в огласовке: буквы верные (ИИ такие слова не пересматривает) */
+  vowel?: boolean
 }
 
 export interface CheckResult {
@@ -77,10 +79,13 @@ export function sameWord(ref: string, said: string, strict: boolean) {
 const EXTRA = 0.25 // цена лишнего слова (оговорки не должны сильно ронять результат)
 
 /** Сверка. strict — без поблажек на неточное распознавание (по умолчанию выключено); в арабском поблажек нет всегда: буква — это ошибка */
-export function checkSpeech(reference: string, spoken: string, strict = false, lang: VoiceLang = 'ru'): CheckResult {
+export function checkSpeech(reference: string, spoken: string, strict = false, lang: VoiceLang = 'ru', vowels = false): CheckResult {
   if (lang === 'ar') strict = true
   const R = refWords(reference, lang)
-  const S = spokenWords(spoken, lang)
+  // огласовки сверяем, только если их просили и распознавание их написало (Gemini; Whisper пишет без них)
+  const SF = lang === 'ar' ? spokenArFull(spoken) : null
+  const S = SF ? SF.map((x) => x.n) : spokenWords(spoken, lang)
+  const checkVowels = vowels && !!SF && hasVowels(spoken)
   const n = R.length
   const m = S.length
   // d[i][j] — лучшая цена выравнивания первых i слов эталона и j сказанных
@@ -106,7 +111,8 @@ export function checkSpeech(reference: string, spoken: string, strict = false, l
     if (i > 0 && j > 0) {
       const same = sameWord(R[i - 1].n, S[j - 1], strict)
       if (d[i][j] === d[i - 1][j - 1] + (same ? 0 : 1)) {
-        words.push(same ? { w: R[i - 1].w, state: 'ok' } : { w: R[i - 1].w, state: 'wrong', said: S[j - 1] })
+        if (same && checkVowels && vowelDiff(R[i - 1].w, SF![j - 1].raw)) words.push({ w: R[i - 1].w, state: 'wrong', said: SF![j - 1].raw, vowel: true }) // буквы те, огласовка другая
+        else words.push(same ? { w: R[i - 1].w, state: 'ok' } : { w: R[i - 1].w, state: 'wrong', said: S[j - 1] })
         i--; j--
         continue
       }
@@ -129,7 +135,7 @@ export function checkSpeech(reference: string, spoken: string, strict = false, l
 
 /** Спорные слова для ИИ: ошибки и пропуски (номер — позиция среди слов эталона) */
 export const flaggedWords = (r: CheckResult) =>
-  r.words.map((x, i) => ({ i, w: x.w, said: x.said, state: x.state })).filter((x) => x.state !== 'ok').map(({ i, w, said }) => ({ i, w, said }))
+  r.words.map((x, i) => ({ i, w: x.w, said: x.said, state: x.state, vowel: x.vowel })).filter((x) => x.state !== 'ok' && !x.vowel).map(({ i, w, said }) => ({ i, w, said }))
 
 /** Засчитать слова, которые одобрил ИИ, и пересчитать процент */
 export function applyAccepted(r: CheckResult, accept: number[]): CheckResult {

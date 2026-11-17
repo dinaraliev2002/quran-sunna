@@ -42,13 +42,14 @@ export function HadithGearSheet({ onClose }: { onClose: () => void }) {
           </div>
         )}
         <div>
-          <div className="qh-set-l">Язык ответа<small>По-арабски проверяются слова и пропуски; огласовки пока не проверяются</small></div>
+          <div className="qh-set-l">Язык ответа<small>По-арабски проверяются слова, пропуски и (если включено ниже) огласовки</small></div>
           <div className="qh-chips">
             <button className={st.hzVoiceLang === 'ru' ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoiceLang: 'ru' }) }}>По-русски</button>
             <button className={st.hzVoiceLang === 'ar' ? 'on' : ''} onClick={() => { haptic.tick(); st.set({ hzVoiceLang: 'ar' }) }}>По-арабски</button>
           </div>
         </div>
         {sw(st.hzVoiceAi, 'ИИ-помощник', 'Засчитывает спорные слова, которые не ошибка: «посланнику Его» вместо «Его посланнику», неточное распознавание', () => st.set({ hzVoiceAi: !st.hzVoiceAi }))}
+        {sw(st.hzHarakat, 'Проверять огласовки', 'Только по-арабски: другая гласная или удвоение буквы — ошибка. Последнюю букву слова (остановка) и первую не считаем', () => st.set({ hzHarakat: !st.hzHarakat }))}
         {sw(st.hzVoiceNarr, 'Проверять и передатчика', 'Слова «Я слышал, как Посланник Аллаха сказал…» тоже сверяются', () => st.set({ hzVoiceNarr: !st.hzVoiceNarr }))}
         {sw(st.hzVoiceLoose, 'Прощать неточное распознавание', 'Если приложение расслышало слово чуть иначе (окончание, одна буква) — не считать ошибкой. Замена слова синонимом штрафуется всегда', () => st.set({ hzVoiceLoose: !st.hzVoiceLoose }))}
         {sw(st.hzDrills, 'Упражнения при заучивании', 'Включите и выберите, какие проходить', () => st.set({ hzDrills: !st.hzDrills }))}

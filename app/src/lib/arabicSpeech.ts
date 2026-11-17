@@ -21,12 +21,14 @@ export interface ArTok {
   n: string
   /** считается ли слово эталоном (значки, формулы и отдельное «و» — нет) */
   count: boolean
+  /** слово как написано (с огласовками), без приставки «و» — для сверки огласовок */
+  raw: string
 }
 
 /** Разбор подряд идущих слов: формулы убираем, отдельно написанное «و» приклеиваем к следующему слову (как его произносят) */
 export function analyzeAr(tokens: string[]): ArTok[] {
   const norm = tokens.map(normAr)
-  const out: ArTok[] = norm.map((n) => ({ n, count: !!n }))
+  const out: ArTok[] = norm.map((n, i) => ({ n, count: !!n, raw: tokens[i] }))
   for (let i = 0; i < norm.length; i++) {
     for (const ph of PHRASE_WORDS) {
       if (ph.every((w, k) => norm[i + k] === w)) { for (let k = 0; k < ph.length; k++) out[i + k].count = false; i += ph.length - 1; break }
@@ -41,10 +43,66 @@ export function analyzeAr(tokens: string[]): ArTok[] {
   return out
 }
 
-/** Слова сказанного (из распознанной строки): без значков, формул и оговорок */
-export function spokenAr(text: string): string[] {
+/** Слова сказанного (из распознанной строки): без значков, формул и оговорок; с исходным написанием (огласовками) */
+export function spokenArFull(text: string): { n: string; raw: string }[] {
   const toks = text.split(/\s+/).filter(Boolean)
-  return analyzeAr(toks).filter((t) => t.count).map((t) => t.n)
+  return analyzeAr(toks).filter((t) => t.count).map((t) => ({ n: t.n, raw: t.raw }))
+}
+export const spokenAr = (text: string): string[] => spokenArFull(text).map((t) => t.n)
+
+// ——— огласовки (проверяются, только если распознавание их пишет — Gemini; Whisper не пишет) ———
+
+const FATHA = 'َ', DAMMA = 'ُ', KASRA = 'ِ', SHADDA = 'ّ'
+
+/** Буква в общем виде (как в normAr) или null, если это не буква / хамза, которая не считается */
+function letterOf(ch: string): string | null {
+  if ('أإآٱ'.includes(ch)) return 'ا'
+  if (ch === 'ى' || ch === 'ی') return 'ي'
+  if (ch === 'ة') return 'ه'
+  if (ch === 'ؤ') return 'و'
+  if (ch === 'ئ') return 'ي'
+  if (ch === 'ک') return 'ك'
+  return /[ء-ي]/.test(ch) && ch !== 'ء' ? ch : null
+}
+
+/** Слово → буквы и их огласовки (фатха/дамма/кясра — гласная, шадда — удвоение; сукун и танвин не берём) */
+export function vowelSig(word: string): { l: string; v: string; m: boolean }[] {
+  const out: { l: string; v: string; m: boolean }[] = [] // m — у буквы есть хоть какой-то знак (в т.ч. сукун)
+  let skip = false // идём мимо знаков хамзы (ء)
+  for (const ch of word) {
+    if (ch === 'ٰ') { out.push({ l: 'ا', v: '', m: false }); skip = false; continue } // кинжальный алиф — это долгий «а»
+    const l = letterOf(ch)
+    if (l) { out.push({ l, v: '', m: false }); skip = false; continue }
+    if (ch === 'ء') { skip = true; continue }
+    if (!skip && out.length && /[ً-ْۡ]/.test(ch)) out[out.length - 1].m = true
+    if (!skip && out.length && (ch === FATHA || ch === DAMMA || ch === KASRA || ch === SHADDA)) out[out.length - 1].v += ch
+  }
+  return out
+}
+
+/** Есть ли в тексте огласовки (не меньше трети слов с гласной) — иначе сверять нечего */
+export function hasVowels(text: string): boolean {
+  const w = text.split(/\s+/).filter(Boolean)
+  return w.length > 0 && w.filter((x) => /[َُِ]/.test(x)).length / w.length >= 0.33
+}
+
+/**
+ * Отличается ли произнесённое слово от эталона огласовкой. Слова уже совпали по буквам.
+ * Не считаем ошибкой: первую букву (алиф-васль, ассимиляция на стыке слов), последнюю (остановка — вакф),
+ * гласную, которую не написали (нет — не значит ошибка), и слова, где у эталона нет огласовок.
+ */
+export function vowelDiff(refWord: string, saidWord: string): boolean {
+  const a = vowelSig(refWord)
+  const b = vowelSig(saidWord)
+  if (a.length !== b.length || a.some((x, i) => x.l !== b[i].l)) return false
+  if (a.filter((x) => x.m).length < a.length / 2) return false // эталон без огласовок
+  for (let i = 1; i < a.length - 1; i++) {
+    const x = a[i].v, y = b[i].v
+    if ((x.includes(SHADDA)) !== (y.includes(SHADDA))) return true // удвоение есть там, где не нужно, или нет там, где нужно
+    const vx = x.replace(SHADDA, ''), vy = y.replace(SHADDA, '')
+    if (vx && vy && vx !== vy) return true // другая гласная
+  }
+  return false
 }
 
 /** Все слова арабского текста хадиса подряд (абзацы склеены) */
