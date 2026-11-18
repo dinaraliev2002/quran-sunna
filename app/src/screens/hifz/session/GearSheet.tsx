@@ -4,7 +4,6 @@ import { useStore } from '../../../store/settings'
 import { type Settings } from '../../../types/settings'
 import { RatePick } from './RatePick'
 import { RepeatPick } from './RepeatPick'
-import { SHOW_TEST_FEEL, TestFeel } from './TestFeel'
 
 /** Шестерёнка урока: упражнения, перевод, чтец */
 export function GearSheet({ onClose }: { onClose: () => void }) {
@@ -51,7 +50,6 @@ export function GearSheet({ onClose }: { onClose: () => void }) {
         <div>
           <div className="qh-set-l">Весь отрывок при прослушивании<small>Сколько раз подряд прослушать все аяты отрывка целиком</small></div>
           <RepeatPick value={st.qhRepeatAll} onChange={(v) => st.set({ qhRepeatAll: v })} />
-          {SHOW_TEST_FEEL && <TestFeel />}
         </div>
         {sw(st.qhChain, 'Слушать цепочкой', 'Последний аят прошлого отрывка переносится в новый: вчера 1–5, сегодня 5, 6–10. Так новое связывается с выученным', () => st.set({ qhChain: !st.qhChain }))}
       </div>

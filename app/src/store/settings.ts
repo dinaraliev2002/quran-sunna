@@ -93,8 +93,6 @@ const DEFAULT_SETTINGS: Settings = {
   hdArSize: 24,
   hdTrSize: 17,
   hzPerDay: 1,
-  wheelVibe: 2,
-  wheelSound: 2,
   hzDrills: false,
   hzDrillSet: ['gap3', 'gap2', 'build'],
   hzAr: false,

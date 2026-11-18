@@ -9,7 +9,7 @@ interface Tick { nf: number; nq: number; ng: number; nd: number; of: number; of2
 export const TICK_SOUNDS: { name: string; p: Tick | null }[] = [
   { name: 'Прежний', p: { nf: 2400, nq: 1.4, ng: 0.5, nd: 0.018, of: 260, of2: 110, og: 0.16, od: 0.04, ot: 'sine' } },
   { name: 'Мягкий', p: { nf: 1100, nq: 0.8, ng: 0.12, nd: 0.03, of: 200, of2: 120, og: 0.09, od: 0.06, ot: 'sine' } },
-  { name: 'Капля', p: { nf: 900, nq: 0.6, ng: 0.02, nd: 0.02, of: 640, of2: 420, og: 0.1, od: 0.07, ot: 'sine' } },
+  { name: 'Капля', p: { nf: 700, nq: 0.5, ng: 0.008, nd: 0.025, of: 520, of2: 340, og: 0.055, od: 0.1, ot: 'sine' } },
   { name: 'Глухой', p: { nf: 500, nq: 0.7, ng: 0.06, nd: 0.03, of: 150, of2: 90, og: 0.14, od: 0.08, ot: 'sine' } },
   { name: 'Шёпот', p: { nf: 3200, nq: 0.5, ng: 0.05, nd: 0.025, of: 0, of2: 0, og: 0, od: 0, ot: 'sine' } },
   { name: 'Часы', p: { nf: 1800, nq: 2, ng: 0.14, nd: 0.012, of: 420, of2: 300, og: 0.05, od: 0.03, ot: 'triangle' } },

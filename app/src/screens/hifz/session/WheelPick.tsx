@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { vibe } from '../../../lib/telegram'
-import { useStore } from '../../../store/settings'
 import { tickSound } from '../../../lib/tickSound'
 
 export interface WheelItem<T> { v: T; l: string }
@@ -50,7 +49,7 @@ export function WheelPick<T>({ items, value, onChange, w = 34 }: { items: WheelI
     const n = Math.max(0, Math.min(items.length - 1, Math.round(el.scrollLeft / w)))
     if (n !== cur.current) {
       cur.current = n
-      if (!silent.current) { const c = useStore.getState(); vibe(c.wheelVibe ?? 2); tickSound(c.wheelSound ?? 2) }
+      if (!silent.current) { vibe(2); tickSound(3) }
       onChange(items[n].v)
     }
     // колесо докрутилось само (инерция) и палец не на нём — плавно становимся ровно на значение
