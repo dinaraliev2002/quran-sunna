@@ -9,8 +9,8 @@ export const BUKHARI: Record<'main' | 'sharkasi', string> = { main: 'Основ�
 /** «Переводы и источники»: чей перевод Корана, какой тафсир, чья версия хадисов читается */
 export function SourcesSheet({ onClose }: { onClose: () => void }) {
   const st = useStore()
-  const row = (on: boolean, title: string, sub: string | undefined, pick: () => void) => (
-    <button className="opt-row" onClick={() => { haptic.tick(); pick() }}>
+  const row = (key: string, on: boolean, title: string, sub: string | undefined, pick: () => void) => (
+    <button key={key} className="opt-row" onClick={() => { haptic.tick(); pick() }}>
       <span>{title}{sub && <small style={{ display: 'block', fontSize: 12, color: 'var(--text-2)', fontWeight: 600, marginTop: 2 }}>{sub}</small>}</span>
       {on && <Icon id="check" />}
     </button>
@@ -20,12 +20,12 @@ export function SourcesSheet({ onClose }: { onClose: () => void }) {
       <SheetHead title="Переводы и источники" sub="Чьи тексты читать в каждом разделе" onClose={onClose} />
       <div className="body">
         <div className="group-t">Коран · перевод смыслов</div>
-        {(Object.keys(TRANSLATIONS) as Translation[]).map((k) => row(st.translation === k, TRANSLATIONS[k], undefined, () => st.set({ translation: k })))}
+        {(Object.keys(TRANSLATIONS) as Translation[]).map((k) => row(k, st.translation === k, TRANSLATIONS[k], undefined, () => st.set({ translation: k })))}
         <div className="group-t">Коран · тафсир</div>
-        {row(true, 'Ас-Саади', 'Пока единственный; другие появятся позже', () => {})}
+        {row('tf', true, 'Ас-Саади', 'Пока единственный; другие появятся позже', () => {})}
         <div className="group-t">Хадисы · «Сахих» аль-Бухари</div>
-        {row(st.hdBukhari === 'main', BUKHARI.main, 'Полный перевод, 97 книг, с цепочками передатчиков', () => st.set({ hdBukhari: 'main' }))}
-        {row(st.hdBukhari === 'sharkasi', BUKHARI.sharkasi, '«Достоверный сборник»: пока первые 47 книг из 97', () => st.set({ hdBukhari: 'sharkasi' }))}
+        {row('bm', st.hdBukhari === 'main', BUKHARI.main, 'Полный перевод, 97 книг, с цепочками передатчиков', () => st.set({ hdBukhari: 'main' }))}
+        {row('bs', st.hdBukhari === 'sharkasi', BUKHARI.sharkasi, '«Достоверный сборник»: пока первые 47 книг из 97', () => st.set({ hdBukhari: 'sharkasi' }))}
       </div>
     </Sheet>
   )
