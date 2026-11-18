@@ -256,7 +256,7 @@ def main(pdf):
         books.append({'n': no, 'no': no, 'title': title, 'ar': ar_title.get(no, ''), 'range': f'{first}–{last}' if first else '', 'count': len(out)})
         print(f'{no:>3} {title[:60]:<60} стр.{p0:>4}  хадисов {nh:>4}  записей {len(out):>4}  {first}–{last}')
     col = {
-        'id': 'sharkasi', 'name': 'Достоверный сборник (аш-Шаркаси)', 'ar': 'صحيح البخاري', 'author': 'Имам аль-Бухари, перевод Абу Ислама аш-Шаркаси',
+        'id': 'sharkasi', 'name': 'Сахих аль-Бухари', 'ar': 'صحيح البخاري', 'author': 'Имам аль-Бухари, перевод Абу Ислама аш-Шаркаси',
         'about': 'Другой перевод «Сахиха» аль-Бухари на русский: Абу Ислам аш-Шаркаси, экспериментальное издание 2026 года. Пока в нём первые 47 книг из 97; арабский текст — из основной версии.',
         'hadiths': total, 'books': books, 'groups': [], 'part': 'Переведены не все книги: пока первые 47 из 97, остальные появятся позже.'}
     idx['collections'] = [c for c in idx['collections'] if c['id'] != 'sharkasi']
