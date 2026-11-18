@@ -1834,3 +1834,12 @@ div.srow { cursor: pointer; }
 .hz-pay-buy:disabled { opacity: .55; }
 .hz-pay-note { margin: 0; font-size: 12.5px; opacity: .65; line-height: 1.45; }
 .hz-pay-msg { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--gold-ink); line-height: 1.4; }
+
+/* карточка хадиса с вступлением главы: название главы крупно, затем «Хадис № …» */
+.hd-bab-h { margin: 2px 0 12px; }
+.hd-bab-h small { display: block; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--gold-ink); margin-bottom: 4px; }
+.hd-bab-h b { display: block; font-size: 18px; font-weight: 800; line-height: 1.35; color: var(--text); }
+.hd-sub-no { margin: 18px 0 10px; padding-top: 14px; border-top: 1px solid var(--line, rgba(127,127,127,.2)); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--gold-ink); }
+/* глава без названия — так в самом «Сахихе»: у аль-Бухари бывает «باب» без заголовка */
+.hd-untitled { font-weight: 600 !important; font-style: italic; color: var(--text-2) !important; }
+.hd-bab-h.long b { font-size: 15.5px; font-weight: 700; line-height: 1.45; }

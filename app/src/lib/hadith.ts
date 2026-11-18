@@ -7,7 +7,7 @@ import type { HBook, HGroup, HCollection, HIndex, HItem, HBookData, Topic, Topic
 export type { HBook, HGroup, HCollection, HIndex, HItem, HBookData, Topic, TopicsData, EncHadith }
 
 // версия данных хадисов — увеличиваем при пересборке, чтобы телефоны не держали старую копию
-const HADITH_VERSION = 5
+const HADITH_VERSION = 6
 const cache = new Map<string, Promise<unknown>>()
 function load<T>(path: string): Promise<T> {
   if (!cache.has(path)) {

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Tour } from '../../components/Tour'
@@ -53,25 +53,39 @@ export default function Book() {
   const items = book?.items ?? []
   const byBooks = cid === 'bukhari' || cid === 'sharkasi' || cid === 'muslim'
   const bookWord = byBooks && !meta?.grp ? 'книга' : 'глава'
+  const sharkasi = cid === 'sharkasi' // перевод аш-Шаркаси: жирный шрифт размечен как в книге, без нашего «текст хадиса — жирным»
+
+  // карточки: вступление главы (аяты, слова аль-Бухари — без номера хадиса) показываем вместе с первым хадисом этой главы
+  const cards = useMemo(() => {
+    const out: { i: number; pre?: number }[] = []
+    items.forEach((it, i) => {
+      const prev = items[i - 1]
+      if (byBooks && it.h !== undefined && prev && prev.h === undefined && prev.t === it.t && out[out.length - 1]?.i === i - 1) out[out.length - 1] = { i, pre: i - 1 }
+      else out.push({ i })
+    })
+    return out
+  }, [items, byBooks])
+  /** карточка, на которой лежит раздел книги с номером i */
+  const cardOf = (i: number) => Math.max(0, cards.findIndex((c) => c.i === i || c.pre === i))
 
   // открыть на той же карточке, что в прошлый раз, или на нужном хадисе (из избранного / «Продолжить»)
   useLayoutEffect(() => {
     const el = track.current
     if (!book || !el) return
-    const k = Math.min(items.length - 1, Math.max(0, cardMemory.get(memKey) ?? focus ?? 0))
+    const k = Math.min(cards.length - 1, Math.max(0, cardMemory.get(memKey) ?? cardOf(focus ?? 0)))
     el.scrollLeft = k * el.clientWidth
     setCur(k)
-    st.setHadithLast({ c: cid, n: bn, i: k })
+    st.setHadithLast({ c: cid, n: bn, i: cards[k]?.i ?? 0 })
   }, [book, focus])
 
   const onScroll = () => {
     const el = track.current!
     const k = Math.round(el.scrollLeft / el.clientWidth)
-    if (k === cur || k < 0 || k >= items.length) return
+    if (k === cur || k < 0 || k >= cards.length) return
     setCur(k)
     haptic.tick('hadith')
     cardMemory.set(memKey, k)
-    st.setHadithLast({ c: cid, n: bn, i: k })
+    st.setHadithLast({ c: cid, n: bn, i: cards[k].i })
   }
   const goCard = (k: number) => track.current?.scrollTo({ left: k * track.current.clientWidth, behavior: 'smooth' })
   const goBook = (b: { n: number } | null) => b && nav(`/hadith/c/${cid}/${b.n}?i=0`, { replace: true })
@@ -89,13 +103,16 @@ export default function Book() {
         <div className="ttl"><b>{title}</b><span>{sub}</span></div>
         <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Настройки текста"><Icon id="gear" /></button>
       </div>
-      {items.length > 1 && <div className="hdk-progress"><i style={{ width: `${((cur + 1) / items.length) * 100}%` }} /></div>}
+      {cards.length > 1 && <div className="hdk-progress"><i style={{ width: `${((cur + 1) / cards.length) * 100}%` }} /></div>}
 
       {!book && <div className="loading">Загрузка…</div>}
       <div className="azc-track" ref={track} onScroll={onScroll}>
-        {items.map((it, i) => {
+        {cards.map((card, ci) => {
           // рисуем только соседние карточки — в книге бывает больше сотни разделов
-          if (Math.abs(i - cur) > 2) return <section key={i} className="azc-card" />
+          if (Math.abs(ci - cur) > 2) return <section key={ci} className="azc-card" />
+          const i = card.i
+          const it = items[i]
+          const pre = card.pre !== undefined ? items[card.pre] : null
           const { no, title: t } = splitTitle(it.t)
           const isHadith = it.h !== undefined // отдельный хадис из главы (аль-Бухари, Муслим)
           const key = favBook(cid, bn, i)
@@ -103,13 +120,14 @@ export default function Book() {
           const ref = `${col?.name ?? ''}${isHadith ? (it.h ? `, № ${it.h}` : '') : no ? `, ${/^\d/.test(no) ? '№ ' + no : no.toLowerCase()}` : ''}`
           // хадис без перевода — арабский текст показываем всегда
           const showAr = (st.hdAr || it.ru.length === 0) && it.ar.length > 0
+          const preAr = !!pre && st.hdAr && pre.ar.length > 0
           return (
-            <section key={i} className="azc-card">
+            <section key={ci} className="azc-card">
               <article className="hdk-body">
                 <div className="hdk-content">
                 <div className="hd-card-h">
                   {isHadith ? <span className="hd-no">{it.h ? `Хадис № ${it.h}` : 'Другая версия'}</span>
-                    : no ? <span className="hd-no">{no}</span> : <span className="hd-count">{i + 1} из {items.length}</span>}
+                    : no ? <span className="hd-no">{no}</span> : <span className="hd-count">{ci + 1} из {cards.length}</span>}
                   <div className="hd-acts">
                     {(isHadith || cid === 'riyad' || cid === 'nawawi') && <ChainButton cid={cid} bn={bn} i={i} label={ref} />}
                     <button className={fav ? 'on' : ''} onClick={() => { haptic.tap(); st.toggleHadithFav(key) }} aria-label={fav ? 'Убрать из избранного' : 'В избранное'}>
@@ -119,18 +137,27 @@ export default function Book() {
                     <button onClick={() => shareText(shareBody(isHadith ? '' : t, it.ru.join('\n\n'), ref))} aria-label="Поделиться"><Icon id="share" /></button>
                   </div>
                 </div>
-                {isHadith ? (t || no) && <div className="hd-bab">{no}{no && t ? ' · ' : ''}{t}</div> : t && <h3 className="hd-title">{t}</h3>}
+                {pre ? (
+                  // вступление главы: название, аяты и слова аль-Бухари — затем сам хадис
+                  <>
+                    <div className={'hd-bab-h' + (t.length > 160 ? ' long' : '')}><small>{no}</small>{t ? <b>{t}</b> : <b className="hd-untitled">Без названия</b>}</div>
+                    {preAr && <ArParas paras={pre.ar} />}
+                    {preAr && pre.ru.length > 0 && <div className="azc-divider"><span>۞</span></div>}
+                    {pre.ru.length > 0 && <RuParas paras={pre.ru} hadith={false} />}
+                    <div className="hd-sub-no">Хадис № {it.h}</div>
+                  </>
+                ) : isHadith ? (t || no) && <div className="hd-bab">{no}{no && ' · '}{t || <span className="hd-untitled">без названия</span>}</div> : t && <h3 className="hd-title">{t}</h3>}
                 {showAr && <ArParas paras={it.ar} />}
                 {showAr && it.ru.length > 0 && <div className="azc-divider"><span>۞</span></div>}
-                {it.ru.length > 0 ? <RuParas paras={it.ru} hadith={isHadith || undefined} /> : <p className="hd-src">Перевода на русский пока нет</p>}
+                {it.ru.length > 0 ? <RuParas paras={it.ru} hadith={sharkasi ? false : isHadith || undefined} /> : <p className="hd-src">Перевода на русский пока нет</p>}
                 {isHadith && <ChainNote cid={cid} bn={bn} i={i} />}
                 </div>
                 {/* листание карточек — закреплено внизу карточки */}
-                {items.length > 1 && (
+                {cards.length > 1 && (
                   <div className="hdk-pager">
-                    <button disabled={i === 0} onClick={() => goCard(i - 1)} aria-label="Предыдущий хадис"><Icon id="back" /></button>
-                    <span>{i + 1} / {items.length}</span>
-                    <button disabled={i >= items.length - 1} onClick={() => goCard(i + 1)} aria-label="Следующий хадис"><Icon id="right" /></button>
+                    <button disabled={ci === 0} onClick={() => goCard(ci - 1)} aria-label="Предыдущий хадис"><Icon id="back" /></button>
+                    <span>{ci + 1} / {cards.length}</span>
+                    <button disabled={ci >= cards.length - 1} onClick={() => goCard(ci + 1)} aria-label="Следующий хадис"><Icon id="right" /></button>
                   </div>
                 )}
                 {/* соседние книги — видны, когда карточка прокручена до конца */}
@@ -203,7 +230,7 @@ function ChapterList({ cid, bn, book, title, sub, range, byChapters }: { cid: st
           <button key={c.first} className="hd-book" onClick={() => nav(`/hadith/c/${cid}/${bn}?i=${c.first}`)}>
             <div className="num-badge"><span>{no.replace(/^Глава\s*/, '') || '•'}</span></div>
             <div className="t">
-              <b>{t || c.t}</b>
+              {t ? <b>{t}</b> : <b className="hd-untitled">Без названия</b>}
               {c.count > 0 && <span>{c.count} {plural(c.count, 'хадис', 'хадиса', 'хадисов')}</span>}
             </div>
             <Icon id="right" className="icon chev-s" />

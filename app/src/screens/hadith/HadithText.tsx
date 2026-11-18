@@ -1,5 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import { isSourcePara } from '../../lib/hadith'
+import { arForFont } from '../../lib/arabicFont'
+import { useStore } from '../../store/settings'
 
 // Оформление текста хадиса:
 //  • кто передаёт («Сообщается, что Абу Хурайра сказал:») — обычным шрифтом;
@@ -55,9 +57,10 @@ export function RuParas({ paras, hadith }: { paras: string[]; hadith?: boolean }
 }
 
 export function ArParas({ paras }: { paras: string[] }) {
+  const font = useStore((s) => s.azFont) ?? 'sch'
   return (
     <div className="hd-ar" dir="rtl">
-      {paras.map((p, i) => <p key={i}>{bold(p)}</p>)}
+      {paras.map((p, i) => <p key={i}>{bold(arForFont(p, font))}</p>)}
     </div>
   )
 }
@@ -66,7 +69,17 @@ export function ArParas({ paras }: { paras: string[] }) {
 export function splitTitle(t: string): { no: string; title: string } {
   const g = t.match(/^Глава\s+(\d{1,4})\.\s*(.*)$/)
   if (g) return { no: `Глава ${g[1]}`, title: g[2] }
-  const m = t.match(/^(\d{1,4})\.\s*(Глава:?\s*)?(.*)$/)
+  const m = t.match(/^(\d{1,4})\.\s*(.*)$/)
   if (!m) return { no: '', title: t }
-  return { no: m[2] ? `Глава ${m[1]}` : m[1], title: m[3] }
+  const rest = m[2]
+  if (!/^Глава(?![а-яё])/i.test(rest)) return { no: m[1], title: rest }
+  // «Глава: О том…», «Глава. О том…», «Глава о том…» — слово «Глава» уходит в номер, название с большой буквы;
+  // «Глава веры: …» — «Глава» здесь часть названия, оставляем целиком
+  const h = rest.match(/^Глава(?:\s*[:.]\s*|\s+(?=(?:о|об|обо|про)\s)|\s*$)(.*)$/i)
+  // «Глава: Глава о том…» — второе «Глава» тоже лишнее
+  const title = h ? h[1].replace(/^Глава\s+(?=(?:о|об|обо|про)\s)/i, '') : rest
+  return { no: `Глава ${m[1]}`, title: h ? cap(title) : rest }
 }
+
+/** Первая буква названия — заглавная (кавычки и скобки в начале пропускаем) */
+const cap = (s: string) => s.replace(/^([«"„(\s]*)(\p{Ll})/u, (_, a: string, b: string) => a + b.toUpperCase())

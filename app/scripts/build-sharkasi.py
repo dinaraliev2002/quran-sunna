@@ -28,21 +28,54 @@ def clean(s: str) -> str:
     return re.sub(r'[ \t]+', ' ', s).strip()
 
 
+def P(l: str) -> str:
+    """строка без разметки жирного"""
+    return l.replace('**', '')
+
+
+def span_line(spans) -> str:
+    """Строка из кусков PDF: жирные куски — в **…** (пробелы по краям — снаружи)"""
+    out = ''
+    for sp in spans:
+        raw = sp['text']
+        t = clean(raw)
+        if not t:
+            out += ' ' if raw else ''
+            continue
+        if raw[:1].isspace():
+            t = ' ' + t
+        if raw[-1:].isspace():
+            t = t + ' '
+        bold = 'Bold' in sp['font'] or (sp['flags'] & 16)
+        if bold:
+            lead, core, tail = re.match(r'^(\s*)(.*?)(\s*)$', t).groups()
+            out += f'{lead}**{core}**{tail}'
+        else:
+            out += t
+    out = re.sub(r'\*\*(\s*)\*\*', r'\1', out)  # соседние жирные куски — одним
+    out = re.sub(r'[ \t]+', ' ', out).strip()
+    # мягкий перенос в конце строки («вой­» + «ско») — как обычный перенос, чтобы слово склеилось
+    if spans and spans[-1]['text'].rstrip(' ').endswith(SHY):
+        out = out[:-2] + '-**' if out.endswith('**') else out + '-'
+    return out
+
+
 def read_pages(pdf: str):
-    """→ список (номер страницы, [строки]) без колонтитулов"""
+    """→ список (номер страницы, [строки с разметкой **жирного**]) без колонтитулов"""
     d = pymupdf.open(pdf)
     pages = []
     for i, pg in enumerate(d):
-        ls = pg.get_text().split('\n')
-        if i >= 5 and ls and re.fullmatch(r'\d+', ls[0].strip()):
+        ls = [span_line(l['spans']) for b in pg.get_text('dict')['blocks'] for l in b.get('lines', [])]
+        ls = [l for l in ls if P(l).strip()]
+        if i >= 5 and ls and re.fullmatch(r'\d+', P(ls[0]).strip()):
             ls = ls[2:]  # номер страницы + название книги/«Достоверный сборник»
-        pages.append((i, [clean(x) for x in ls if clean(x)]))
+        pages.append((i, ls))
     return pages
 
 
 def read_toc(pages):
     """Содержание: [(номер книги, название, страница начала)]"""
-    flat = [l for _, ls in pages for l in ls]
+    flat = [P(l) for _, ls in pages for l in ls]
     start = max(i for i, l in enumerate(flat) if l == 'СОДЕРЖАНИЕ')
     items, buf = [], ''
     for l in flat[start + 1:]:
@@ -84,24 +117,41 @@ NUM = re.compile(r'^(\d{1,4})\. (?=\S)')
 SKIP = re.compile(r'^(\d+[\.\s]*)?КНИГА\b|^С именем Аллаха|^Всемилостивого, Милующего|^Бисмилл?яхир|^БисмиЛляхир|^\d+\s*[Кк]нига\b')
 
 
+def tidy(p: str) -> str:
+    """Чистка разметки жирного в абзаце"""
+    p = re.sub(r'\s+', ' ', p).strip()
+    p = re.sub(r'\*\*([\s.,:;!?»«()\-—]*)\*\*', r'\1', p)  # между жирными кусками только знаки — один кусок
+    p = p.replace('****', '')
+    if p.count('**') % 2:
+        p = p.replace('**', '')  # разметка сбилась — лучше без жирного, чем со звёздочками
+    return p
+
+
 def paragraphs(lines):
     """Склеивает строки в абзацы: новый абзац — после короткой строки с точкой"""
     paras, cur = [], ''
     for i, l in enumerate(lines):
         if cur:
+            if cur.endswith('**') and l.startswith('**'):
+                cur, l = cur[:-2], l[2:]  # жирное продолжается на следующей строке
             if cur.endswith('-') and not cur.endswith(' -') and not cur.endswith('—'):
                 cur = cur[:-1] + l  # перенос слова
             else:
                 cur += ' ' + l
         else:
             cur = l
-        short = len(l) < 44 and l[-1:] in '.»!?)"”'
+        pl = P(l)
+        short = len(pl) < 44 and pl[-1:] in '.»!?)"”'
+        # «…(сура «Аль-Кахф», 13-й аят)» и дальше «Также Он сказал…» / «Сказал Ибн Аббас…» — новый абзац, даже если строка длинная
+        nxt = P(lines[i + 1]) if i + 1 < len(lines) else ''
+        if pl[-1:] in '.»!?)"”' and re.match(r'^(Также|Сказал|И сказал|Он сказал)\b', nxt):
+            short = True
         if short and i + 1 < len(lines):
             paras.append(cur)
             cur = ''
     if cur:
         paras.append(cur)
-    return [re.sub(r'\s+', ' ', p).strip() for p in paras if p.strip()]
+    return [tidy(p) for p in paras if P(p).strip()]
 
 
 def parse_book(lines, state):
@@ -122,27 +172,31 @@ def parse_book(lines, state):
     n = len(lines)
     while i < n:
         l = lines[i]
-        if SKIP.match(l):
+        pl = P(l)
+        # строки заголовка книги («20-Я КНИГА. ДОСТОИНСТВО…» — заглавными, иногда в две строки) — пропускаем
+        if SKIP.match(pl) or (len(pl) > 3 and re.search(r'[А-ЯЁ]{3}', pl) and not re.search(r'[а-яё]', pl)):
             i += 1
             continue
-        if HEAD.match(l):
+        if HEAD.match(pl):
             flush()
-            title = l
+            title = pl
             # заголовок может быть в нескольких строках — до строки с точкой/кавычкой на конце
-            while not re.search(r'[\.»?:!)”]$', title) and i + 1 < n and not NUM.match(lines[i + 1]) and len(title) < 400:
+            # (продолжение с маленькой буквы на следующей строке — тоже заголовок)
+            while (not re.search(r'[\.»?:!)”]$', title) or (i + 1 < n and re.match(r'^[а-яё]', P(lines[i + 1])))) and i + 1 < n and not NUM.match(P(lines[i + 1])) and len(title) < 1500:
                 i += 1
-                nxt = lines[i]
+                nxt = P(lines[i])
                 title = (title[:-1] + nxt) if title.endswith('-') else title + ' ' + nxt
             title = re.sub(r'\s+', ' ', title)
             ch += 1
-            title = re.sub(r'^\d+\s+[Гг]лава[\.:]?\s*', '', title)
-            title = re.sub(r'^[Гг]лава[\.:]?\s*', '', title)
-            ct = title.strip()
+            # «3 глава. О том…» → «Глава. О том…»; «Глава веры: …», «Глава о …» — целиком (разбирает splitTitle в приложении)
+            title = re.sub(r'^\d+\s+[Гг]лава', 'Глава', title).strip()
+            title = re.sub(r'^Глава\s+\d+\s*[.:]?\s*', 'Глава. ', title)  # «Глава 1. Достоинство…» → «Глава. Достоинство…»
+            ct = 'Глава' + title[5:]
             cur = {'ch': ch, 'ct': ct, 'h': None, 'ru': []}
             items.append(cur)
             i += 1
             continue
-        m = NUM.match(l)
+        m = NUM.match(pl)
         if m:
             v = int(m.group(1))
             last_h = state['last']
@@ -155,7 +209,10 @@ def parse_book(lines, state):
                     ch, ct = 1, ''
                 cur = {'ch': ch, 'ct': ct, 'h': str(v), 'ru': []}
                 items.append(cur)
-                buf = [l[m.end():]]
+                # номер бывает жирным: «**8.** От…», «**8**. От…», «**8. От Ибн…**»
+                mm = re.match(r'^(?:\*\*)?\d{1,4}(?:\*\*)?\.\s*(?:\*\*)?\s*', l)
+                rest = l[mm.end():] if mm else l[m.end():]
+                buf = ['**' + rest if mm and mm.group(0).count('**') % 2 else rest]
                 i += 1
                 continue
         if cur is None:
@@ -164,11 +221,16 @@ def parse_book(lines, state):
         buf.append(l)
         i += 1
     flush()
-    return [x for x in items if x['ru'] or x['h']]
+    items = [x for x in items if x['ru'] or x['h']]
+    # слова до первой главы («Шейхуль-Ислам … аль-Бухари сказал:») — в начало первой главы
+    while len(items) > 1 and items[0]['ch'] == 0 and not items[0]['h']:
+        items[1]['ru'] = items[0]['ru'] + items[1]['ru']
+        items.pop(0)
+    return items
 
 
 def words(s: str):
-    return {w[:5] for w in re.findall(r'[а-яё‘’\']{5,}', s.lower())}
+    return {w[:5] for w in re.findall(r'[а-яё‘’\']{5,}', P(s).lower())}
 
 
 def load_ours():
@@ -230,7 +292,7 @@ def main(pdf):
         out, nh, first, last = [], 0, None, None
         for it in its:
             ru = it['ru']
-            t = f"{it['ch']}. Глава: {it['ct']}" if it['ct'] else f"{it['ch']}. Глава"
+            t = f"{it['ch']}. {it['ct']}" if it['ct'] else f"{it['ch']}. Глава"
             rec = {'t': t, 'ru': ru, 'ar': []}
             if it['h']:
                 rec['h'] = it['h']
@@ -257,8 +319,8 @@ def main(pdf):
         print(f'{no:>3} {title[:60]:<60} стр.{p0:>4}  хадисов {nh:>4}  записей {len(out):>4}  {first}–{last}')
     col = {
         'id': 'sharkasi', 'name': 'Сахих аль-Бухари', 'ar': 'صحيح البخاري', 'author': 'Имам аль-Бухари, перевод Абу Ислама аш-Шаркаси',
-        'about': 'Другой перевод «Сахиха» аль-Бухари на русский: Абу Ислам аш-Шаркаси, экспериментальное издание 2026 года. Пока в нём первые 47 книг из 97; арабский текст — из основной версии.',
-        'hadiths': total, 'books': books, 'groups': [], 'part': 'Переведены не все книги: пока первые 47 из 97, остальные появятся позже.'}
+        'about': 'Перевод сборника «Сахих аль-Бухари» на русский язык выполнил Абу Ислам аш-Шаркаси (экспериментальное издание 2026 года). В перевод вошли первые 47 книг из 97.',
+        'hadiths': total, 'books': books, 'groups': []}
     idx['collections'] = [c for c in idx['collections'] if c['id'] != 'sharkasi']
     i = next(j for j, c in enumerate(idx['collections']) if c['id'] == 'bukhari')
     idx['collections'].insert(i + 1, col)

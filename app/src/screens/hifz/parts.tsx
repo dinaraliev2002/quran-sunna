@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { ARABIC_FONTS } from '../../lib/azkar'
+import { arForFont } from '../../lib/arabicFont'
 import { Sheet, SheetHead } from '../../components/ui'
 import { dayNum, hadithProgress, loadTimings, MAX_NEW, partsOf, setById, type HifzItem } from '../../lib/hifz'
 import { analyzeAr, arSpan, arTokens } from '../../lib/arabicSpeech'
@@ -69,19 +70,19 @@ export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; 
   return (
     <div className="hz-text" style={{ ['--az-font' as string]: ARABIC_FONTS[font].css, ['--hd-ar' as string]: size + 'px' }}>
       {(ar || arMode) && item.ar.map((p, i) => {
-        if (!arMode || !marks) return <p key={'a' + i} className="hz-ar" dir="rtl">{p}</p>
+        if (!arMode || !marks) return <p key={'a' + i} className="hz-ar" dir="rtl">{arForFont(p, font)}</p>
         const k0 = ak
         const para = (
           <p key={'a' + i} className="hz-ar" dir="rtl">
             {p.split(/\s+/).filter(Boolean).map((w, wi) => {
               const gi = g++
-              if (gi < sa || gi >= sb || !an[gi - sa]?.count) return <Fragment key={wi}>{w} </Fragment>
+              if (gi < sa || gi >= sb || !an[gi - sa]?.count) return <Fragment key={wi}>{arForFont(w, font)} </Fragment>
               const n = ak++
               const m = marks.words[n]
-              if (!m) return <Fragment key={wi}>{w} </Fragment>
+              if (!m) return <Fragment key={wi}>{arForFont(w, font)} </Fragment>
               return (
                 <span key={wi} className={'vw ' + m.state + (m.ai ? ' ai' : '') + (m.state !== 'ok' ? ' tap' : '') + (marks.sel === n ? ' sel' : '')}
-                  onClick={m.state !== 'ok' ? () => marks.onPick(n) : undefined}>{w} </span>
+                  onClick={m.state !== 'ok' ? () => marks.onPick(n) : undefined}>{arForFont(w, font)} </span>
               )
             })}
           </p>
@@ -96,10 +97,10 @@ export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; 
         <p key={pi}>
           {!mk ? p : p.split(/\s+/).filter(Boolean).map((w, wi) => {
             const inRange = mk.all || pi > item.start[0] || (pi === item.start[0] && wi >= item.start[1])
-            if (!inRange || !normWord(w)) return <Fragment key={wi}>{w} </Fragment>
+            if (!inRange || !normWord(w)) return <Fragment key={wi}>{arForFont(w, font)} </Fragment>
             const i = k++
             const m = mk.words[i]
-            if (!m) return <Fragment key={wi}>{w} </Fragment>
+            if (!m) return <Fragment key={wi}>{arForFont(w, font)} </Fragment>
             return (
               <span key={wi} className={'vw ' + m.state + (m.ai ? ' ai' : '') + (m.state !== 'ok' ? ' tap' : '') + (mk.sel === i ? ' sel' : '')}
                 onClick={m.state !== 'ok' ? () => mk.onPick(i) : undefined}>{w} </span>

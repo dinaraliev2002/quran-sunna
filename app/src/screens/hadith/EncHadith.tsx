@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { ARABIC_FONTS } from '../../lib/azkar'
+import { arForFont } from '../../lib/arabicFont'
 import { HifzAddBtn } from '../hifz/parts'
 import { favEnc, loadEnc, loadTopics, shareBody, topicTitle, type EncHadith, type TopicsData } from '../../lib/hadith'
 import { haptic, shareText } from '../../lib/telegram'
@@ -53,7 +54,7 @@ export default function EncHadithView() {
                 <button onClick={() => shareText(shareBody('', h.ru, h.src))} aria-label="Поделиться"><Icon id="share" /></button>
               </div>
             </div>
-            {st.hdAr && h.ar && <div className="hd-ar" dir="rtl"><p>{h.ar}</p></div>}
+            {st.hdAr && h.ar && <div className="hd-ar" dir="rtl"><p>{arForFont(h.ar, st.azFont ?? 'sch')}</p></div>}
             {st.hdAr && h.ar && <div className="azc-divider"><span>۞</span></div>}
             <div className="hd-ru">
               {h.in && <p className="hd-intro">{h.in}</p>}
