@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { attachMeter } from '../lib/micMeter'
-import { transcribe, transcribeLong } from '../lib/voiceApi'
+import { newRec, transcribe, transcribeLong } from '../lib/voiceApi'
+import { useVoiceAccess } from '../store/voiceAccess'
 import { useStore } from '../store/settings'
 import { setPlayback, setRecording } from '../lib/audioSession'
 import { quietAudio } from '../lib/tickSound'
@@ -19,6 +20,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
   const [busy, setBusy] = useState(false) // запись ушла на распознавание
   const [text, setText] = useState('')
   const [error, setError] = useState('')
+  const [paywall, setPaywall] = useState(false) // сервер отказал: бесплатные проверки кончились, нужна подписка или пакет
   const [levels, setLevels] = useState<number[]>(() => Array(BARS).fill(0))
   const [metered, setMetered] = useState(false)
   const ctl = useRef<{ stop: () => void } | null>(null)
@@ -34,7 +36,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
 
   const lng = () => forced ?? useStore.getState().hzVoiceLang
   const model = () => (useStore.getState().hzVoiceModel === 'turbo' ? 'whisper-large-v3-turbo' : 'whisper-large-v3')
-  const failText = (e: unknown) => ((e as Error & { limit?: boolean }).limit ? (e as Error).message + ' Можно переключиться на системное распознавание в настройках.' : 'Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.')
+  const failText = (e: unknown) => ((e as Error & { paywall?: boolean }).paywall ? (e as Error).message : (e as Error & { limit?: boolean }).limit ? (e as Error).message + ' Можно переключиться на системное распознавание в настройках.' : 'Облачное распознавание недоступно: ' + ((e as Error).message || 'нет связи') + '. Переключитесь на системное в настройках.')
 
   /** Части записи распознаются по мере готовности; в конце ждём все и склеиваем по порядку */
   const finishParts = useCallback(async (parts: Promise<string>[]) => {
@@ -45,7 +47,8 @@ export function useRecorder(forced?: 'ru' | 'ar') {
       const t = (await Promise.all(parts)).map((x) => x.trim()).filter(Boolean).join(' ')
       if (!t && !parts.length) setError('Запись слишком короткая — попробуйте ещё раз.')
       setText(t)
-    } catch (e) { setError(failText(e)) }
+      void useVoiceAccess.getState().load() // сколько проверок осталось
+    } catch (e) { if ((e as Error & { paywall?: boolean }).paywall) setPaywall(true); setError(failText(e)); void useVoiceAccess.getState().load() }
     finally { setBusy(false) }
   }, [cleanup])
 
@@ -63,6 +66,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
   const begin = useCallback((s: MediaStream, mime: string | undefined): string => {
     try {
       const parts: Promise<string>[] = []
+      const rec = newRec() // все части этой записи — одна проверка
       let cur: MediaRecorder | null = null
       let segStart = 0, quietSince = 0, stopping = false, closed = 0
       const opts = mime ? { mimeType: mime } : undefined
@@ -74,7 +78,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
           r.onstop = () => {
             const blob = new Blob(chunks, { type: r.mimeType || mime || 'audio/webm' })
             if (blob.size < 2000) res('')
-            else transcribe(blob, model(), lng()).then(res, rej)
+            else transcribe(blob, model(), lng(), rec).then(res, rej)
             closed++
             if (stopping && closed === parts.length) void finishParts(parts)
           }
@@ -109,7 +113,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
   }, [finishParts, finishWav])
 
   const start = useCallback(async (): Promise<boolean> => {
-    setText(''); setError(''); setLevels(Array(BARS).fill(0))
+    setText(''); setError(''); setPaywall(false); setLevels(Array(BARS).fill(0))
     let fail: unknown, step = 'микрофон'
     quietAudio()
     document.querySelectorAll('audio').forEach((a) => a.pause())
@@ -132,5 +136,5 @@ export function useRecorder(forced?: 'ru' | 'ar') {
   }, [begin, cleanup])
 
   const stop = useCallback(() => { ctl.current?.stop(); ctl.current = null }, [])
-  return { supported, listening, busy, text, error, levels, metered, start, stop }
+  return { supported, listening, busy, text, error, paywall, levels, metered, start, stop }
 }

@@ -7,6 +7,8 @@ import { applyAccepted, checkSpeech, flaggedWords, type CheckResult, type VoiceL
 import { judgeWords } from '../../lib/voiceApi'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
+import { isVoiceLocked, useVoiceAccess } from '../../store/voiceAccess'
+import { accessNote, VoicePaywall } from './VoicePaywall'
 import type { HifzItem } from '../../types/hifz'
 
 /** Эталон: сам хадис; с передатчиком — ещё и слова до слов Пророка ﷺ («Я слышал, как… сказал») */
@@ -28,8 +30,15 @@ export function VoiceCheck({ onText, quran }: { onText: (text: string) => void; 
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const lang = useStore((s) => (quran ? 'ar' : s.hzVoiceLang))
   const set = useStore((s) => s.set)
-  const { supported, listening, busy, text, error, levels, metered, start, stop } = useVoice(quran ? 'ar' : undefined)
+  const { supported, listening, busy, text, error, paywall, levels, metered, start, stop } = useVoice(quran ? 'ar' : undefined)
   const [done, setDone] = useState(false)
+  // платный доступ: когда бесплатные проверки кончились и ничего не куплено — кнопка с замочком, по нажатию окно с тарифами
+  const cloud = useStore((s) => s.hzVoiceEngine) === 'cloud'
+  const locked = useVoiceAccess((a) => cloud && isVoiceLocked(a))
+  const access = useVoiceAccess((a) => a.info)
+  const [pay, setPay] = useState(false)
+  useEffect(() => { if (cloud) void useVoiceAccess.getState().load() }, [cloud])
+  useEffect(() => { if (paywall) setPay(true) }, [paywall])
 
   // после остановки отдаём распознанное наружу
   useEffect(() => { if (done && !listening && !busy) onText(text) }, [done, listening, busy, text, onText])
@@ -40,6 +49,7 @@ export function VoiceCheck({ onText, quran }: { onText: (text: string) => void; 
 
   const toggle = () => {
     haptic.tap()
+    if (locked && !listening) { setPay(true); return }
     if (listening) { stop(); setDone(true) } else { setDone(false); onText(''); start() }
   }
   const heard = done && !listening && !busy && !!text
@@ -54,8 +64,9 @@ export function VoiceCheck({ onText, quran }: { onText: (text: string) => void; 
         <span className={'switch' + (withNarr ? ' on' : '')} />Проверить и передатчика
       </button>}
       {!listening && !done && <p className="hz-voice-hint">Говорите чётко и не спеша, в тихом месте, ближе к микрофону — так меньше ошибок распознавания.{lang === 'ar' ? ' По-арабски проверяются слова и пропуски; огласовки (харакаты) — если включено в настройках и распознавание их пишет.' : ''}</p>}
-      <button className={'hz-voice-btn' + (listening ? ' rec' : '')} onClick={toggle}>
-        <Icon id="mic" />{listening ? 'Закончить запись' : done ? 'Сказать ещё раз' : 'Сказать вслух'}
+      {cloud && !locked && <p className="hz-voice-left">{accessNote(access)}</p>}
+      <button className={'hz-voice-btn' + (listening ? ' rec' : '') + (locked ? ' locked' : '')} onClick={toggle}>
+        <Icon id={locked ? 'lock' : 'mic'} />{listening ? 'Закончить запись' : done ? 'Сказать ещё раз' : 'Сказать вслух'}
       </button>
       {listening && (
         <div className="hz-wave" aria-label="Идёт запись">
@@ -68,6 +79,7 @@ export function VoiceCheck({ onText, quran }: { onText: (text: string) => void; 
       {error && <p className="hz-voice-err">{error}</p>}
       {heard && <p className="hz-voice-ok"><Icon id="check" />Записано. Нажмите «Проверить себя» — увидите результат.</p>}
       {done && !listening && !busy && !text && !error && <p className="hz-voice-err">Ничего не услышал — попробуйте ещё раз.</p>}
+      {pay && <VoicePaywall onClose={() => setPay(false)} />}
     </div>
   )
 }

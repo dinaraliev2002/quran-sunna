@@ -4,6 +4,8 @@
 //     засчитать (перестановка «посланнику Его» / «Его посланнику», ошибка распознавания, при желании — близкий синоним).
 //  Арабский (lang=ar) может распознавать Gemini — он пишет с огласовками и не исправляет ошибки. Включается секретом VOICE_AR_ENGINE=gemini
 //  (нужен GEMINI_API_KEY); при сбое Gemini запись уходит в Groq.
+//  Платный доступ (VOICE_PAYWALL=1): 5 бесплатных проверок, затем пакет или подписка (таблицы qs_voice_access / qs_voice_rec, функции qs_voice_*).
+//  Проверка = одна запись (номер rec; у длинной записи несколько частей — списывается один раз). Не распознали — проверка возвращается.
 // Секреты (Edge Functions → Secrets): GROQ_API_KEY_APK, DEEPSEEK_API_KEY_APK (подходят и GROQ_API_KEY / DEEPSEEK_API_KEY). Verify JWT — выключить, как у остальных функций.
 // Защита от чужих запросов и перерасхода (таблица qs_voice_usage, функция qs_voice_add):
 //  • из Telegram приложение присылает initData — подпись проверяется ключом бота (BOT_TOKEN, тот же, что у quran-bot);
@@ -21,6 +23,10 @@ const GEMINI = pick('GEMINI_API_KEY')
 const TOKEN = Deno.env.get('BOT_TOKEN') ?? ''
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 const num = (n: string, d: number) => Number(Deno.env.get(n) ?? '') || d
+// Платный доступ: включается секретом VOICE_PAYWALL=1. Бесплатных проверок на человека — VOICE_FREE, по подписке в день — VOICE_SUB_DAY.
+const PAYWALL = (Deno.env.get('VOICE_PAYWALL') ?? '').trim() === '1'
+const FREE = num('VOICE_FREE', 5)
+const SUB_DAY = num('VOICE_SUB_DAY', 20)
 const LIMIT = { tg: num('VOICE_TG_SEC', 30 * 60), web: num('VOICE_WEB_SEC', 10 * 60), all: num('VOICE_ALL_SEC', 5 * 3600), judge: num('VOICE_JUDGE', 300) }
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, OPTIONS' }
 const MAX_AUDIO = 12 * 1024 * 1024 // ~12 МБ: хватает на несколько минут речи
@@ -64,6 +70,24 @@ async function used(key: string) {
 const add = (key: string, s: number, c: number, j: number) => db.rpc('qs_voice_add', { k: key, d: today(), s, c, j })
 
 class Limit extends Error {}
+class Paywall extends Error { constructor(m: string, public daycap = false) { super(m) } }
+
+/** Списать одну проверку за запись rec (все части одной записи — одна проверка). Нет права — Paywall */
+async function take(w: Who, rec: string) {
+  if (!PAYWALL) return
+  const { data, error } = await db.rpc('qs_voice_take', { k: w.key, r: rec, free_n: FREE, day_cap: SUB_DAY })
+  if (error) throw new Error('не удалось проверить доступ')
+  if (!data?.ok) throw new Paywall(data?.daycap ? 'На сегодня проверки по подписке закончились — продолжим завтра.' : 'Бесплатные проверки закончились. Оформите подписку или пакет проверок.', !!data?.daycap)
+}
+const refund = (w: Who, rec: string) => (PAYWALL ? db.rpc('qs_voice_refund', { k: w.key, r: rec }) : Promise.resolve())
+
+/** Что у человека осталось: бесплатные, пакет, подписка */
+async function access(w: Who) {
+  if (!PAYWALL) return { paywall: false, can: true }
+  const { data } = await db.rpc('qs_voice_status', { k: w.key, free_n: FREE, day_cap: SUB_DAY })
+  const a = data ?? { free_left: FREE, credits: 0, sub_until: null, vip: false, day_left: 0 }
+  return { paywall: true, ...a, can: !!(a.vip || a.free_left > 0 || a.credits > 0 || a.day_left > 0) }
+}
 /** Хватает ли лимита на распознавание */
 async function canListen(w: Who) {
   const [me, all] = await Promise.all([used(w.key), used('*')])
@@ -180,13 +204,18 @@ Deno.serve(async (req) => {
   try {
     if ((req.headers.get('content-type') ?? '').includes('multipart/form-data')) {
       const form = await req.formData()
-      return json(await transcribe(form, await who(req, String(form.get('init') ?? ''))))
+      const w = await who(req, String(form.get('init') ?? ''))
+      const rec = String(form.get('rec') ?? '') || crypto.randomUUID() // старые версии без номера записи: каждая часть — отдельная проверка
+      await take(w, rec)
+      try { return json(await transcribe(form, w)) } catch (e) { await refund(w, rec); throw e } // не распознали — проверку возвращаем
     }
     const b = await req.json()
     if (b.action === 'judge') return json(await judge(b, await who(req, String(b.init ?? ''))))
+    if (b.action === 'access') return json(await access(await who(req, String(b.init ?? ''))))
     if (b.action === 'status') return json({ groq: !!GROQ, deepseek: !!DEEPSEEK, gemini: !!GEMINI, arEngine: AR_GEMINI ? 'gemini' : 'groq' }) // подключены ли ключи (сами ключи не показываем)
     return json({ error: 'unknown action' }, 400)
   } catch (e) {
+    if (e instanceof Paywall) return json({ error: e.message, paywall: true, daycap: e.daycap }, 402)
     if (e instanceof Limit) return json({ error: e.message, limit: true }, 429)
     return json({ error: String((e as Error).message ?? e) }, 500)
   }
