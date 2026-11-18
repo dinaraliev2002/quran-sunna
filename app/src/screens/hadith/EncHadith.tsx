@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { ARABIC_FONTS } from '../../lib/azkar'
-import { arForFont } from '../../lib/arabicFont'
+
+import { arForFont, hadithFontCss } from '../../lib/arabicFont'
 import { HifzAddBtn } from '../hifz/parts'
 import { favEnc, loadEnc, loadTopics, shareBody, topicTitle, type EncHadith, type TopicsData } from '../../lib/hadith'
 import { haptic, shareText } from '../../lib/telegram'
@@ -35,7 +35,7 @@ export default function EncHadithView() {
   const quote = h ? (h.in ? h.ru.slice(h.in.length).trim() : h.ru) : ''
 
   return (
-    <div className="screen hdb hde" style={{ ['--hd-ar' as string]: st.hdArSize + 'px', ['--hd-tr' as string]: st.hdTrSize + 'px', ['--az-font' as string]: ARABIC_FONTS[st.azFont ?? 'sch'].css }}>
+    <div className="screen hdb hde" style={{ ['--hd-ar' as string]: st.hdArSize + 'px', ['--hd-tr' as string]: st.hdTrSize + 'px', ['--az-font' as string]: hadithFontCss(st.azFont ?? 'sch') }}>
       <div className="hdb-top">
         <button className="icon-btn" onClick={() => nav(-1)} aria-label="Назад"><Icon id="back" /></button>
         <div className="ttl"><b>Хадис</b><span>{topic ? `${topicTitle(topic)} · ${pos + 1} из ${topic.ids.length}` : 'Энциклопедия хадисов'}</span></div>

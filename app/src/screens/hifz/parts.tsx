@@ -2,8 +2,8 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { ARABIC_FONTS } from '../../lib/azkar'
-import { arForFont } from '../../lib/arabicFont'
+
+import { arForFont, hadithFontCss } from '../../lib/arabicFont'
 import { Sheet, SheetHead } from '../../components/ui'
 import { dayNum, hadithProgress, loadTimings, MAX_NEW, partsOf, setById, type HifzItem } from '../../lib/hifz'
 import { analyzeAr, arSpan, arTokens } from '../../lib/arabicSpeech'
@@ -68,7 +68,7 @@ export function HadithBody({ item, ar, marks }: { item: HifzItem; ar?: boolean; 
   let ak = 0
   const say = (m: CheckedWord) => <p className="hz-voice-say">{m.state === 'wrong' ? <>Вы сказали: <b dir="rtl">«{m.said}»</b></> : <>Это слово вы пропустили</>}</p>
   return (
-    <div className="hz-text" style={{ ['--az-font' as string]: ARABIC_FONTS[font].css, ['--hd-ar' as string]: size + 'px' }}>
+    <div className="hz-text" style={{ ['--az-font' as string]: hadithFontCss(font), ['--hd-ar' as string]: size + 'px' }}>
       {(ar || arMode) && item.ar.map((p, i) => {
         if (!arMode || !marks) return <p key={'a' + i} className="hz-ar" dir="rtl">{arForFont(p, font)}</p>
         const k0 = ak

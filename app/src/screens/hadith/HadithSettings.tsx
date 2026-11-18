@@ -27,6 +27,7 @@ export function HadithSettings({ onClose }: { onClose: () => void }) {
             </div>
           </>
         )}
+        <button className="srow2" onClick={() => st.set({ nrSrc: !st.nrSrc })}><div>Источники в окне передатчиков<small style={{ display: 'block', fontSize: 12, color: 'var(--text-2)', fontWeight: 600 }}>Строка внизу: откуда данные о цепочке и передатчиках</small></div><span className={'switch' + (st.nrSrc ? ' on' : '')} /></button>
         <div className="fld"><label>Размер перевода</label>
           <div className="stepper"><small>{st.hdTrSize}</small><button onClick={() => st.set({ hdTrSize: Math.max(13, st.hdTrSize - 1) })}>−</button><button onClick={() => st.set({ hdTrSize: Math.min(26, st.hdTrSize + 1) })}>+</button></div>
         </div>

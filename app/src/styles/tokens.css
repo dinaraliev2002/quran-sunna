@@ -5,6 +5,14 @@
   src: url("https://static.qurancdn.com/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2") format("woff2");
   font-display: swap;
 }
+/* Хафс для хадисов: без знаков «،» «؛» «؟» (шрифт рисует их кружком) и без цифр (рисует их в кружке, как номер аята) —
+   эти знаки браузер берёт из следующего шрифта (Scheherazade New) */
+@font-face {
+  font-family: "HafsText";
+  src: url("https://static.qurancdn.com/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2") format("woff2");
+  font-display: swap;
+  unicode-range: U+0000-060B, U+060D-061A, U+061C-061E, U+0620-065F, U+066A-10FFFF;
+}
 @font-face {
   font-family: "SurahNames";
   src: url("https://static.qurancdn.com/fonts/quran/surah-names/v2/sura_names.woff2") format("woff2");

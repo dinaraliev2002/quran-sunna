@@ -19,8 +19,8 @@ export const loadNarrators = async (ids: number[]) => {
   const parts = await Promise.all(shards.map((sh) => once<Record<string, Narrator>>(`data/narrators/n-${sh}.json`)))
   return Object.assign({}, ...parts) as Record<string, Narrator>
 }
-export const AUTHOR: Record<string, string> = { bukhari: 'аль-Бухари', muslim: 'Муслима', tirmidhi: 'ат-Тирмизи', abudawud: 'Абу Дауда', nasai: 'ан-Насаи', ibnmajah: 'Ибн Маджи', darimi: 'ад-Дарими', malik: 'Малика' }
-export const BOOK: Record<string, string> = { bukhari: '«Сахих» аль-Бухари', muslim: '«Сахих» Муслима', tirmidhi: '«Сунан» ат-Тирмизи', abudawud: '«Сунан» Абу Дауда', nasai: '«Сунан» ан-Насаи', ibnmajah: '«Сунан» Ибн Маджи', darimi: '«Сунан» ад-Дарими', malik: '«Муватта» Малика' }
+export const AUTHOR: Record<string, string> = { bukhari: 'аль-Бухари', sharkasi: 'аль-Бухари', muslim: 'Муслима', tirmidhi: 'ат-Тирмизи', abudawud: 'Абу Дауда', nasai: 'ан-Насаи', ibnmajah: 'Ибн Маджи', darimi: 'ад-Дарими', malik: 'Малика' }
+export const BOOK: Record<string, string> = { bukhari: '«Сахих» аль-Бухари', sharkasi: '«Сахих» аль-Бухари', muslim: '«Сахих» Муслима', tirmidhi: '«Сунан» ат-Тирмизи', abudawud: '«Сунан» Абу Дауда', nasai: '«Сунан» ан-Насаи', ibnmajah: '«Сунан» Ибн Маджи', darimi: '«Сунан» ад-Дарими', malik: '«Муватта» Малика' }
 
 // 12 поколений по «Такрибу» Ибн Хаджара
 export const TABAQA: Record<number, string> = {

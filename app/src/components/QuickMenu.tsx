@@ -22,6 +22,10 @@ const ITEMS: Item[] = [
 
 /** Все остальные известные разделы (там язычка нет). Любой другой адрес роутер показывает как главную — значит, язычок нужен */
 const INNER = /^\/(read|stories|glossary|sajda|settings|reminders|words|meaning|downloads|profile|plan|notifications|hifz|names\/|azkar\/|hadith\/)/
+/** Внутри «Хадисов» и «Азкаров» — экраны выбора (сборник, книги, главы, темы, группа азкаров): язычок есть.
+ *  На самих карточках хадисов (адрес с ?i=), в «Энциклопедии» и на карточках азкаров — нет */
+const LISTS = /^\/(hadith\/c\/[^/]+(\/g\/[^/]+)?|hadith\/c\/[^/]+\/\d+|hadith\/t\/[^/]+|azkar\/cat\/[^/]+)\/?$/
+const hasTab = (path: string, search: string) => !INNER.test(path) || (LISTS.test(path) && !new URLSearchParams(search).has('i'))
 
 export function QuickMenu() {
   const loc = useLocation()
@@ -42,14 +46,27 @@ export function QuickMenu() {
   // пока экран прокручивают — язычок прячется (не мешает шкале джузов и тексту), остановилась прокрутка — плавно возвращается.
   // scroll не всплывает, поэтому слушаем в фазе перехвата: ловим прокрутку любого контейнера на странице
   const [moving, setMoving] = useState(false)
+  // прячемся только от прокрутки пальцем/колесом: экраны при открытии сами восстанавливают прокрутку,
+  // и раньше язычок от этого мигал (появлялся, исчезал и появлялся снова)
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | undefined
-    const on = () => { setMoving(true); clearTimeout(t); t = setTimeout(() => setMoving(false), 1200) } // шкала джузов гаснет через 1,1 с после остановки — язычок возвращается чуть позже неё
-    addEventListener('scroll', on, { capture: true, passive: true })
-    return () => { removeEventListener('scroll', on, { capture: true }); clearTimeout(t) }
+    let touched = 0
+    const input = () => { touched = Date.now() }
+    const on = () => {
+      if (Date.now() - touched > 1500) return
+      setMoving(true); clearTimeout(t); t = setTimeout(() => setMoving(false), 1200) // шкала джузов гаснет через 1,1 с после остановки — язычок возвращается чуть позже неё
+    }
+    const opt = { capture: true, passive: true }
+    addEventListener('scroll', on, opt)
+    for (const ev of ['touchstart', 'touchmove', 'wheel', 'pointerdown', 'keydown']) addEventListener(ev, input, opt)
+    return () => {
+      removeEventListener('scroll', on, { capture: true })
+      for (const ev of ['touchstart', 'touchmove', 'wheel', 'pointerdown', 'keydown']) removeEventListener(ev, input, { capture: true })
+      clearTimeout(t)
+    }
   }, [])
   // язычок виден (на экране без него — INNER — исключение снимаем) и панель закрыта: освобождаем полосу у края от системного жеста «назад»
-  const shown = !INNER.test(loc.pathname)
+  const shown = hasTab(loc.pathname, loc.search)
   useEffect(() => {
     if (!shown) { excludeRightEdge(0, 0); return }
     const apply = () => excludeRightEdge(Math.max(0, innerHeight * ((liveY ?? tabY) / 100) - 90), 180)
@@ -59,7 +76,7 @@ export function QuickMenu() {
   }, [shown, tabY, liveY])
 
   // Telegram при запуске дописывает в адрес свои параметры (#tgWebAppData=…): роутер видит это как «неизвестный путь» и показывает главную, а язычок раньше пропадал
-  if (INNER.test(loc.pathname)) return null
+  if (!shown) return null
   const avail = ITEMS.filter((i) => i.show !== false)
   const items = avail.filter((i) => !hidden.includes(i.to) || i.to === '/settings')
   const close = () => { setOpen(false); setEdit(false) }

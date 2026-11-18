@@ -234,12 +234,18 @@ def words(s: str):
 
 
 def load_ours():
+    """Основная версия: номер хадиса → запись (+ где она лежит: «книга:позиция» — по этому ключу хранятся цепочки)"""
     H = {}
     for f in glob.glob(os.path.join(ROOT, 'bukhari', '*.json')):
-        for it in json.load(open(f, encoding='utf-8'))['items']:
+        n = os.path.splitext(os.path.basename(f))[0]
+        for k, it in enumerate(json.load(open(f, encoding='utf-8'))['items']):
             if it.get('h') and it['h'] not in H:
-                H[it['h']] = it
+                H[it['h']] = dict(it, loc=f'{n}:{k}')
     return H
+
+
+# арабский текст хадисов, которых нет (или нет арабского) в основной версии — сверен вручную, см. sharkasi-ar-extra.json
+EXTRA = json.load(open(os.path.join(os.path.dirname(__file__), 'sharkasi-ar-extra.json'), encoding='utf-8'))
 
 
 def main(pdf):
@@ -259,6 +265,9 @@ def main(pdf):
 
     books, total, with_ar, bad, empty_ru = [], 0, 0, [], 0
     state = {'seen': set(), 'last': 0}
+    chains_path = os.path.join(ROOT, '..', 'narrators', 'chains-bukhari.json')
+    main_chains = json.load(open(chains_path, encoding='utf-8'))
+    chains = {}
     parsed, renum = [], []
     for k, (no, name, p0) in enumerate(toc):
         p1 = toc[k + 1][2] if k + 1 < len(toc) else 10**6
@@ -274,7 +283,7 @@ def main(pdf):
             a = words(' '.join(it['ru']))
             o = ours.get(it['h'])
             sim = (lambda ob: len(a & words(' '.join(ob['ru']))) / max(1, min(len(a), len(words(' '.join(ob['ru'])))))) if True else None
-            if o and len(a) >= 4 and sim(o) >= 0.2:
+            if (o and len(a) >= 4 and sim(o) >= 0.2) or it['h'] in EXTRA:
                 continue
             best, bs = None, 0.3
             for d in range(-10, 11):
@@ -300,14 +309,20 @@ def main(pdf):
                 first = first or it['h']
                 last = it['h']
                 o = ours.get(it['h'])
-                if o and o.get('ar'):
+                if o and o.get('ar') and it['h'] not in EXTRA:
                     a, b = words(' '.join(ru)), words(' '.join(o['ru']))
                     sim = len(a & b) / max(1, min(len(a), len(b)))
                     if sim >= 0.2 or min(len(a), len(b)) < 4:
                         rec['ar'] = o['ar']
                         with_ar += 1
+                        # цепочка передатчиков — та же, что у этого хадиса в основной версии
+                        if o['loc'] in main_chains:
+                            chains[f'{no}:{len(out)}'] = main_chains[o['loc']]
                     else:
                         bad.append((it['h'], round(sim, 2)))
+                elif it['h'] in EXTRA:
+                    rec['ar'] = [EXTRA[it['h']]]
+                    with_ar += 1
                 if not ru:
                     empty_ru += 1
             out.append(rec)
@@ -325,6 +340,8 @@ def main(pdf):
     i = next(j for j, c in enumerate(idx['collections']) if c['id'] == 'bukhari')
     idx['collections'].insert(i + 1, col)
     json.dump(idx, open(idx_path, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+    json.dump(chains, open(os.path.join(ROOT, '..', 'narrators', 'chains-sharkasi.json'), 'w', encoding='utf-8'), separators=(',', ':'))
+    print(f'Цепочек передатчиков: {len(chains)}')
     print(f'\nВсего хадисов {total}, с арабским {with_ar}, не совпали по словам {len(bad)}, пустых {empty_ru}')
     print('не совпали:', bad[:60])
     print('перенумеровано:', renum)

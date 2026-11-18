@@ -98,6 +98,7 @@ const DEFAULT_SETTINGS: Settings = {
   hzAr: false,
   hzVoicePass: 90,
   hdBukhari: 'main',
+  nrSrc: false,
   hzVoiceLang: 'ru',
   hzHarakat: true,
   hzVoiceNarr: false,

@@ -10,7 +10,7 @@ export function useNarratorLink(cid: string, bn: number, i: number): NarratorLin
     let alive = true
     const k = `${bn}:${i}`
     setLink(undefined)
-    if (cid === 'bukhari' || cid === 'muslim') loadChains(cid).then((c) => alive && setLink(c[k] ? { chain: c[k] } : null))
+    if (cid === 'bukhari' || cid === 'sharkasi' || cid === 'muslim') loadChains(cid).then((c) => alive && setLink(c[k] ? { chain: c[k] } : null))
     else if (cid === 'riyad' || cid === 'nawawi') Promise.all([loadSahabi(cid), loadLinks(cid)]).then(([s, l]) => {
       if (!alive) return
       const v: NonNullable<NarratorLink> = {}

@@ -4,7 +4,7 @@ import { Icon } from '../../components/Icon'
 import { Tour } from '../../components/Tour'
 import { TabBar } from '../../components/ui'
 import { plural } from '../../lib/plural'
-import { ARABIC_FONTS } from '../../lib/azkar'
+import { hadithFontCss } from '../../lib/arabicFont'
 import { HifzAddBtn } from '../hifz/parts'
 import { favBook, loadBook, loadHadithIndex, shareBody, type HBookData, type HIndex } from '../../lib/hadith'
 import { haptic, shareText } from '../../lib/telegram'
@@ -97,7 +97,7 @@ export default function Book() {
   const sub = single ? col?.author : [col?.name, meta?.range && `хадисы ${meta.range}`].filter(Boolean).join(' · ')
 
   return (
-    <div className="hdk" style={{ ['--hd-ar' as string]: st.hdArSize + 'px', ['--hd-tr' as string]: st.hdTrSize + 'px', ['--az-font' as string]: ARABIC_FONTS[st.azFont ?? 'sch'].css }}>
+    <div className="hdk" style={{ ['--hd-ar' as string]: st.hdArSize + 'px', ['--hd-tr' as string]: st.hdTrSize + 'px', ['--az-font' as string]: hadithFontCss(st.azFont ?? 'sch') }}>
       <div className="azc-top">
         <button className="icon-btn" onClick={() => nav(-1)} aria-label="Назад"><Icon id="back" /></button>
         <div className="ttl"><b>{title}</b><span>{sub}</span></div>
@@ -121,6 +121,9 @@ export default function Book() {
           // хадис без перевода — арабский текст показываем всегда
           const showAr = (st.hdAr || it.ru.length === 0) && it.ar.length > 0
           const preAr = !!pre && st.hdAr && pre.ar.length > 0
+          // первый хадис главы (или вступление главы без хадиса) — название главы крупно; следующие хадисы главы — мелкой строкой
+          const firstOfChapter = byBooks && items[(card.pre ?? i) - 1]?.t !== it.t
+          const bigHead = byBooks && (!!pre || firstOfChapter || !isHadith)
           return (
             <section key={ci} className="azc-card">
               <article className="hdk-body">
@@ -137,14 +140,14 @@ export default function Book() {
                     <button onClick={() => shareText(shareBody(isHadith ? '' : t, it.ru.join('\n\n'), ref))} aria-label="Поделиться"><Icon id="share" /></button>
                   </div>
                 </div>
-                {pre ? (
-                  // вступление главы: название, аяты и слова аль-Бухари — затем сам хадис
+                {bigHead ? (
+                  // название главы; вступление главы (аяты, слова аль-Бухари) — затем сам хадис
                   <>
-                    <div className={'hd-bab-h' + (t.length > 160 ? ' long' : '')}><small>{no}</small>{t ? <b>{t}</b> : <b className="hd-untitled">Без названия</b>}</div>
-                    {preAr && <ArParas paras={pre.ar} />}
-                    {preAr && pre.ru.length > 0 && <div className="azc-divider"><span>۞</span></div>}
-                    {pre.ru.length > 0 && <RuParas paras={pre.ru} hadith={false} />}
-                    <div className="hd-sub-no">Хадис № {it.h}</div>
+                    <BabHead no={isHadith ? no : ''} t={t} />
+                    {pre && preAr && <ArParas paras={pre.ar} />}
+                    {pre && preAr && pre.ru.length > 0 && <div className="azc-divider"><span>۞</span></div>}
+                    {pre && pre.ru.length > 0 && <RuParas paras={pre.ru} hadith={false} />}
+                    {pre && <div className="hd-sub-no">Хадис № {it.h}</div>}
                   </>
                 ) : isHadith ? (t || no) && <div className="hd-bab">{no}{no && ' · '}{t || <span className="hd-untitled">без названия</span>}</div> : t && <h3 className="hd-title">{t}</h3>}
                 {showAr && <ArParas paras={it.ar} />}
@@ -190,6 +193,23 @@ export default function Book() {
         { el: '[aria-label="Настройки текста"]', title: 'Настройки текста', text: 'Показать арабский текст, выбрать шрифт и размер.' },
         { v: 1, title: 'Цепочка передатчиков', text: 'У хадисов аль-Бухари, Муслима, ан-Навави и «Рияд ас-Салихин» есть кнопка «Цепочка» (или «Сподвижник»): имена передатчиков, оценка и слова учёных о каждом.' },
       ]} />
+    </div>
+  )
+}
+
+/** Название главы на карточке. Длинное (у аль-Бухари в название главы входят аяты) — сокращено, полностью — по нажатию */
+function BabHead({ no, t }: { no: string; t: string }) {
+  const [full, setFull] = useState(false)
+  const LIMIT = 150
+  const long = t.length > LIMIT + 30
+  // режем по границе слова, предпочтительно перед цитатой аята
+  const cut = long ? t.slice(0, LIMIT).replace(/\s+\S*$/, '').replace(/[\s,:;«(—–-]+$/, '') + '…' : t
+  return (
+    <div className="hd-bab-h">
+      {no && <small>{no}</small>}
+      {/* глава без названия (у аль-Бухари бывает просто «باب») — только номер */}
+      {t && <b>{full ? t : cut}</b>}
+      {long && <button className="hd-bab-more" onClick={() => setFull(!full)}>{full ? 'Свернуть' : 'Название полностью'}</button>}
     </div>
   )
 }

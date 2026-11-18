@@ -1842,4 +1842,6 @@ div.srow { cursor: pointer; }
 .hd-sub-no { margin: 18px 0 10px; padding-top: 14px; border-top: 1px solid var(--line, rgba(127,127,127,.2)); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--gold-ink); }
 /* глава без названия — так в самом «Сахихе»: у аль-Бухари бывает «باب» без заголовка */
 .hd-untitled { font-weight: 600 !important; font-style: italic; color: var(--text-2) !important; }
-.hd-bab-h.long b { font-size: 15.5px; font-weight: 700; line-height: 1.45; }
+.hd-bab-more { display: inline-block; margin-top: 6px; padding: 0; border: 0; background: none; font-size: 13px; font-weight: 700; color: var(--gold-ink); }
+/* список глав: длинные названия — не больше трёх строк */
+.hd-book .t b { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

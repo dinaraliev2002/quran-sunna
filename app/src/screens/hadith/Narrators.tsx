@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { useStore } from '../../store/settings'
 import { Icon } from '../../components/Icon'
 import { Sheet, SheetHead } from '../../components/ui'
 import { plural } from '../../lib/plural'
@@ -97,7 +98,7 @@ export function ChainButton({ cid, bn, i, label }: { cid: string; bn: number; i:
 /** Пометка под текстом, если цепочки для хадиса нет (только Бухари и Муслим) */
 export function ChainNote({ cid, bn, i }: { cid: string; bn: number; i: number }) {
   const link = useNarratorLink(cid, bn, i)
-  return link === null && (cid === 'bukhari' || cid === 'muslim') ? <p className="nr-none">Цепочка передатчиков для этого хадиса не указана.</p> : null
+  return link === null && (cid === 'bukhari' || cid === 'sharkasi' || cid === 'muslim') ? <p className="nr-none">Цепочка передатчиков для этого хадиса не указана.</p> : null
 }
 
 function SahabiSheet({ id, sure, cid, onClose }: { id: number; sure: boolean; cid: string; onClose: () => void }) {
@@ -137,8 +138,9 @@ function WhyNote({ q, children }: { q: string; children: string }) {
 }
 
 function ChainSheet({ chain, src, cid, bn, i, label, onClose }: { chain: number[]; src?: [string, string]; cid: string; bn: number; i: number; label: string; onClose: () => void }) {
+  const showSrc = useStore((s) => s.nrSrc) // строка об источниках данных — по умолчанию скрыта (включается в настройках текста)
   const from = src ? src[0] : cid
-  const sahih = from === 'bukhari' || from === 'muslim'
+  const sahih = from === 'bukhari' || from === 'sharkasi' || from === 'muslim'
   const [data, setData] = useState<Record<string, Narrator> | null>(null)
   const [rich, setRich] = useState<Rich | null>(null)
   const [sel, setSel] = useState<number | null>(null)
@@ -214,13 +216,14 @@ function ChainSheet({ chain, src, cid, bn, i, label, onClose }: { chain: number[
           )
         })}
         {data && <div className="nr-row end"><span className="nr-n">ﷺ</span><span className="t"><b>Пророк Мухаммад ﷺ</b></span></div>}
-        <p className="nr-src">Данные о передатчиках — проект «الجامع» (Hadith Knowledge Graph, Emad Jumaah, CC BY 4.0) и «Такриб ат-Тахзиб» Ибн Хаджара.</p>
+        {showSrc && <p className="nr-src">Данные о передатчиках — проект «الجامع» (Hadith Knowledge Graph, Emad Jumaah, CC BY 4.0) и «Такриб ат-Тахзиб» Ибн Хаджара.</p>}
       </div>
     </Sheet>
   )
 }
 
 function CardSheet({ nr, rich, note, onBack, onClose }: { nr: Narrator; rich?: RichNarrator; note?: string; onBack?: () => void; onClose: () => void }) {
+  const showSrc = useStore((s) => s.nrSrc)
   const tab = rich?.tab ?? nr.t
   return (
     <Sheet onClose={onClose} tall>
@@ -275,7 +278,7 @@ function CardSheet({ nr, rich, note, onBack, onClose }: { nr: Narrator; rich?: R
                 <p><Rt text={q.ru} /></p>
               </div>
             ))}
-            <p className="nr-src">Русский перевод выполнен с помощью ИИ и требует проверки. Сведения и высказывания — «الجامع» (Hadith Knowledge Graph, CC BY 4.0) и «Такриб ат-Тахзиб» Ибн Хаджара.</p>
+            {showSrc && <p className="nr-src">Русский перевод выполнен с помощью ИИ и требует проверки. Сведения и высказывания — «الجامع» (Hadith Knowledge Graph, CC BY 4.0) и «Такриб ат-Тахзиб» Ибн Хаджара.</p>}
           </>
         ) : (
           <>
@@ -306,7 +309,7 @@ function CardSheet({ nr, rich, note, onBack, onClose }: { nr: Narrator; rich?: R
                 {(nr.nq ?? 0) > nr.c.length ? <p className="nr-src">Показаны {nr.c.length} из {nr.nq} высказываний, имеющихся в источнике.</p> : null}
               </>
             )}
-            <p className="nr-src">Источник — «الجامع» (Hadith Knowledge Graph), CC BY 4.0, и «Такриб ат-Тахзиб». Поколение взято из «Такриба», а где его найти не удалось, — из базы (возможны расхождения на одно поколение).</p>
+            {showSrc && <p className="nr-src">Источник — «الجامع» (Hadith Knowledge Graph), CC BY 4.0, и «Такриб ат-Тахзиб». Поколение взято из «Такриба», а где его найти не удалось, — из базы (возможны расхождения на одно поколение).</p>}
           </>
         )}
       </div>
