@@ -97,7 +97,7 @@ async function canListen(w: Who) {
 
 /** Арабский распознаёт Gemini, если включён секретом VOICE_AR_ENGINE=gemini (иначе, как раньше, Groq). Модель — секрет GEMINI_MODEL. */
 const GEM_MODEL = Deno.env.get('GEMINI_MODEL')?.trim() || 'gemini-3.8-flash'
-const GEM_THINK = Deno.env.get('VOICE_GEM_THINK')?.trim() || '' // уровень «размышлений» (low/…); пусто — по умолчанию модели
+const GEM_THINK = Deno.env.get('VOICE_GEM_THINK')?.trim() || 'low' // уровень «размышлений»: low — без трат (при стандартных размышлениях проверка в 9 раз дороже и втрое медленнее, точность та же)
 const AR_GEMINI = (Deno.env.get('VOICE_AR_ENGINE') ?? '').trim() === 'gemini' && !!GEMINI
 const GEM_PROMPT = [
   'Transcribe this Arabic speech exactly as it was pronounced, word by word.',
