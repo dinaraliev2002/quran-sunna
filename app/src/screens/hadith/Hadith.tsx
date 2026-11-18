@@ -5,7 +5,7 @@ import { Tour } from '../../components/Tour'
 import { TabBar } from '../../components/ui'
 import { plural } from '../../lib/plural'
 import { snippet } from '../../lib/azkar'
-import { loadBook, loadHadithIndex, loadTopics, TOPIC_ICON, topicTitle, type HIndex, type TopicsData } from '../../lib/hadith'
+import { loadBook, loadHadithIndex, loadTopics, TOPIC_ICON, topicTitle, visibleCollections, type HIndex, type TopicsData } from '../../lib/hadith'
 import { useStore } from '../../store/settings'
 import { splitTitle } from './HadithText'
 
@@ -19,6 +19,8 @@ export default function Hadith() {
   const [tab, setTabState] = useState<Tab>(memory.tab)
   const [q, setQ] = useState<string | null>(null)
   const hfav = useStore((s) => s.hfav)
+  const ver = useStore((s) => s.hdBukhari)
+  const cols = useMemo(() => (idx ? visibleCollections(idx.collections, ver) : []), [idx, ver])
   const last = useStore((s) => s.hadithLast)
   const screen = useRef<HTMLDivElement>(null)
   const setTab = (t: Tab) => { memory.tab = t; memory.top = 0; setTabState(t); if (screen.current) screen.current.scrollTop = 0 }
@@ -29,10 +31,10 @@ export default function Hadith() {
   const query = (q ?? '').trim().toLowerCase()
   const found = useMemo(() => {
     if (!query || query.length < 2 || !topics || !idx) return null
-    const books = idx.collections.flatMap((c) => c.books.filter((b) => b.title.toLowerCase().includes(query)).map((b) => ({ c, b })))
+    const books = cols.flatMap((c) => c.books.filter((b) => b.title.toLowerCase().includes(query)).map((b) => ({ c, b })))
     const hadiths = Object.entries(topics.hadiths).filter(([, [, t]]) => t.toLowerCase().includes(query)).slice(0, 150)
     return { books, hadiths }
-  }, [query, topics, idx])
+  }, [query, topics, idx, cols])
 
   const lastCol = last && idx?.collections.find((c) => c.id === last.c)
   const lastBook = lastCol?.books.find((b) => b.n === last!.n)
@@ -96,7 +98,7 @@ export default function Hadith() {
                 <Icon id="right" className="icon chev-s" />
               </button>
               <div className="hd-cols">
-              {idx.collections.map((c, k) => (
+              {cols.map((c, k) => (
                 <button key={c.id} className={'hd-col' + (k === 0 ? ' first' : '')} onClick={() => nav(`/hadith/c/${c.id}`)}>
                   <div className="hd-col-ar">{c.ar}</div>
                   <div className="t">
@@ -107,7 +109,7 @@ export default function Hadith() {
                   <div className="hd-col-stat">
                     <span><b>{c.hadiths.toLocaleString('ru-RU')}</b> {plural(c.hadiths, 'хадис', 'хадиса', 'хадисов')}</span>
                     {c.books.length > 1 && (() => {
-                      const byBooks = c.id === 'bukhari' || c.id === 'muslim'
+                      const byBooks = c.id === 'bukhari' || c.id === 'sharkasi' || c.id === 'muslim'
                       const k = byBooks ? c.books.filter((b) => !b.grp && !b.intro).length + c.groups.length : c.books.filter((b) => !b.intro).length
                       return <span><b>{k}</b> {byBooks ? plural(k, 'книга', 'книги', 'книг') : plural(k, 'глава', 'главы', 'глав')}</span>
                     })()}

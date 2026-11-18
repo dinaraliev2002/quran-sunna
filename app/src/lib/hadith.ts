@@ -7,7 +7,7 @@ import type { HBook, HGroup, HCollection, HIndex, HItem, HBookData, Topic, Topic
 export type { HBook, HGroup, HCollection, HIndex, HItem, HBookData, Topic, TopicsData, EncHadith }
 
 // версия данных хадисов — увеличиваем при пересборке, чтобы телефоны не держали старую копию
-const HADITH_VERSION = 3
+const HADITH_VERSION = 4
 const cache = new Map<string, Promise<unknown>>()
 function load<T>(path: string): Promise<T> {
   if (!cache.has(path)) {
@@ -17,6 +17,10 @@ function load<T>(path: string): Promise<T> {
   }
   return cache.get(path) as Promise<T>
 }
+
+/** Какие сборники показывать: из двух версий «Сахиха» аль-Бухари — выбранную в настройках */
+export const BUKHARI_VERSIONS = { main: 'bukhari', sharkasi: 'sharkasi' } as const
+export const visibleCollections = (cols: HCollection[], pref: 'main' | 'sharkasi') => cols.filter((c) => c.id !== (pref === 'main' ? 'sharkasi' : 'bukhari'))
 
 export const loadHadithIndex = () => load<HIndex>('index.json')
 export const loadBook = (cid: string, n: number) => load<HBookData>(`${cid}/${n}.json`)

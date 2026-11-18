@@ -28,7 +28,7 @@ export default function Collection() {
   const group = grp ? c?.groups.find((x) => x.g === grp) : null
   const books = c ? (grp ? c.books.filter((b) => b.grp === grp) : c.books) : []
   const lastBook = last?.c === cid ? c?.books.find((b) => b.n === last.n) : null
-  const isBookUnit = cid === 'bukhari' || cid === 'muslim'
+  const isBookUnit = cid === 'bukhari' || cid === 'sharkasi' || cid === 'muslim'
   const unit: [string, string, string] = isBookUnit && !grp ? ['книга', 'книги', 'книг'] : ['глава', 'главы', 'глав']
   const topCount = c ? (grp ? books.length : c.books.filter((b) => !b.grp).length + c.groups.length) : 0
 

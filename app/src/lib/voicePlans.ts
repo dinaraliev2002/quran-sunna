@@ -20,5 +20,5 @@ export const VOICE_SUB_DAY = 20 // проверок в день по подпи�
 export const VOICE_PLANS: VoicePlan[] = [
   { id: 'pack50', title: '50 проверок', desc: 'Без срока: тратите, когда удобно', stars: 49, checks: 50 },
   { id: 'pack150', title: '150 проверок', desc: 'Выгоднее: ≈ 0,66 ⭐ за проверку', stars: 99, checks: 150 },
-  { id: 'month', title: 'Подписка на месяц', desc: `До ${VOICE_SUB_DAY} проверок в день`, stars: 149, days: 30 },
+  { id: 'month', title: 'Доступ на месяц', desc: `До ${VOICE_SUB_DAY} проверок в день, 30 дней`, stars: 149, days: 30 },
 ]

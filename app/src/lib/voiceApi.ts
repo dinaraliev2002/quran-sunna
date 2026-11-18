@@ -27,6 +27,16 @@ export async function transcribeLong(blob: Blob, model?: string, lang: 'ru' | 'a
   return texts.map((t) => t.trim()).filter(Boolean).join(' ')
 }
 
+/** Ссылка на счёт в звёздах Telegram за тариф (только внутри Telegram: сервер проверяет подпись) */
+export async function createInvoice(plan: string): Promise<string> {
+  const r = await fetch('https://ynqbnqkihojqlawhhiqg.supabase.co/functions/v1/quran-bot', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'invoice', plan, initData: tgInitData() }),
+  })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok || !j.url) throw new Error(j.error || `Ошибка ${r.status}`)
+  return String(j.url)
+}
+
 /** Номер новой записи */
 export const newRec = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36))
 

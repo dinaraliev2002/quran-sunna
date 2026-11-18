@@ -10,12 +10,12 @@ import { useProfile } from '../lib/profile'
 import { RECITERS } from '../store/player'
 import { ReciterList } from '../components/ReciterList'
 import { NewsHistory } from '../components/WhatsNew'
-import { useStore, type ThemePref, type Translation } from '../store/settings'
+import { useStore, type ThemePref } from '../store/settings'
+import { SourcesSheet, TRANSLATIONS, BUKHARI } from './SourcesSheet'
 
-const TRANSLATIONS: Record<Translation, string> = { ku: 'Эльмир Кулиев', aa: 'Абу Адель' }
 const THEMES: Record<ThemePref, string> = { auto: 'Как в Telegram', light: 'Светлая', dark: 'Тёмная' }
 
-type Picker = null | 'tr' | 'rec' | 'theme' | 'font' | 'sources' | 'news'
+type Picker = null | 'src' | 'rec' | 'theme' | 'font' | 'sources' | 'news'
 
 export default function Settings() {
   const st = useStore()
@@ -51,8 +51,7 @@ export default function Settings() {
 
       <div className="group-t">Чтение</div>
       <div className="group">
-        <button className="sitem" onClick={() => setOpen('tr')}><span className="si" style={{ background: '#13704B' }}><Icon id="book" /></span><span className="t">Перевод</span><span className="v">{TRANSLATIONS[st.translation]}</span><Icon id="right" className="icon chev" /></button>
-        <div className="sitem"><span className="si" style={{ background: '#2F7FD8' }}><Icon id="scroll" /></span><span className="t">Тафсир</span><span className="v">ас-Саади</span></div>
+        <button className="sitem" onClick={() => setOpen('src')}><span className="si" style={{ background: '#13704B' }}><Icon id="book" /></span><span className="t">Переводы и источники</span><span className="v">{TRANSLATIONS[st.translation]} · {BUKHARI[st.hdBukhari]}</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => setOpen('font')}><span className="si" style={{ background: '#9B59D0' }}><Icon id="font" /></span><span className="t">Размер шрифта</span><span className="v">{st.arSize} / {st.trSize}</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => st.set({ termHl: !st.termHl })}><span className="si" style={{ background: '#C9A24B' }}><Icon id="scroll" /></span><span className="t">Подсветка терминов</span><span className={'switch' + (st.termHl ? ' on' : '')} /></button>
         <button className="sitem" onClick={() => st.set({ tajweed: !st.tajweed })}><span className="si" style={{ background: '#E0663A' }}><Icon id="eye" /></span><span className="t">Цветной таджвид</span><span className={'switch' + (st.tajweed ? ' on' : '')} /></button>
@@ -105,7 +104,7 @@ export default function Settings() {
       </div>
       <div className="ver">Коран и Сунна · версия 0.1<BuildInfo /></div>
 
-      {open === 'tr' && <Choice title="Перевод смыслов" items={TRANSLATIONS} value={st.translation} onPick={(v) => st.set({ translation: v })} />}
+      {open === 'src' && <SourcesSheet onClose={close} />}
       {playerOpen && <PlayerSettings onClose={() => setPlayerOpen(false)} />}
       {hzOpen && (
         <Sheet onClose={() => setHzOpen(false)}>
@@ -168,6 +167,7 @@ export default function Settings() {
             <p>• Грамматический разбор слов (корни, формы, части речи) — Quranic Arabic Corpus (Kais Dukes), <a href="https://corpus.quran.com" target="_blank" rel="noreferrer">corpus.quran.com</a>; открытая копия с исправленными леммами — github.com/mustafa0x/quran-morphology. На нём построены «Слова Корана», разбор слова и частые слова.</p>
             <p>• Роль слова в предложении (ирааб) — The Quranic Treebank, <a href="https://github.com/NoorBayan/Quranic" target="_blank" rel="noreferrer">github.com/NoorBayan/Quranic</a> (лицензия MIT); русские названия ролей — наши.</p>
             <p>• «Понятия» (пророки, народы, места, животные, растения) — онтология Quranic Arabic Corpus, <a href="https://corpus.quran.com/ontology.jsp" target="_blank" rel="noreferrer">corpus.quran.com</a>; «Темы» — тематический указатель аятов Quranic Universal Library, <a href="https://qul.tarteel.ai" target="_blank" rel="noreferrer">qul.tarteel.ai</a>. Русские названия тем и понятий переведены с английского с помощью ИИ.</p>
+            <p>• Вторая версия «Сахиха» аль-Бухари — «Достоверный сборник», перевод Абу Ислама аш-Шаркаси (издание 2026 года), используется с письменного разрешения переводчика.</p>
             <p>• Хадисы: сборники «40 хадисов ан-Навави», «Рияд ас-Салихин» и «Сахих аль-Бухари» (арабский текст и перевод) — isnad.link; темы с объяснениями — «Энциклопедия переведённых пророческих хадисов» HadeethEnc.com.</p>
             <p>• 99 имён Аллаха: список и толкования — Са‘ид аль-Кахтани, «Толкование прекрасных имён Аллаха в свете Корана и Сунны» (пер. Э. Р. Кулиева), текст — «Библиотека Мусульманина», <a href="https://kitab.center/sharh-asma-qahtani" target="_blank" rel="noreferrer">kitab.center/sharh-asma-qahtani</a>.</p>
           </div>

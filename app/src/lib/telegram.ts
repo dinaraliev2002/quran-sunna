@@ -46,6 +46,7 @@ interface TgWebApp {
   setBackgroundColor?(c: string): void
   setBottomBarColor?(c: string): void
   openTelegramLink?(url: string): void
+  openInvoice?(url: string, cb?: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void): void
   requestWriteAccess?(cb: (allowed: boolean) => void): void
   onEvent(e: string, cb: () => void): void
   offEvent(e: string, cb: () => void): void
@@ -100,6 +101,12 @@ export const tgUser = (): TgUser | undefined => (inTelegram ? wa!.initDataUnsafe
 
 /** Подписанные данные запуска — по ним наш сервер узнаёт, кто пишет (пусто вне Telegram) */
 export const tgInitData = () => (inTelegram ? wa!.initData : '')
+
+/** Можно ли платить звёздами Telegram (окно счёта есть только в самом Telegram) */
+export const canPayStars = () => inTelegram && typeof wa!.openInvoice === 'function'
+
+/** Открыть окно оплаты по ссылке на счёт; ответ — чем кончилось */
+export const payInvoice = (url: string) => new Promise<'paid' | 'cancelled' | 'failed' | 'pending'>((res) => wa!.openInvoice!(url, res))
 
 let writeGranted = false
 /** Разрешил ли человек боту писать ему (без запроса) */

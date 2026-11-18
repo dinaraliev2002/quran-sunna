@@ -2,7 +2,9 @@
 //  • /start — приветствие и кнопка «Открыть приложение»
 //  • /feedback — обратная связь: сообщение уходит автору, автор отвечает прямо на него — ответ приходит человеку
 //  • /support — поддержать проект (ссылка Tribute)
-//  • для автора: /broadcast, /news, /stats, /settribute
+//  • оплата проверки голосом звёздами Telegram (Stars): приложение просит ссылку на счёт (action: 'invoice'), бот подтверждает платёж
+//    (pre_checkout_query) и после оплаты начисляет проверки (successful_payment → qs_voice_grant); /paysupport — вопросы по оплате
+//  • для автора: /broadcast, /news, /stats, /settribute, /refund
 // Секреты (Supabase → Edge Functions → Secrets): BOT_TOKEN, SETUP_KEY (буквы/цифры/_/-)
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
@@ -20,6 +22,12 @@ const api = async (method: string, body: Any = {}): Promise<Any> => {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
   })
   return r.json()
+}
+/** Что продаём за звёзды. Цены и состав — здесь, на сервере: приложение присылает только номер тарифа (src/lib/voicePlans.ts — там лишь подписи) */
+const VOICE_PLANS: Record<string, { stars: number; credits?: number; days?: number; title: string; desc: string }> = {
+  pack50: { stars: 49, credits: 50, title: '50 проверок голосом', desc: 'Пакет из 50 проверок чтения наизусть голосом, без срока.' },
+  pack150: { stars: 99, credits: 150, title: '150 проверок голосом', desc: 'Пакет из 150 проверок чтения наизусть голосом, без срока.' },
+  month: { stars: 149, days: 30, title: 'Проверка голосом на месяц', desc: 'До 20 проверок чтения наизусть голосом в день, 30 дней.' },
 }
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const openBtn = { inline_keyboard: [[{ text: '📖 Открыть приложение', web_app: { url: APP_URL } }]] }
@@ -60,6 +68,46 @@ async function checkInitData(raw: string): Promise<Any | null> {
 }
 
 const who = (u: Any) => `${esc([u.first_name, u.last_name].filter(Boolean).join(' ') || 'Без имени')}${u.username ? ` (@${u.username})` : ''} · id ${u.id}`
+
+// ---------- оплата звёздами ----------
+let hookOk = false
+/** Вебхук должен получать pre_checkout_query (без него платёж не пройдёт): при первой просьбе о счёте добавляем, если не хватает */
+async function ensureWebhook() {
+  if (hookOk) return
+  const info = await api('getWebhookInfo')
+  const cur: string[] = info.result?.allowed_updates ?? []
+  if (info.result?.url === FN_URL && cur.length && !cur.includes('pre_checkout_query'))
+    await api('setWebhook', { url: FN_URL, secret_token: SETUP_KEY, allowed_updates: [...cur, 'pre_checkout_query'], drop_pending_updates: false })
+  hookOk = true
+}
+
+/** payload счёта «vc:<id человека>:<тариф>» → тариф или null */
+function payPlan(payload: string, userId: number) {
+  const [tag, uid, id] = String(payload).split(':')
+  const plan = VOICE_PLANS[id]
+  return tag === 'vc' && Number(uid) === userId && plan ? { id, ...plan } : null
+}
+
+/** Платёж прошёл: записываем (повтор того же платежа не начисляет) и начисляем проверки */
+async function paid(m: Any) {
+  const sp = m.successful_payment
+  const plan = payPlan(sp.invoice_payload, m.from.id)
+  const admin = Number(await getCfg('admin_id') ?? 0)
+  if (!plan || sp.currency !== 'XTR' || sp.total_amount !== plan.stars) {
+    if (admin) await say(admin, `⚠️ Платёж не сошёлся с тарифом — начислите вручную.\n${who(m.from)}\nданные счёта: ${esc(String(sp.invoice_payload))}, ${sp.total_amount} ${sp.currency}\nплатёж: <code>${esc(sp.telegram_payment_charge_id)}</code>`)
+    return
+  }
+  const ins = await db.from('qs_voice_pay').insert({ charge_id: sp.telegram_payment_charge_id, user_id: m.from.id, plan: plan.id, stars: plan.stars })
+  if (ins.error) { if (ins.error.code === '23505') return; console.error('pay insert', ins.error) } // 23505 — этот платёж уже учтён
+  const g = await db.rpc('qs_voice_grant', { k: 'tg:' + m.from.id, add_credits: plan.credits ?? 0, add_days: plan.days ?? 0 })
+  if (g.error) {
+    console.error('pay grant', g.error)
+    if (admin) await say(admin, `⚠️ Оплата прошла, но начислить не вышло — начислите вручную.\n${who(m.from)}\nтариф: ${plan.id}\nплатёж: <code>${esc(sp.telegram_payment_charge_id)}</code>`)
+    await say(m.chat.id, 'Оплата получена ✓ Начисление задержалось — оно появится в ближайшее время. Если не появится, напишите /paysupport.')
+    return
+  }
+  await say(m.chat.id, `Оплата получена ✓\n\n<b>${esc(plan.title)}</b> — ${plan.credits ? `добавлено проверок: ${plan.credits}` : 'доступ открыт на 30 дней'}.\nМожно возвращаться к заучиванию. Да вознаградит вас Аллах благом! 🤍`, { reply_markup: openBtn })
+}
 
 // ---------- обычные пользователи ----------
 const WELCOME =
@@ -170,6 +218,17 @@ async function adminCommand(m: Any, cmd: string, rest: string): Promise<boolean>
     else await prepareBroadcast(chat, t)
     return true
   }
+  if (cmd === '/refund') {
+    // /refund ПЛАТЁЖ — вернуть звёзды (идентификатор платежа Telegram есть в таблице qs_voice_pay и в уведомлениях)
+    const { data } = await db.from('qs_voice_pay').select('user_id, plan, refunded').eq('charge_id', rest).maybeSingle()
+    if (!data) { await say(chat, 'Напишите так: <code>/refund идентификатор_платежа</code> (идентификатор — в таблице qs_voice_pay).'); return true }
+    if (data.refunded) { await say(chat, 'Этот платёж уже возвращён.'); return true }
+    const r = await api('refundStarPayment', { user_id: data.user_id, telegram_payment_charge_id: rest })
+    if (!r.ok) { await say(chat, `Telegram не вернул звёзды: ${esc(String(r.description ?? ''))}`); return true }
+    await db.from('qs_voice_pay').update({ refunded: true }).eq('charge_id', rest)
+    await say(chat, `Звёзды возвращены ✓ Начисленное (${data.plan}) снимите вручную: пакет — уменьшите credits, месяц — sub_until в таблице qs_voice_access.`)
+    return true
+  }
   if (cmd === '/settribute') {
     if (!/^https:\/\/\S+$/.test(rest)) { await say(chat, 'Напишите так: <code>/settribute https://t.me/tribute/app?startapp=…</code>'); return true }
     await setCfg('tribute_url', rest); await say(chat, 'Ссылка на поддержку сохранена ✓'); await support(chat); return true
@@ -179,6 +238,7 @@ async function adminCommand(m: Any, cmd: string, rest: string): Promise<boolean>
 
 async function onMessage(m: Any) {
   if (m.chat.type !== 'private' || !m.from) return
+  if (m.successful_payment) return paid(m)
   const text: string = m.text ?? ''
   const cmd = text.startsWith('/') ? text.split(/[\s@]/)[0].toLowerCase() : ''
   const rest = text.replace(/^\/\S+\s*/, '').trim()
@@ -209,6 +269,7 @@ async function onMessage(m: Any) {
     return say(m.chat.id, WELCOME, { reply_markup: openBtn })
   }
   if (cmd === '/support') return support(m.chat.id)
+  if (cmd === '/paysupport') return say(m.chat.id, '💳 Вопрос по оплате или возврат звёзд: напишите сюда одним сообщением, что вы купили и что случилось, — я передам автору и отвечу в этом чате. Возврат возможен, если проверки ещё не использованы.')
   if (cmd === '/feedback') return say(m.chat.id, '✉️ Напишите сюда ваше предложение, вопрос или сообщение об ошибке — я передам его автору. Можно прикрепить скриншот.')
   if (cmd) return say(m.chat.id, WELCOME, { reply_markup: openBtn })
   await feedback(m) // любое обычное сообщение — это обращение к автору
@@ -217,7 +278,13 @@ async function onMessage(m: Any) {
 async function handle(u: Any) {
   try {
     if (u.message) await onMessage(u.message)
-    else if (u.callback_query) {
+    else if (u.pre_checkout_query) {
+      // подтверждаем платёж, если тариф настоящий и цена та же (отвечать надо в течение 10 секунд)
+      const q = u.pre_checkout_query
+      const plan = payPlan(q.invoice_payload, q.from.id)
+      const ok = !!plan && q.currency === 'XTR' && q.total_amount === plan.stars
+      await api('answerPreCheckoutQuery', { pre_checkout_query_id: q.id, ok, ...(ok ? {} : { error_message: 'Не удалось оформить заказ. Откройте окно оплаты в приложении ещё раз.' }) })
+    } else if (u.callback_query) {
       const q = u.callback_query
       const admin = Number(await getCfg('admin_id') ?? 0)
       await api('answerCallbackQuery', { callback_query_id: q.id })
@@ -245,9 +312,9 @@ Deno.serve(async (req) => {
     const cur: string = info.result?.url ?? ''
     if (cur && cur !== FN_URL && url.searchParams.get('force') !== '1')
       return new Response(`У бота уже подключён другой вебхук:\n${cur}\nЕсли это не нужно — добавьте в конец адреса &force=1`, { status: 409 })
-    const r = await api('setWebhook', { url: FN_URL, secret_token: SETUP_KEY, allowed_updates: ['message', 'callback_query', 'my_chat_member'], drop_pending_updates: false })
+    const r = await api('setWebhook', { url: FN_URL, secret_token: SETUP_KEY, allowed_updates: ['message', 'callback_query', 'my_chat_member', 'pre_checkout_query'], drop_pending_updates: false })
     await api('setMyCommands', { commands: [
-      { command: 'start', description: 'Открыть приложение' }, { command: 'feedback', description: 'Написать автору' }, { command: 'support', description: 'Поддержать проект' } ] })
+      { command: 'start', description: 'Открыть приложение' }, { command: 'feedback', description: 'Написать автору' }, { command: 'support', description: 'Поддержать проект' }, { command: 'paysupport', description: 'Вопрос по оплате' } ] })
     const me = await api('getMe')
     return new Response(JSON.stringify({ webhook: r, bot: me.result?.username }, null, 1))
   }
@@ -255,8 +322,18 @@ Deno.serve(async (req) => {
   if (req.headers.get('x-telegram-bot-api-secret-token') !== SETUP_KEY) {
     // запрос из самого приложения: «этот человек пользуется приложением»
     try {
-      const { initData } = await req.json()
+      const body = await req.json()
+      const { initData } = body
       const u = typeof initData === 'string' ? await checkInitData(initData) : null
+      if (body.action === 'invoice') {
+        // счёт на оплату звёздами: тариф и цену берём у себя, из приложения приходит только номер тарифа
+        const plan = VOICE_PLANS[String(body.plan)]
+        const hdr = { ...CORS, 'content-type': 'application/json' }
+        if (!u?.id || !plan) return new Response(JSON.stringify({ error: 'нет доступа' }), { status: 403, headers: hdr })
+        await ensureWebhook()
+        const r = await api('createInvoiceLink', { title: plan.title, description: plan.desc, payload: `vc:${u.id}:${body.plan}`, provider_token: '', currency: 'XTR', prices: [{ label: plan.title, amount: plan.stars }] })
+        return new Response(JSON.stringify(r.ok ? { url: r.result } : { error: r.description ?? 'не удалось создать счёт' }), { status: r.ok ? 200 : 500, headers: hdr })
+      }
       if (u?.id) {
         const { data } = await db.from('qs_users').select('id').eq('id', u.id).maybeSingle()
         if (data) await db.from('qs_users').update({ last_seen: new Date().toISOString(), first_name: u.first_name ?? null, username: u.username ?? null }).eq('id', u.id)

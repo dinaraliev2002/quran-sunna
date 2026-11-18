@@ -51,7 +51,7 @@ export default function Book() {
   const next = col && pos >= 0 && pos < col.books.length - 1 ? col.books[pos + 1] : null
   const single = col?.books.length === 1
   const items = book?.items ?? []
-  const byBooks = cid === 'bukhari' || cid === 'muslim'
+  const byBooks = cid === 'bukhari' || cid === 'sharkasi' || cid === 'muslim'
   const bookWord = byBooks && !meta?.grp ? 'книга' : 'глава'
 
   // открыть на той же карточке, что в прошлый раз, или на нужном хадисе (из избранного / «Продолжить»)
