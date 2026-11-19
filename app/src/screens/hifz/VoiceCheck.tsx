@@ -5,6 +5,7 @@ import { BARS } from '../../hooks/useSpeech'
 import { arSpan, arTokens } from '../../lib/arabicSpeech'
 import { applyAccepted, checkSpeech, flaggedWords, type CheckResult, type VoiceLang } from '../../lib/speechCheck'
 import { judgeWords } from '../../lib/voiceApi'
+import { setVoiceContext } from '../../lib/voiceContext'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
 import { isVoiceLocked, useVoiceAccess } from '../../store/voiceAccess'
@@ -93,11 +94,12 @@ export function useVoiceResult(item: HifzItem, spoken: string, voweled = ''): { 
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const lang = useStore((s) => s.hzVoiceLang)
   const ref = useMemo(() => referenceText(item, withNarr, lang), [item, withNarr, lang])
-  return useVoiceCheck(ref, lang, spoken, voweled)
+  return useVoiceCheck(ref, lang, spoken, voweled, `${item.key} · ${item.src}`)
 }
 
 /** Ядро сверки: спорные слова сразу показываются как ошибки, затем ИИ (если включён) засчитывает те, что ошибкой не являются */
-export function useVoiceCheck(ref: string, lang: VoiceLang, spoken: string, voweled = ''): { r: CheckResult | null; checking: boolean } {
+export function useVoiceCheck(ref: string, lang: VoiceLang, spoken: string, voweled = '', label = ''): { r: CheckResult | null; checking: boolean } {
+  useEffect(() => { setVoiceContext({ ref, label }) }, [ref, label]) // для сохранения записи (если разрешено)
   const loose = useStore((s) => s.hzVoiceLoose)
   const ai = useStore((s) => s.hzVoiceAi)
   const harakat = useStore((s) => s.hzHarakat)

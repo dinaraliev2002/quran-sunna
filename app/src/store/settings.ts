@@ -100,6 +100,7 @@ const DEFAULT_SETTINGS: Settings = {
   hdBukhari: 'main',
   nrSrc: false,
   hzVoiceLang: 'ru',
+  hzVoiceSave: false,
   hzHarakat: true,
   hzVoiceNarr: false,
   hzVoiceLoose: true,

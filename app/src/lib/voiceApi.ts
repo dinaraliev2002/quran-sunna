@@ -1,6 +1,8 @@
 // Облачная проверка речи: запись → текст (Groq Whisper), спорные слова → решение ИИ (DeepSeek). Функция stt-check, см. bot/stt-check.
 import { splitAudio } from './audioChunks'
 import { tgInitData } from './telegram'
+import { getVoiceContext } from './voiceContext'
+import { useStore } from '../store/settings'
 
 const ENDPOINT = 'https://ynqbnqkihojqlawhhiqg.supabase.co/functions/v1/stt-check'
 
@@ -15,6 +17,10 @@ export async function transcribe(blob: Blob, model = 'whisper-large-v3', lang: '
   form.append('model', model)
   form.append('lang', lang)
   if (rec) form.append('rec', rec)
+  if (useStore.getState().hzVoiceSave) { // человек разрешил сохранять записи для разработчика
+    const c = getVoiceContext()
+    form.append('save', '1'); form.append('ref', c.ref); form.append('label', c.label)
+  }
   form.append('init', tgInitData()) // подпись Telegram: по ней считаются лимиты
   const r = await fetch(ENDPOINT, { method: 'POST', body: form })
   const j = await r.json().catch(() => ({}))

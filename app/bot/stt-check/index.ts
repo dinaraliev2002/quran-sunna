@@ -26,6 +26,8 @@ const num = (n: string, d: number) => Number(Deno.env.get(n) ?? '') || d
 // Платный доступ: включается секретом VOICE_PAYWALL=1. Бесплатных проверок на человека — VOICE_FREE, по подписке в день — VOICE_SUB_DAY.
 const PAYWALL = (Deno.env.get('VOICE_PAYWALL') ?? '').trim() === '1'
 const FREE = num('VOICE_FREE', 5)
+// Сохранение записей для разработчика (проверка качества): секрет VOICE_SAVE=1 разрешает, и только если человек сам включил «Сохранять мои записи» в настройках
+const SAVE = (Deno.env.get('VOICE_SAVE') ?? '').trim() === '1'
 const SUB_DAY = num('VOICE_SUB_DAY', 20)
 const LIMIT = { tg: num('VOICE_TG_SEC', 30 * 60), web: num('VOICE_WEB_SEC', 10 * 60), all: num('VOICE_ALL_SEC', 5 * 3600), judge: num('VOICE_JUDGE', 300) }
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, OPTIONS' }
@@ -173,6 +175,26 @@ async function transcribe(form: FormData, w: Who) {
   return { text: r.text, engine: 'groq' }
 }
 
+/** Сохранить запись и что по ней распознали (файл — в хранилище voice-samples, строка — в qs_voice_samples). Ошибки сохранения человеку не показываем */
+async function saveSample(w: Who, form: FormData, res: Any) {
+  try {
+    const file = form.get('audio')
+    if (!(file instanceof File)) return
+    const id = crypto.randomUUID()
+    const ext = file.type.includes('wav') ? 'wav' : file.type.includes('mp4') ? 'm4a' : file.type.includes('ogg') ? 'ogg' : 'webm'
+    const path = `${w.key.replace(/[^a-z0-9]/gi, '_')}/${today()}/${id}.${ext}`
+    const up = await db.storage.from('voice-samples').upload(path, file, { contentType: file.type || 'audio/webm' })
+    if (up.error) throw up.error
+    await db.from('qs_voice_samples').insert({
+      id, key: w.key, rec: String(form.get('rec') ?? '').slice(0, 64), path, lang: String(form.get('lang') ?? ''),
+      label: String(form.get('label') ?? '').slice(0, 200), ref: String(form.get('ref') ?? '').slice(0, 8000),
+      engine: res.engine ?? null, text: res.text ?? null, vowels: res.vowels ?? null,
+    })
+  } catch (e) { console.error('save sample', e) }
+}
+/** Доделать работу в фоне, не задерживая ответ человеку */
+const background = (p: Promise<unknown>) => { const rt = (globalThis as Any).EdgeRuntime; if (rt?.waitUntil) rt.waitUntil(p); else void p }
+
 /** Какие спорные слова эталона можно засчитать */
 async function judge(b: Any, w: Who) {
   const flagged: { i: number; w: string; said?: string }[] = Array.isArray(b.flagged) ? b.flagged.slice(0, 80) : []
@@ -218,12 +240,16 @@ Deno.serve(async (req) => {
       const w = await who(req, String(form.get('init') ?? ''))
       const rec = String(form.get('rec') ?? '') || crypto.randomUUID() // старые версии без номера записи: каждая часть — отдельная проверка
       await take(w, rec)
-      try { return json(await transcribe(form, w)) } catch (e) { await refund(w, rec); throw e } // не распознали — проверку возвращаем
+      try {
+        const res = await transcribe(form, w)
+        if (SAVE && String(form.get('save') ?? '') === '1') background(saveSample(w, form, res))
+        return json(res)
+      } catch (e) { await refund(w, rec); throw e } // не распознали — проверку возвращаем
     }
     const b = await req.json()
     if (b.action === 'judge') return json(await judge(b, await who(req, String(b.init ?? ''))))
     if (b.action === 'access') return json(await access(await who(req, String(b.init ?? ''))))
-    if (b.action === 'status') return json({ groq: !!GROQ, deepseek: !!DEEPSEEK, gemini: !!GEMINI, arEngine: AR_GEMINI ? 'gemini' : 'groq' }) // подключены ли ключи (сами ключи не показываем)
+    if (b.action === 'status') return json({ groq: !!GROQ, deepseek: !!DEEPSEEK, gemini: !!GEMINI, arEngine: AR_GEMINI ? 'both' : 'groq', save: SAVE }) // подключены ли ключи (сами ключи не показываем)
     return json({ error: 'unknown action' }, 400)
   } catch (e) {
     if (e instanceof Paywall) return json({ error: e.message, paywall: true, daycap: e.daycap }, 402)

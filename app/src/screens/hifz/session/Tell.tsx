@@ -19,7 +19,7 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
   const [spoken, setSpoken] = useState('') // что сказали вслух (проверка голосом)
   const [voweled, setVoweled] = useState('') // то же с огласовками (если пришло)
   const ref = useMemo(() => quranRef(item).text, [item])
-  const { r: res, checking } = useVoiceCheck(ref, 'ar', spoken, voweled)
+  const { r: res, checking } = useVoiceCheck(ref, 'ar', spoken, voweled, `Коран ${item.s}:${item.ayahs[0]?.n}–${item.ayahs[item.ayahs.length - 1]?.n}`)
   const mark = useMemo(() => quranMarks(item, res?.relevant ? res.words : undefined), [item, res])
   const all = open.size === item.ayahs.length
   const reveal = (n: number) => {
