@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { VOICE_CHECK } from '../../lib/features'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { plural } from '../../lib/plural'
@@ -196,7 +197,7 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
           </>
         )}
       </div>
-      <VoiceCheck key={item.key} onText={(t, v) => { setSpoken(t); setVerify(v ?? null) }} hidden={open} />
+      {VOICE_CHECK && <VoiceCheck key={item.key} onText={(t, v) => { setSpoken(t); setVerify(v ?? null) }} hidden={open} />}
       {open ? children : (
         <div className="hz-act">
           <button className="bigbtn" onClick={() => { haptic.tap(); setOpen(true) }}><Icon id="open" />Проверить себя</button>

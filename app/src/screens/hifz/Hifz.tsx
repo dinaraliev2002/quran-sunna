@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { VOICE_CHECK } from '../../lib/features'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Tour } from '../../components/Tour'
@@ -111,6 +112,7 @@ export default function Hifz() {
           <span className="t">Арабский текст</span>
           <span className={'switch' + (st.hzAr ? ' on' : '')} />
         </button>
+        {VOICE_CHECK && (
         <div className="sitem">
           <span className="si" style={{ background: '#2E9A6B' }}><Icon id="check" /></span>
           <span className="t">Сколько % считать выученным<small className="hz-sub">Проверка голосом: от 80 до 100</small></span>
@@ -120,16 +122,19 @@ export default function Hifz() {
             <button onClick={() => st.set({ hzVoicePass: Math.min(100, st.hzVoicePass + 5) })} disabled={st.hzVoicePass >= 100} aria-label="Больше"><Icon id="plus" /></button>
           </span>
         </div>
+        )}
       </div>
       <p className="hz-how">
         Как это работает: прочитайте и послушайте хадис, потом по подсказке «Расскажи хадис о…» перескажите его по памяти и откройте текст, чтобы проверить себя.
         Выученный хадис будет периодически возвращаться на повтор: чем лучше вы его помните, тем реже он будет появляться.
       </p>
 
+      {VOICE_CHECK && (
       <div className="hz-soon">
         <span className="hz-soon-ic"><Icon id="mic" /></span>
         <div className="t"><b>Сдача голосом</b><span>В «Расскажи хадис» нажмите «Сказать вслух» — приложение покажет, что сказано верно, а что пропущено. Пока тест, на русском.</span></div>
       </div>
+      )}
 
       {/* ===== хадисы набора ===== */}
       <div className="section-h"><h2>{set.name}</h2>{!emptyMy && <span className="hz-count">{started} из {total}</span>}</div>

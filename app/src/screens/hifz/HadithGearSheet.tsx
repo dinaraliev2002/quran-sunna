@@ -1,4 +1,5 @@
 import { Sheet, SheetHead } from '../../components/ui'
+import { VOICE_CHECK } from '../../lib/features'
 import { haptic } from '../../lib/telegram'
 import { ARABIC_FONTS } from '../../lib/azkar'
 import { useStore } from '../../store/settings'
@@ -20,6 +21,8 @@ export function HadithGearSheet({ onClose }: { onClose: () => void }) {
     <Sheet onClose={onClose} tall>
       <SheetHead title="Настройки заучивания" onClose={onClose} />
       <div className="body qh-set">
+        {VOICE_CHECK && (
+          <>
         <div>
           <div className="qh-set-l">Сколько процентов считать выученным<small>Проверка голосом: так точно нужно сказать хадис</small></div>
           <div className="qh-chips">
@@ -35,6 +38,8 @@ export function HadithGearSheet({ onClose }: { onClose: () => void }) {
         </div>
         <VoiceSettings lang={st.hzVoiceLang} />
         {sw(st.hzVoiceNarr, 'Проверять и передатчика', 'Слова «Я слышал, как Посланник Аллаха сказал…» тоже сверяются', () => st.set({ hzVoiceNarr: !st.hzVoiceNarr }))}
+          </>
+        )}
         {sw(st.hzDrills, 'Упражнения при заучивании', 'Включите и выберите, какие проходить', () => st.set({ hzDrills: !st.hzDrills }))}
         {st.hzDrills && <DrillPicker />}
         {sw(st.hzAr, 'Арабский текст', 'Показывать арабский при чтении хадиса', () => st.set({ hzAr: !st.hzAr }))}

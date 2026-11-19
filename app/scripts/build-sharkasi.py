@@ -269,9 +269,21 @@ def main(pdf):
     main_chains = json.load(open(chains_path, encoding='utf-8'))
     chains = {}
     parsed, renum = [], []
+    # все строки подряд с номером страницы; границы книг — по заглавной строке «КНИГА …» на странице начала книги
+    # (на той же странице сверху ещё идёт конец предыдущей книги — он принадлежит предыдущей)
+    flat = [(pn, l) for pn, ls in pages for l in ls]
+
+    def header_at(p):
+        for i, (pn, l) in enumerate(flat):
+            pl = P(l)
+            # в «Содержании» страница иногда на 1–2 меньше настоящей — ищем заглавную строку «КНИГА …» на ближайших страницах
+            if p <= pn <= p + 2 and 'КНИГА' in pl and not re.search(r'[а-яё]', pl):
+                return i
+        return next(i for i, (pn, _) in enumerate(flat) if pn >= p)
+
+    starts = [header_at(p0) for _, _, p0 in toc] + [len(flat)]
     for k, (no, name, p0) in enumerate(toc):
-        p1 = toc[k + 1][2] if k + 1 < len(toc) else 10**6
-        lines = [l for pn, ls in pages if p0 <= pn < p1 for l in ls]
+        lines = [l for _, l in flat[starts[k]:starts[k + 1]]]
         if k == 0:
             lines = [l for l in lines if l != 'Достоверный сборник']
         its = parse_book(lines, state)

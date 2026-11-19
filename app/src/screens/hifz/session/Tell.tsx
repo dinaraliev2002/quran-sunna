@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { VOICE_CHECK } from '../../../lib/features'
 import { Icon } from '../../../components/Icon'
 import { type QItem } from '../../../types/hifzQuran'
 import { haptic } from '../../../lib/telegram'
@@ -47,7 +48,7 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
           </div>
         ))}
       </div>
-      <VoiceCheck quran onText={(t, v) => { setSpoken(t); setVerify(v ?? null) }} hidden={all} />
+      {VOICE_CHECK && <VoiceCheck quran onText={(t, v) => { setSpoken(t); setVerify(v ?? null) }} hidden={all} />}
       {all && res && (
         <div className="hz-card">
           <VoiceScore r={res} checking={checking} />
