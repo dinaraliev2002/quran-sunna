@@ -11,7 +11,7 @@ import { RECITERS } from '../store/player'
 import { ReciterList } from '../components/ReciterList'
 import { NewsHistory } from '../components/WhatsNew'
 import { useStore, type ThemePref } from '../store/settings'
-import { SourcesSheet, TRANSLATIONS, BUKHARI } from './SourcesSheet'
+import { SourcesSheet } from './SourcesSheet'
 
 const THEMES: Record<ThemePref, string> = { auto: 'Как в Telegram', light: 'Светлая', dark: 'Тёмная' }
 
@@ -51,7 +51,7 @@ export default function Settings() {
 
       <div className="group-t">Чтение</div>
       <div className="group">
-        <button className="sitem" onClick={() => setOpen('src')}><span className="si" style={{ background: '#13704B' }}><Icon id="book" /></span><span className="t">Переводы и источники</span><span className="v">{TRANSLATIONS[st.translation]} · {BUKHARI[st.hdBukhari]}</span><Icon id="right" className="icon chev" /></button>
+        <button className="sitem" onClick={() => setOpen('src')}><span className="si" style={{ background: '#13704B' }}><Icon id="book" /></span><span className="t">Переводы и источники</span><span className="v">Коран, хадисы</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => setOpen('font')}><span className="si" style={{ background: '#9B59D0' }}><Icon id="font" /></span><span className="t">Размер шрифта</span><span className="v">{st.arSize} / {st.trSize}</span><Icon id="right" className="icon chev" /></button>
         <button className="sitem" onClick={() => st.set({ termHl: !st.termHl })}><span className="si" style={{ background: '#C9A24B' }}><Icon id="scroll" /></span><span className="t">Подсветка терминов</span><span className={'switch' + (st.termHl ? ' on' : '')} /></button>
         <button className="sitem" onClick={() => st.set({ tajweed: !st.tajweed })}><span className="si" style={{ background: '#E0663A' }}><Icon id="eye" /></span><span className="t">Цветной таджвид</span><span className={'switch' + (st.tajweed ? ' on' : '')} /></button>
