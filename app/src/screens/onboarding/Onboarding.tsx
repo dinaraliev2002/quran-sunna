@@ -18,8 +18,8 @@ import { useUi } from '../../store/ui'
 import { WORD_PARSE } from '../../store/wordSheet'
 import './onboarding.css'
 
-type Step = 'welcome' | 'profile' | 'quran' | 'hadith' | 'goals' | 'time' | 'plan' | 'download'
-const STEPS: Step[] = ['welcome', 'profile', 'quran', 'hadith', 'goals', 'time', 'plan', 'download']
+type Step = 'welcome' | 'profile' | 'quran' | 'hadith' | 'goals' | 'time' | 'plan' | 'download' | 'bukhari'
+const STEPS: Step[] = ['welcome', 'profile', 'quran', 'hadith', 'goals', 'time', 'plan', 'download', 'bukhari']
 const isIos = Capacitor.getPlatform() === 'ios'
 
 function Opt({ icon, title, sub, on, onClick }: { icon: ReactNode; title: string; sub?: string; on: boolean; onClick: () => void }) {
@@ -46,6 +46,7 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
   const [tajweed, setTajweed] = useState(isIos)
   const [audio, setAudio] = useState<'j30' | 'plan' | 'none'>('j30')
   const [rec, setRec] = useState(false)
+  const [bukhari, setBukhari] = useState<'main' | 'sharkasi'>(st.hdBukhari)
   const [knownOpen, setKnownOpen] = useState(false)
   const file = useRef<HTMLInputElement>(null)
   const step = STEPS[i]
@@ -59,7 +60,7 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
 
   const finish = () => {
     haptic.success()
-    st.set({ obDone: true, obSeen: true, plan: a, hzPerDay: perDay(a.minutes), profName: name.trim().slice(0, 40), profPhoto: photo })
+    st.set({ obDone: true, obSeen: true, hdBukhari: bukhari, hdAsked: true, plan: a, hzPerDay: perDay(a.minutes), profName: name.trim().slice(0, 40), profPhoto: photo })
     // скачивание идёт в фоне, прогресс — в Настройки → Загрузки
     const jobs: (() => Promise<unknown>)[] = []
     // суры, которые человек отметил как заученные, становятся карточками заучивания
@@ -205,9 +206,19 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
                 <p className="ob-note">Лучше скачивать по Wi‑Fi. Прогресс виден в Настройки → Загрузки.</p>
               </>
             )}
+            {step === 'bukhari' && (
+              <>
+                <h2>Чей перевод хадисов читать?</h2>
+                <p className="ob-p">Это про «Сахих» аль-Бухари. Поменять можно в любой момент: Настройки → Переводы и источники.</p>
+                <div className="ob-opts">
+                  <Opt icon={<Icon id="scroll" />} title="Основная версия" sub="Полный перевод, 97 книг, с цепочками передатчиков" on={bukhari === 'main'} onClick={() => setBukhari('main')} />
+                  <Opt icon={<Icon id="book" />} title="Абу Ислам аш-Шаркаси" sub="«Достоверный сборник»: пока первые 47 книг из 97" on={bukhari === 'sharkasi'} onClick={() => setBukhari('sharkasi')} />
+                </div>
+              </>
+            )}
           </div>
           <div className="ob-foot">
-            {step === 'download' ? <button className="ob-btn" onClick={finish}>Готово</button> : <button className="ob-btn" onClick={next}>Далее</button>}
+            {step === 'bukhari' ? <button className="ob-btn" onClick={finish}>Готово</button> : <button className="ob-btn" onClick={next}>Далее</button>}
           </div>
         </>
       )}

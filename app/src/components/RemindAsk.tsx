@@ -11,7 +11,7 @@ export function RemindAsk() {
   const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
   const [refused, setRefused] = useState(false)
-  const settled = st.obSeen || st.obDone // сначала пусть закончится знакомство с приложением
+  const settled = (st.obSeen || st.obDone) && st.hdAsked // сначала пусть закончится знакомство с приложением и вопрос про перевод хадисов
   const anyOn = REMIND_KEYS.some((k) => st.rem[k].on)
 
   useEffect(() => {

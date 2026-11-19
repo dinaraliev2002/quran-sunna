@@ -77,6 +77,7 @@ import { initPlayerSettings } from './lib/listen'
 import { MiniPlayer } from './components/MiniPlayer'
 import { QuickMenu } from './components/QuickMenu'
 import { RemindAsk } from './components/RemindAsk'
+import { BukhariAsk } from './components/BukhariAsk'
 import { WordSheet } from './screens/reader/word/WordSheet'
 
 export default function App() {
@@ -95,6 +96,7 @@ export default function App() {
       <WordSheet />
       <TermPop />
       {hydrated && <OnboardingGate />}
+      {hydrated && <BukhariAsk />}
       {hydrated && <RemindAsk />}
       <div className="app">
         {hydrated && (
