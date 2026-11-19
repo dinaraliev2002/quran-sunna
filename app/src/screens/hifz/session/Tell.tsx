@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Icon } from '../../../components/Icon'
 import { type QItem } from '../../../types/hifzQuran'
 import { haptic } from '../../../lib/telegram'
+import type { VerifyItem } from '../../../lib/voiceApi'
 import { usePlayer } from '../../../store/player'
 import { useStore } from '../../../store/settings'
 import { AyahWords } from '../../reader/views'
@@ -17,9 +18,9 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
   const current = usePlayer((s) => s.current)
   const [open, setOpen] = useState<Set<number>>(new Set())
   const [spoken, setSpoken] = useState('') // что сказали вслух (проверка голосом)
-  const [voweled, setVoweled] = useState('') // то же с огласовками (если пришло)
+  const [verify, setVerify] = useState<VerifyItem[]>([]) // замечания Gemini по гласным и буквам (если пришли)
   const ref = useMemo(() => quranRef(item).text, [item])
-  const { r: res, checking } = useVoiceCheck(ref, 'ar', spoken, voweled, `Коран ${item.s}:${item.ayahs[0]?.n}–${item.ayahs[item.ayahs.length - 1]?.n}`)
+  const { r: res, checking } = useVoiceCheck(ref, 'ar', spoken, verify, `Коран ${item.s}:${item.ayahs[0]?.n}–${item.ayahs[item.ayahs.length - 1]?.n}`)
   const mark = useMemo(() => quranMarks(item, res?.relevant ? res.words : undefined), [item, res])
   const all = open.size === item.ayahs.length
   const reveal = (n: number) => {
@@ -46,7 +47,7 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
           </div>
         ))}
       </div>
-      <VoiceCheck quran onText={(t, v) => { setSpoken(t); setVoweled(v ?? '') }} hidden={all} />
+      <VoiceCheck quran onText={(t, v) => { setSpoken(t); setVerify(v ?? []) }} hidden={all} />
       {all && res && (
         <div className="hz-card">
           <VoiceScore r={res} checking={checking} />

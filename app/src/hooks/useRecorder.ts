@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { attachMeter } from '../lib/micMeter'
-import { joinHeard, newRec, transcribe, transcribeLong, type Heard } from '../lib/voiceApi'
+import { joinHeard, newRec, transcribe, transcribeLong, type Heard, type VerifyItem } from '../lib/voiceApi'
 import { useVoiceAccess } from '../store/voiceAccess'
 import { useStore } from '../store/settings'
 import { setPlayback, setRecording } from '../lib/audioSession'
@@ -19,7 +19,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
   const [listening, setListening] = useState(false)
   const [busy, setBusy] = useState(false) // запись ушла на распознавание
   const [text, setText] = useState('')
-  const [vowels, setVowels] = useState('') // тот же текст с огласовками (Gemini), если пришёл
+  const [verify, setVerify] = useState<VerifyItem[]>([]) // замечания Gemini по гласным и буквам (по-арабски), если пришли
   const [error, setError] = useState('')
   const [paywall, setPaywall] = useState(false) // сервер отказал: бесплатные проверки кончились, нужна подписка или пакет
   const [levels, setLevels] = useState<number[]>(() => Array(BARS).fill(0))
@@ -45,9 +45,9 @@ export function useRecorder(forced?: 'ru' | 'ar') {
     setListening(false)
     setBusy(true)
     try {
-      const { text: t, vowels: v } = joinHeard(await Promise.all(parts))
+      const { text: t, verify: v } = joinHeard(await Promise.all(parts))
       if (!t && !parts.length) setError('Запись слишком короткая — попробуйте ещё раз.')
-      setText(t); setVowels(v)
+      setText(t); setVerify(v)
       void useVoiceAccess.getState().load() // сколько проверок осталось
     } catch (e) { if ((e as Error & { paywall?: boolean }).paywall) setPaywall(true); setError(failText(e)); void useVoiceAccess.getState().load() }
     finally { setBusy(false) }
@@ -78,7 +78,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
         parts.push(new Promise<Heard>((res, rej) => {
           r.onstop = () => {
             const blob = new Blob(chunks, { type: r.mimeType || mime || 'audio/webm' })
-            if (blob.size < 2000) res({ text: '', vowels: '' })
+            if (blob.size < 2000) res({ text: '', verify: [] })
             else transcribe(blob, model(), lng(), rec).then(res, rej)
             closed++
             if (stopping && closed === parts.length) void finishParts(parts)
@@ -114,7 +114,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
   }, [finishParts, finishWav])
 
   const start = useCallback(async (): Promise<boolean> => {
-    setText(''); setVowels(''); setError(''); setPaywall(false); setLevels(Array(BARS).fill(0))
+    setText(''); setVerify([]); setError(''); setPaywall(false); setLevels(Array(BARS).fill(0))
     let fail: unknown, step = 'микрофон'
     quietAudio()
     document.querySelectorAll('audio').forEach((a) => a.pause())
@@ -137,5 +137,5 @@ export function useRecorder(forced?: 'ru' | 'ar') {
   }, [begin, cleanup])
 
   const stop = useCallback(() => { ctl.current?.stop(); ctl.current = null }, [])
-  return { supported, listening, busy, text, vowels, error, paywall, levels, metered, start, stop }
+  return { supported, listening, busy, text, verify, error, paywall, levels, metered, start, stop }
 }

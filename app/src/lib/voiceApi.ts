@@ -8,8 +8,10 @@ const ENDPOINT = 'https://ynqbnqkihojqlawhhiqg.supabase.co/functions/v1/stt-chec
 
 /** Голос → текст */
 /** rec — номер записи: у длинной записи несколько частей, а проверка считается одна */
-/** Что услышали: text — слова (Groq), vowels — тот же текст с огласовками (Gemini; только по-арабски, может быть пустым) */
-export interface Heard { text: string; vowels: string }
+/** Замечание Gemini к слову эталона (по-арабски): i — номер слова (с 1), s — что не так: другая гласная, другая буква, пропуск; h — что услышал */
+export interface VerifyItem { i: number; s: 'vowel' | 'letter' | 'missing'; h?: string }
+/** Что услышали: text — слова (Groq), verify — замечания Gemini по гласным и буквам (только по-арабски, может быть пустым) */
+export interface Heard { text: string; verify: VerifyItem[] }
 export async function transcribe(blob: Blob, model = 'whisper-large-v3', lang: 'ru' | 'ar' = 'ru', rec = ''): Promise<Heard> {
   const ext = blob.type.includes('wav') ? 'wav' : blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm'
   const form = new FormData()
@@ -17,15 +19,17 @@ export async function transcribe(blob: Blob, model = 'whisper-large-v3', lang: '
   form.append('model', model)
   form.append('lang', lang)
   if (rec) form.append('rec', rec)
+  const c = getVoiceContext()
+  if (lang === 'ar' && c.ref) form.append('ref', c.ref) // эталон: по нему Gemini проверяет гласные и буквы каждого слова
   if (useStore.getState().hzVoiceSave) { // человек разрешил сохранять записи для разработчика
-    const c = getVoiceContext()
-    form.append('save', '1'); form.append('ref', c.ref); form.append('label', c.label)
+    form.append('save', '1'); form.append('label', c.label)
+    if (lang !== 'ar') form.append('ref', c.ref)
   }
   form.append('init', tgInitData()) // подпись Telegram: по ней считаются лимиты
   const r = await fetch(ENDPOINT, { method: 'POST', body: form })
   const j = await r.json().catch(() => ({}))
   if (!r.ok) throw Object.assign(new Error(j.error || `Ошибка ${r.status}`), { limit: !!j.limit, paywall: !!j.paywall })
-  return { text: String(j.text ?? ''), vowels: String(j.vowels ?? '') }
+  return { text: String(j.text ?? ''), verify: Array.isArray(j.verify) ? (j.verify as VerifyItem[]) : [] }
 }
 
 /** Голос → текст; длинная запись — по частям, все части сразу (так Whisper не теряет куски) */
@@ -46,10 +50,12 @@ export async function createInvoice(plan: string): Promise<string> {
 }
 
 /** Склеить распознанные части записи по порядку */
-export const joinHeard = (h: Heard[]): Heard => ({
-  text: h.map((x) => x.text.trim()).filter(Boolean).join(' '),
-  vowels: h.map((x) => x.vowels.trim()).filter(Boolean).join(' '),
-})
+export const joinHeard = (h: Heard[]): Heard => {
+  // у каждого слова берём первое замечание; «гласная/буква» важнее «пропущено»
+  const by = new Map<number, VerifyItem>()
+  for (const x of h) for (const v of x.verify) { const c = by.get(v.i); if (!c || (c.s === 'missing' && v.s !== 'missing')) by.set(v.i, v) }
+  return { text: h.map((x) => x.text.trim()).filter(Boolean).join(' '), verify: [...by.values()].sort((a, b) => a.i - b.i) }
+}
 
 /** Номер новой записи */
 export const newRec = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36))

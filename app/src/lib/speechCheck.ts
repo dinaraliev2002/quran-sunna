@@ -3,6 +3,7 @@
 // лишние слова (оговорки, «ой, не то», повторы) почти не снижают результат.
 // Язык сверки: русский перевод (ru) или арабский текст (ar, без огласовок — см. arabicSpeech.ts).
 import { analyzeAr, hasVowels, spokenAr, spokenArFull, vowelDiff } from './arabicSpeech'
+import type { VerifyItem } from './voiceApi'
 
 export type VoiceLang = 'ru' | 'ar'
 
@@ -16,8 +17,10 @@ export interface CheckedWord {
   said?: string
   /** ИИ засчитал слово, хотя алгоритм счёл его ошибкой */
   ai?: boolean
-  /** ошибка только в огласовке: буквы верные (ИИ такие слова не пересматривает) */
+  /** ошибка только в огласовке: буквы верные */
   vowel?: boolean
+  /** отметил Gemini («сверка по слову»): решение окончательное, ИИ-судья такие слова не пересматривает */
+  final?: boolean
 }
 
 export interface CheckResult {
@@ -80,15 +83,26 @@ const EXTRA = 0.25 // цена лишнего слова (оговорки не 
 
 /**
  * Сверка. strict — без поблажек на неточное распознавание (по умолчанию выключено); в арабском поблажек нет всегда: буква — это ошибка.
- * voweled — тот же ответ с огласовками от другой модели (по-арабски): слова и буквы сверяются по spoken, огласовки — по voweled
- * (так «исправление» ошибки знакомым текстом в одной модели не скрывает ошибку, найденную другой).
+ * verify — замечания Gemini по словам (по-арабски: другая гласная, другая буква): слова и пропуски сверяются по spoken (Groq),
+ * а то, что Gemini услышал иначе, добавляется как ошибка (обычная расшифровка «исправляет» ошибку на знакомый текст, сверка по слову — нет).
  */
-export function checkSpeech(reference: string, spoken: string, strict = false, lang: VoiceLang = 'ru', vowels = false, voweled = ''): CheckResult {
-  const base = checkCore(reference, spoken, strict, lang, vowels && !voweled)
-  if (lang !== 'ar' || !vowels || !voweled.trim()) return base
-  const v = checkCore(reference, voweled, true, lang, true)
-  if (v.words.length !== base.words.length) return base
-  const words = base.words.map((x, i) => (x.state === 'ok' && v.words[i].vowel ? v.words[i] : x))
+export function checkSpeech(reference: string, spoken: string, strict = false, lang: VoiceLang = 'ru', vowels = false, verify: VerifyItem[] = []): CheckResult {
+  const base = checkCore(reference, spoken, strict, lang, vowels && !verify.length)
+  if (lang !== 'ar' || !verify.length) return base
+  // номер слова в замечании — по словам текста через пробел; в сверке часть слов (значки, формулы, «و» отдельно) не считается
+  const toks = reference.split(/\s+/).filter(Boolean)
+  const an = analyzeAr(toks)
+  const at: Record<number, number> = {}
+  let r = 0
+  toks.forEach((_, j) => { if (an[j].count) at[j + 1] = r++ })
+  const words = base.words.slice()
+  for (const v of verify) {
+    if (v.s === 'missing') continue // пропуски надёжно видит сверка по Groq
+    if (v.s === 'vowel' && !vowels) continue // огласовки выключены в настройках
+    const i = at[v.i]
+    if (i === undefined || !words[i] || words[i].state !== 'ok') continue
+    words[i] = { w: words[i].w, state: 'wrong', said: v.h, vowel: v.s === 'vowel', final: true }
+  }
   const ok = words.filter((x) => x.state === 'ok').length
   const wrong = words.filter((x) => x.state === 'wrong').length
   return { ...base, words, ok, wrong, missed: words.length - ok - wrong, percent: words.length ? Math.round((ok / words.length) * 100) : 0 }
@@ -150,7 +164,7 @@ function checkCore(reference: string, spoken: string, strict: boolean, lang: Voi
 
 /** Спорные слова для ИИ: ошибки и пропуски (номер — позиция среди слов эталона) */
 export const flaggedWords = (r: CheckResult) =>
-  r.words.map((x, i) => ({ i, w: x.w, said: x.said, state: x.state, vowel: x.vowel })).filter((x) => x.state !== 'ok' && !x.vowel).map(({ i, w, said }) => ({ i, w, said }))
+  r.words.map((x, i) => ({ i, w: x.w, said: x.said, state: x.state, vowel: x.vowel, final: x.final })).filter((x) => x.state !== 'ok' && !x.vowel && !x.final).map(({ i, w, said }) => ({ i, w, said }))
 
 /** Засчитать слова, которые одобрил ИИ, и пересчитать процент */
 export function applyAccepted(r: CheckResult, accept: number[]): CheckResult {

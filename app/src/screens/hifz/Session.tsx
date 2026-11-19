@@ -9,6 +9,7 @@ import { HadithBody, ListenBtn, useHifzToday, WarnSheet } from './parts'
 import { SplitBtn } from './SplitEditor'
 import { HadithGearSheet } from './HadithGearSheet'
 import { useVoiceResult, VoiceCheck, VoiceErrors, VoiceScore } from './VoiceCheck'
+import type { VerifyItem } from '../../lib/voiceApi'
 
 
 type Step = 'read' | 'gap3' | 'gap2' | 'build' | 'tell'
@@ -167,9 +168,9 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
   const [hint, setHint] = useState(false)
   const [open, setOpen] = useState(false)
   const [spoken, setSpoken] = useState('') // что сказали вслух (проверка голосом)
-  const [voweled, setVoweled] = useState('') // то же с огласовками (если пришло)
+  const [verify, setVerify] = useState<VerifyItem[]>([]) // замечания Gemini по гласным и буквам (если пришли)
   const [sel, setSel] = useState<number | null>(null) // слово, на которое нажали в результате
-  const { r: res, checking } = useVoiceResult(item, spoken, voweled)
+  const { r: res, checking } = useVoiceResult(item, spoken, verify)
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const vLang = useStore((s) => s.hzVoiceLang)
   return (
@@ -195,7 +196,7 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
           </>
         )}
       </div>
-      <VoiceCheck key={item.key} onText={(t, v) => { setSpoken(t); setVoweled(v ?? '') }} hidden={open} />
+      <VoiceCheck key={item.key} onText={(t, v) => { setSpoken(t); setVerify(v ?? []) }} hidden={open} />
       {open ? children : (
         <div className="hz-act">
           <button className="bigbtn" onClick={() => { haptic.tap(); setOpen(true) }}><Icon id="open" />Проверить себя</button>

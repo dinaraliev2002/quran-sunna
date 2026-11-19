@@ -4,7 +4,7 @@ import { useVoice } from '../../hooks/useVoice'
 import { BARS } from '../../hooks/useSpeech'
 import { arSpan, arTokens } from '../../lib/arabicSpeech'
 import { applyAccepted, checkSpeech, flaggedWords, type CheckResult, type VoiceLang } from '../../lib/speechCheck'
-import { judgeWords } from '../../lib/voiceApi'
+import { judgeWords, type VerifyItem } from '../../lib/voiceApi'
 import { setVoiceContext } from '../../lib/voiceContext'
 import { haptic } from '../../lib/telegram'
 import { useStore } from '../../store/settings'
@@ -27,11 +27,11 @@ export function referenceText(item: HifzItem, withNarrator: boolean, lang: Voice
  * Запись голоса перед «Проверить себя»: пока идёт запись — только полоски громкости (текст не показываем),
  * результат сверки появляется уже после «Проверить себя» (VoiceResult).
  */
-export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string, vowels?: string) => void; quran?: boolean; hidden?: boolean }) {
+export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string, verify?: VerifyItem[]) => void; quran?: boolean; hidden?: boolean }) {
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const lang = useStore((s) => (quran ? 'ar' : s.hzVoiceLang))
   const set = useStore((s) => s.set)
-  const { supported, listening, busy, text, vowels, error, paywall, levels, metered, start, stop } = useVoice(quran ? 'ar' : undefined)
+  const { supported, listening, busy, text, verify, error, paywall, levels, metered, start, stop } = useVoice(quran ? 'ar' : undefined)
   const [done, setDone] = useState(false)
   // платный доступ: когда бесплатные проверки кончились и ничего не куплено — кнопка с замочком, по нажатию окно с тарифами
   const cloud = useStore((s) => s.hzVoiceEngine) === 'cloud'
@@ -42,7 +42,7 @@ export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string, v
   useEffect(() => { if (paywall) setPay(true) }, [paywall])
 
   // после остановки отдаём распознанное наружу
-  useEffect(() => { if (done && !listening && !busy) onText(text, vowels) }, [done, listening, busy, text, vowels, onText])
+  useEffect(() => { if (done && !listening && !busy) onText(text, verify) }, [done, listening, busy, text, verify, onText])
 
   // «Проверить себя» нажали, пока идёт запись: останавливаем её; пока идёт распознавание — компонент остаётся в окне (иначе результат потеряется)
   useEffect(() => { if (hidden && listening) { stop(); setDone(true) } }, [hidden, listening, stop])
@@ -90,23 +90,23 @@ export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string, v
 }
 
 /** Сверка сказанного с хадисом (с учётом настроек) */
-export function useVoiceResult(item: HifzItem, spoken: string, voweled = ''): { r: CheckResult | null; checking: boolean } {
+export function useVoiceResult(item: HifzItem, spoken: string, verify: VerifyItem[] = []): { r: CheckResult | null; checking: boolean } {
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const lang = useStore((s) => s.hzVoiceLang)
   const ref = useMemo(() => referenceText(item, withNarr, lang), [item, withNarr, lang])
-  return useVoiceCheck(ref, lang, spoken, voweled, `${item.key} · ${item.src}`)
+  return useVoiceCheck(ref, lang, spoken, verify, `${item.key} · ${item.src}`)
 }
 
 /** Ядро сверки: спорные слова сразу показываются как ошибки, затем ИИ (если включён) засчитывает те, что ошибкой не являются */
-export function useVoiceCheck(ref: string, lang: VoiceLang, spoken: string, voweled = '', label = ''): { r: CheckResult | null; checking: boolean } {
+export function useVoiceCheck(ref: string, lang: VoiceLang, spoken: string, verify: VerifyItem[] = [], label = ''): { r: CheckResult | null; checking: boolean } {
   useEffect(() => { setVoiceContext({ ref, label }) }, [ref, label]) // для сохранения записи (если разрешено)
   const loose = useStore((s) => s.hzVoiceLoose)
   const ai = useStore((s) => s.hzVoiceAi)
   const harakat = useStore((s) => s.hzHarakat)
-  const base = useMemo(() => (spoken && ref ? checkSpeech(ref, spoken, !loose, lang, harakat, voweled) : null), [ref, spoken, loose, lang, harakat, voweled])
+  const base = useMemo(() => (spoken && ref ? checkSpeech(ref, spoken, !loose, lang, harakat, verify) : null), [ref, spoken, loose, lang, harakat, verify])
   const [accepted, setAccepted] = useState<{ key: string; idx: number[] } | null>(null)
   const [checking, setChecking] = useState(false)
-  const key = `${ref}|${spoken}|${voweled}|${loose}|${lang}|${harakat}`
+  const key = `${ref}|${spoken}|${JSON.stringify(verify)}|${loose}|${lang}|${harakat}`
   const last = useRef('')
   useEffect(() => {
     if (!ai || !base || !base.relevant) { setChecking(false); return }

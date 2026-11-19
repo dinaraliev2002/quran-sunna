@@ -97,36 +97,51 @@ async function canListen(w: Who) {
   if (me.sec >= (w.tg ? LIMIT.tg : LIMIT.web)) throw new Limit(w.tg ? 'Дневной лимит проверок голосом исчерпан — продолжим завтра.' : 'Дневной лимит проверок в браузере исчерпан. В приложении в Telegram лимит больше.')
 }
 
-/** Огласовки по-арабски пишет Gemini, если включён секретом VOICE_AR_ENGINE=gemini (иначе только Groq, без огласовок). Модель — секрет GEMINI_MODEL. */
+/** Гласные и буквы по-арабски проверяет Gemini («сверка по слову»), если включён секретом VOICE_AR_ENGINE=gemini (иначе только Groq: слова без огласовок). Модель — секрет GEMINI_MODEL. */
 const GEM_MODEL = Deno.env.get('GEMINI_MODEL')?.trim() || 'gemini-3.8-flash'
 const GEM_THINK = Deno.env.get('VOICE_GEM_THINK')?.trim() || 'low' // уровень «размышлений»: low — без трат (при стандартных размышлениях проверка в 9 раз дороже и втрое медленнее, точность та же)
 const AR_GEMINI = (Deno.env.get('VOICE_AR_ENGINE') ?? '').trim() === 'gemini' && !!GEMINI
-const GEM_PROMPT = [
-  'Transcribe this Arabic speech exactly as it was pronounced, word by word.',
-  'Write the Arabic text WITH full diacritics (tashkeel: fatha, damma, kasra, sukun, shadda, tanween) on every word, exactly as the speaker pronounced them.',
-  'Do NOT correct any mistakes: if the speaker said a wrong letter, wrong vowel, doubled a letter or skipped a word, write it as heard. Do NOT add words that were not said and do not complete the text from memory.',
-  'If the speaker stammers and repeats the first syllable of a word before saying it, write the word once. Do not write sounds like "uh".',
-  'Output only the Arabic transcript on one line: no translation, no comments, no quotes, no markdown.',
-].join(' ')
+const VERIFY_PROMPT = [
+  'You are a strict Arabic recitation verifier. A student recites from memory. Below is the REFERENCE text the student should say, as numbered words, with full diacritics. The audio may contain only a PART of the reference.',
+  'Listen to the audio and compare it to the reference WORD BY WORD, judging only the actual sounds you hear. Do NOT assume the student said the reference: students make mistakes on purpose, so assume NOTHING and check each word. Famous verses and hadiths are often misrecited - do not use your memory of the text, use only the audio.',
+  'Report ONLY the words that are NOT pronounced exactly as written, with one status each:',
+  '"vowel" - same consonants but a short vowel is different (a/u/i swapped, or doubling/shadda missing or added); put the vowel you heard in "heard";',
+  '"letter" - a consonant is different or a different letter is pronounced; put what you heard in "heard";',
+  '"missing" - a word inside the part that the student recites was skipped (do NOT report words that are outside the recited part).',
+  'Words that are pronounced correctly are NOT listed. Ignore the vowel on the very last letter of a word (pausing at the end of a phrase is allowed) and the first letter of words starting with alif-wasl.',
+  'Answer ONLY with JSON: [{"i":2,"status":"vowel","heard":"..."}] - or [] if everything is correct.',
+  'REFERENCE:',
+].join('\n')
 
-/** Голос → текст через Gemini: пишет как сказано, с огласовками (Whisper их не пишет и «исправляет» ошибки) */
-async function transcribeGemini(file: File) {
+interface VerifyItem { i: number; s: 'vowel' | 'letter' | 'missing'; h?: string }
+
+/** Сверка по слову: Gemini слушает запись, видя эталон, и называет слова, произнесённые иначе (гласная, буква, пропуск).
+ *  Свободная расшифровка тут не годится: модель «исправляет» ошибку на знакомый текст; когда спрашиваешь про каждое слово отдельно — ловит гораздо больше. */
+async function verifyGemini(file: File, ref: string) {
+  const toks = ref.split(/\s+/).filter(Boolean)
+  const prompt = VERIFY_PROMPT + '\n' + toks.map((t, k) => `${k + 1}. ${t.replace(/[﴿﴾]/g, '')}`).join('\n')
   const bytes = new Uint8Array(await file.arrayBuffer())
   const mime = (file.type || 'audio/wav').split(';')[0]
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEM_MODEL}:generateContent`, {
     method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': GEMINI },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: GEM_PROMPT }, { inline_data: { mime_type: mime, data: encodeBase64(bytes) } }] }],
+      contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: encodeBase64(bytes) } }] }],
       generationConfig: { temperature: 0, ...(GEM_THINK ? { thinkingConfig: { thinkingLevel: GEM_THINK } } : {}) },
     }),
     signal: AbortSignal.timeout(60000),
   })
   if (!r.ok) throw new Error(`Gemini ${r.status}: ${(await r.text()).slice(0, 200)}`)
   const j = await r.json()
-  const text = (j.candidates?.[0]?.content?.parts ?? []).map((p: Any) => p.text ?? '').join('').replace(/[`*"«»]/g, '').trim()
-  if (!text) throw new Error('Gemini: пустой ответ')
+  const raw = (j.candidates?.[0]?.content?.parts ?? []).map((p: Any) => p.text ?? '').join('')
+  const m = raw.match(/\[[\s\S]*\]/)
+  if (!m) throw new Error('Gemini: ответ не по форме')
+  const items: VerifyItem[] = []
+  for (const x of JSON.parse(m[0]) as Any[]) {
+    const i = Number(x?.i), st = String(x?.status ?? '')
+    if (Number.isInteger(i) && i >= 1 && i <= toks.length && (st === 'vowel' || st === 'letter' || st === 'missing')) items.push({ i, s: st, ...(x.heard ? { h: String(x.heard).slice(0, 40) } : {}) })
+  }
   // длительность: у WAV 16 кГц моно — 32 000 байт в секунду, у сжатых форматов грубо 6 000
-  return { text, sec: /wav/i.test(mime) ? Math.max(1, (bytes.length - 44) / 32000) : bytes.length / 6000 }
+  return { items, sec: /wav/i.test(mime) ? Math.max(1, (bytes.length - 44) / 32000) : bytes.length / 6000 }
 }
 
 /** Голос → текст через Groq (Whisper; без подсказки — с ней он повторял её вместо речи) */
@@ -152,22 +167,23 @@ async function transcribeGroq(file: File, form: FormData) {
   return { text: text.trim(), sec }
 }
 
-/** Голос → текст. По-арабски (если подключён Gemini) слушают обе модели: Groq — слова и буквы (Gemini «исправляет» ошибки на знакомый текст),
- *  Gemini — огласовки (Whisper их не пишет). Приложение получает text (Groq) и vowels (Gemini, с огласовками). */
+/** Голос → текст. По-арабски (если подключён Gemini и приложение прислало эталон ref) слушают обе модели: Groq — слова и пропуски,
+ *  Gemini — «сверка по слову» (гласные и буквы; обычная расшифровка Gemini «исправляет» ошибки на знакомый текст). Ответ: text (Groq) и verify (замечания Gemini). */
 async function transcribe(form: FormData, w: Who) {
   await canListen(w)
   const file = form.get('audio')
   if (!(file instanceof File)) throw new Error('нет записи')
   if (file.size > MAX_AUDIO) throw new Error('запись слишком длинная')
   const count = (sec: number) => Promise.all([add(w.key, sec, 1, 0), add('*', sec, 1, 0)])
-  if (AR_GEMINI && String(form.get('lang') ?? '') === 'ar') {
-    const [q, g] = await Promise.allSettled([transcribeGroq(file, form), transcribeGemini(file)])
+  const ref = String(form.get('ref') ?? '').slice(0, 8000)
+  if (AR_GEMINI && String(form.get('lang') ?? '') === 'ar' && ref.trim()) {
+    const [q, g] = await Promise.allSettled([transcribeGroq(file, form), verifyGemini(file, ref)])
     if (g.status === 'rejected') console.error('gemini:', String((g.reason as Error)?.message ?? g.reason))
     if (q.status === 'fulfilled') {
       await count(q.value.sec)
-      return { text: q.value.text, ...(g.status === 'fulfilled' ? { vowels: g.value.text } : {}), engine: g.status === 'fulfilled' ? 'groq+gemini' : 'groq' }
+      return { text: q.value.text, ...(g.status === 'fulfilled' ? { verify: g.value.items } : {}), engine: g.status === 'fulfilled' ? 'groq+gemini' : 'groq' }
     }
-    if (g.status === 'fulfilled') { await count(g.value.sec); return { text: g.value.text, engine: 'gemini' } } // Groq не ответил — хотя бы Gemini
+    if (g.status === 'fulfilled') { await count(g.value.sec); return { text: '', verify: g.value.items, engine: 'gemini' } } // Groq не ответил — остаётся сверка Gemini
     throw q.reason
   }
   const r = await transcribeGroq(file, form)
@@ -188,7 +204,7 @@ async function saveSample(w: Who, form: FormData, res: Any) {
     await db.from('qs_voice_samples').insert({
       id, key: w.key, rec: String(form.get('rec') ?? '').slice(0, 64), path, lang: String(form.get('lang') ?? ''),
       label: String(form.get('label') ?? '').slice(0, 200), ref: String(form.get('ref') ?? '').slice(0, 8000),
-      engine: res.engine ?? null, text: res.text ?? null, vowels: res.vowels ?? null,
+      engine: res.engine ?? null, text: res.text ?? null, vowels: res.verify ? JSON.stringify(res.verify) : null,
     })
   } catch (e) { console.error('save sample', e) }
 }

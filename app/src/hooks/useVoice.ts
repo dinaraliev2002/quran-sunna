@@ -1,4 +1,5 @@
 import { useStore } from '../store/settings'
+import type { VerifyItem } from '../lib/voiceApi'
 import { useRecorder } from './useRecorder'
 import { useSpeech } from './useSpeech'
 
@@ -8,5 +9,5 @@ export function useVoice(forced?: 'ru' | 'ar') {
   const lang = useStore((s) => forced ?? s.hzVoiceLang)
   const sys = useSpeech(lang === 'ar' ? 'ar-SA' : 'ru-RU')
   const cloud = useRecorder(forced)
-  return engine === 'cloud' ? { ...cloud, engine } : { ...sys, busy: false, paywall: false, vowels: '', engine }
+  return engine === 'cloud' ? { ...cloud, engine } : { ...sys, busy: false, paywall: false, verify: [] as VerifyItem[], engine }
 }
