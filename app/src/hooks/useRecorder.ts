@@ -19,7 +19,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
   const [listening, setListening] = useState(false)
   const [busy, setBusy] = useState(false) // запись ушла на распознавание
   const [text, setText] = useState('')
-  const [verify, setVerify] = useState<VerifyItem[]>([]) // замечания Gemini по гласным и буквам (по-арабски), если пришли
+  const [verify, setVerify] = useState<VerifyItem[] | null>(null) // замечания Gemini по гласным и буквам (по-арабски), если пришли
   const [error, setError] = useState('')
   const [paywall, setPaywall] = useState(false) // сервер отказал: бесплатные проверки кончились, нужна подписка или пакет
   const [levels, setLevels] = useState<number[]>(() => Array(BARS).fill(0))
@@ -78,7 +78,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
         parts.push(new Promise<Heard>((res, rej) => {
           r.onstop = () => {
             const blob = new Blob(chunks, { type: r.mimeType || mime || 'audio/webm' })
-            if (blob.size < 2000) res({ text: '', verify: [] })
+            if (blob.size < 2000) res({ text: '', verify: null })
             else transcribe(blob, model(), lng(), rec).then(res, rej)
             closed++
             if (stopping && closed === parts.length) void finishParts(parts)
@@ -114,7 +114,7 @@ export function useRecorder(forced?: 'ru' | 'ar') {
   }, [finishParts, finishWav])
 
   const start = useCallback(async (): Promise<boolean> => {
-    setText(''); setVerify([]); setError(''); setPaywall(false); setLevels(Array(BARS).fill(0))
+    setText(''); setVerify(null); setError(''); setPaywall(false); setLevels(Array(BARS).fill(0))
     let fail: unknown, step = 'микрофон'
     quietAudio()
     document.querySelectorAll('audio').forEach((a) => a.pause())

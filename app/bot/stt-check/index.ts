@@ -164,7 +164,10 @@ async function transcribeGroq(file: File, form: FormData) {
   // куски, где модели почти уверена, что речи нет, — это её «додумки» в тишине («شكرا», «موسيقى», «Продолжение следует…»)
   const segs: Any[] = Array.isArray(j.segments) ? j.segments : []
   const text = segs.length ? segs.filter((g) => !(Number(g.no_speech_prob) > 0.8)).map((g) => String(g.text ?? '')).join('') : String(j.text ?? '')
-  return { text: text.trim(), sec }
+  // Whisper на тишине и шуме «додумывает» одну-две фразы («موسيقى» — музыка, «شكرا» — спасибо, «اشتركوا في القناة»): такой ответ — не речь
+  const t = text.trim()
+  const junk = /^[\s.،!]*(موسيقى|شكرا|شكرا لكم|شكراً|اشتركوا في القناة|ترجمة نانسي قنقر|تمت الترجمة)[\s.،!]*$/.test(t)
+  return { text: junk ? '' : t, sec }
 }
 
 /** Голос → текст. По-арабски (если подключён Gemini и приложение прислало эталон ref) слушают обе модели: Groq — слова и пропуски,

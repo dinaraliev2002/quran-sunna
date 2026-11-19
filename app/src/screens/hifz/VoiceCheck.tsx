@@ -27,7 +27,7 @@ export function referenceText(item: HifzItem, withNarrator: boolean, lang: Voice
  * Запись голоса перед «Проверить себя»: пока идёт запись — только полоски громкости (текст не показываем),
  * результат сверки появляется уже после «Проверить себя» (VoiceResult).
  */
-export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string, verify?: VerifyItem[]) => void; quran?: boolean; hidden?: boolean }) {
+export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string, verify?: VerifyItem[] | null) => void; quran?: boolean; hidden?: boolean }) {
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const lang = useStore((s) => (quran ? 'ar' : s.hzVoiceLang))
   const set = useStore((s) => s.set)
@@ -90,7 +90,7 @@ export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string, v
 }
 
 /** Сверка сказанного с хадисом (с учётом настроек) */
-export function useVoiceResult(item: HifzItem, spoken: string, verify: VerifyItem[] = []): { r: CheckResult | null; checking: boolean } {
+export function useVoiceResult(item: HifzItem, spoken: string, verify: VerifyItem[] | null = null): { r: CheckResult | null; checking: boolean } {
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const lang = useStore((s) => s.hzVoiceLang)
   const ref = useMemo(() => referenceText(item, withNarr, lang), [item, withNarr, lang])
@@ -98,7 +98,7 @@ export function useVoiceResult(item: HifzItem, spoken: string, verify: VerifyIte
 }
 
 /** Ядро сверки: спорные слова сразу показываются как ошибки, затем ИИ (если включён) засчитывает те, что ошибкой не являются */
-export function useVoiceCheck(ref: string, lang: VoiceLang, spoken: string, verify: VerifyItem[] = [], label = ''): { r: CheckResult | null; checking: boolean } {
+export function useVoiceCheck(ref: string, lang: VoiceLang, spoken: string, verify: VerifyItem[] | null = null, label = ''): { r: CheckResult | null; checking: boolean } {
   useEffect(() => { setVoiceContext({ ref, label }) }, [ref, label]) // для сохранения записи (если разрешено)
   const loose = useStore((s) => s.hzVoiceLoose)
   const ai = useStore((s) => s.hzVoiceAi)

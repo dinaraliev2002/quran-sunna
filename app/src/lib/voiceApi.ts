@@ -10,8 +10,8 @@ const ENDPOINT = 'https://ynqbnqkihojqlawhhiqg.supabase.co/functions/v1/stt-chec
 /** rec — номер записи: у длинной записи несколько частей, а проверка считается одна */
 /** Замечание Gemini к слову эталона (по-арабски): i — номер слова (с 1), s — что не так: другая гласная, другая буква, пропуск; h — что услышал */
 export interface VerifyItem { i: number; s: 'vowel' | 'letter' | 'missing'; h?: string }
-/** Что услышали: text — слова (Groq), verify — замечания Gemini по гласным и буквам (только по-арабски, может быть пустым) */
-export interface Heard { text: string; verify: VerifyItem[] }
+/** Что услышали: text — слова (Groq), verify — замечания Gemini по гласным и буквам (по-арабски); null — Gemini не отвечал, пустой список — замечаний нет */
+export interface Heard { text: string; verify: VerifyItem[] | null }
 export async function transcribe(blob: Blob, model = 'whisper-large-v3', lang: 'ru' | 'ar' = 'ru', rec = ''): Promise<Heard> {
   const ext = blob.type.includes('wav') ? 'wav' : blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm'
   const form = new FormData()
@@ -29,7 +29,7 @@ export async function transcribe(blob: Blob, model = 'whisper-large-v3', lang: '
   const r = await fetch(ENDPOINT, { method: 'POST', body: form })
   const j = await r.json().catch(() => ({}))
   if (!r.ok) throw Object.assign(new Error(j.error || `Ошибка ${r.status}`), { limit: !!j.limit, paywall: !!j.paywall })
-  return { text: String(j.text ?? ''), verify: Array.isArray(j.verify) ? (j.verify as VerifyItem[]) : [] }
+  return { text: String(j.text ?? ''), verify: Array.isArray(j.verify) ? (j.verify as VerifyItem[]) : null }
 }
 
 /** Голос → текст; длинная запись — по частям, все части сразу (так Whisper не теряет куски) */
@@ -53,8 +53,8 @@ export async function createInvoice(plan: string): Promise<string> {
 export const joinHeard = (h: Heard[]): Heard => {
   // у каждого слова берём первое замечание; «гласная/буква» важнее «пропущено»
   const by = new Map<number, VerifyItem>()
-  for (const x of h) for (const v of x.verify) { const c = by.get(v.i); if (!c || (c.s === 'missing' && v.s !== 'missing')) by.set(v.i, v) }
-  return { text: h.map((x) => x.text.trim()).filter(Boolean).join(' '), verify: [...by.values()].sort((a, b) => a.i - b.i) }
+  for (const x of h) for (const v of x.verify ?? []) { const c = by.get(v.i); if (!c || (c.s === 'missing' && v.s !== 'missing')) by.set(v.i, v) }
+  return { text: h.map((x) => x.text.trim()).filter(Boolean).join(' '), verify: h.some((x) => x.verify) ? [...by.values()].sort((a, b) => a.i - b.i) : null }
 }
 
 /** Номер новой записи */

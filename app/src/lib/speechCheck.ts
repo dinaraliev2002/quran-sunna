@@ -83,25 +83,29 @@ const EXTRA = 0.25 // цена лишнего слова (оговорки не 
 
 /**
  * Сверка. strict — без поблажек на неточное распознавание (по умолчанию выключено); в арабском поблажек нет всегда: буква — это ошибка.
- * verify — замечания Gemini по словам (по-арабски: другая гласная, другая буква): слова и пропуски сверяются по spoken (Groq),
- * а то, что Gemini услышал иначе, добавляется как ошибка (обычная расшифровка «исправляет» ошибку на знакомый текст, сверка по слову — нет).
+ * verify — «сверка по слову» от Gemini (по-арабски): он слышит запись, видя эталон, и называет слова, произнесённые иначе (гласная, буква, пропуск);
+ * null — Gemini не отвечал, тогда остаётся сверка по тексту Groq. Когда Gemini ответил, ему верим больше, чем сопоставлению слов по тексту
+ * Groq (Whisper путает редкие слова: «لإيلاف» → «لإله», «جُوعٍ» → «جوعي»): слово, которое Groq счёл «другим», а Gemini не отметил, — верное.
+ * Из Groq сохраняем пропуски в начале и в конце (Gemini не отмечает слова, которых человек не читал).
  */
-export function checkSpeech(reference: string, spoken: string, strict = false, lang: VoiceLang = 'ru', vowels = false, verify: VerifyItem[] = []): CheckResult {
-  const base = checkCore(reference, spoken, strict, lang, vowels && !verify.length)
-  if (lang !== 'ar' || !verify.length) return base
+export function checkSpeech(reference: string, spoken: string, strict = false, lang: VoiceLang = 'ru', vowels = false, verify: VerifyItem[] | null = null): CheckResult {
+  const base = checkCore(reference, spoken, strict, lang, vowels && !verify)
+  if (lang !== 'ar' || !verify) return base
   // номер слова в замечании — по словам текста через пробел; в сверке часть слов (значки, формулы, «و» отдельно) не считается
   const toks = reference.split(/\s+/).filter(Boolean)
   const an = analyzeAr(toks)
   const at: Record<number, number> = {}
   let r = 0
   toks.forEach((_, j) => { if (an[j].count) at[j + 1] = r++ })
-  const words = base.words.slice()
+  const lastOk = base.words.map((x) => x.state).lastIndexOf('ok')
+  const firstOk = base.words.findIndex((x) => x.state === 'ok')
+  // Groq: «другое слово» → верное; «пропущено» между верными словами → верное (оба случая решает Gemini)
+  const words = base.words.map((x, i) => (x.state === 'wrong' || (x.state === 'missed' && i > firstOk && i < lastOk) ? { w: x.w, state: 'ok' as const } : x))
   for (const v of verify) {
-    if (v.s === 'missing') continue // пропуски надёжно видит сверка по Groq
     if (v.s === 'vowel' && !vowels) continue // огласовки выключены в настройках
     const i = at[v.i]
-    if (i === undefined || !words[i] || words[i].state !== 'ok') continue
-    words[i] = { w: words[i].w, state: 'wrong', said: v.h, vowel: v.s === 'vowel', final: true }
+    if (i === undefined || !words[i]) continue
+    words[i] = v.s === 'missing' ? { w: words[i].w, state: 'missed', final: true } : { w: words[i].w, state: 'wrong', said: v.h, vowel: v.s === 'vowel', final: true }
   }
   const ok = words.filter((x) => x.state === 'ok').length
   const wrong = words.filter((x) => x.state === 'wrong').length
