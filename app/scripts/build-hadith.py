@@ -72,7 +72,8 @@ def paras(fragment):
         t = t.replace('‏', '').replace('\xa0', ' ')
         t = re.sub(r'\*\*\s*\*\*', '', t)
         t = re.sub(r'\s+', ' ', t).strip()
-        if t and t != '**':
+        # одинаковый абзац подряд (в источнике бывают дубли: «Этот хадис подобен предыдущему» дважды) — один раз
+        if t and t != '**' and not (out and out[-1] == t and len(t) > 20):
             out.append(t)
     return out
 
