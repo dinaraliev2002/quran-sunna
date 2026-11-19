@@ -45,7 +45,7 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
           </div>
         ))}
       </div>
-      {!all && <VoiceCheck quran onText={setSpoken} />}
+      <VoiceCheck quran onText={setSpoken} hidden={all} />
       {all && res && (
         <div className="hz-card">
           <VoiceScore r={res} checking={checking} />

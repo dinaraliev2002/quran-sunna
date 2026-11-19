@@ -26,7 +26,7 @@ export function referenceText(item: HifzItem, withNarrator: boolean, lang: Voice
  * Запись голоса перед «Проверить себя»: пока идёт запись — только полоски громкости (текст не показываем),
  * результат сверки появляется уже после «Проверить себя» (VoiceResult).
  */
-export function VoiceCheck({ onText, quran }: { onText: (text: string) => void; quran?: boolean }) {
+export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string) => void; quran?: boolean; hidden?: boolean }) {
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const lang = useStore((s) => (quran ? 'ar' : s.hzVoiceLang))
   const set = useStore((s) => s.set)
@@ -42,6 +42,10 @@ export function VoiceCheck({ onText, quran }: { onText: (text: string) => void; 
 
   // после остановки отдаём распознанное наружу
   useEffect(() => { if (done && !listening && !busy) onText(text) }, [done, listening, busy, text, onText])
+
+  // «Проверить себя» нажали, пока идёт запись: останавливаем её; пока идёт распознавание — компонент остаётся в окне (иначе результат потеряется)
+  useEffect(() => { if (hidden && listening) { stop(); setDone(true) } }, [hidden, listening, stop])
+  if (hidden) return busy ? <p className="hz-voice-ok">Распознаю речь… результат появится сам</p> : null
 
   if (!supported) {
     return <p className="hz-tip">Проверка голосом пока недоступна в этом окне: распознавание речи не поддерживается. Попробуйте открыть приложение в обычном браузере.</p>

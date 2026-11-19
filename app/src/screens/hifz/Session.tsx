@@ -194,7 +194,7 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
           </>
         )}
       </div>
-      {!open && <VoiceCheck key={item.key} onText={setSpoken} />}
+      <VoiceCheck key={item.key} onText={setSpoken} hidden={open} />
       {open ? children : (
         <div className="hz-act">
           <button className="bigbtn" onClick={() => { haptic.tap(); setOpen(true) }}><Icon id="open" />Проверить себя</button>
