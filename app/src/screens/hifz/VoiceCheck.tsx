@@ -46,7 +46,10 @@ export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string, v
 
   // «Проверить себя» нажали, пока идёт запись: останавливаем её; пока идёт распознавание — компонент остаётся в окне (иначе результат потеряется)
   useEffect(() => { if (hidden && listening) { stop(); setDone(true) } }, [hidden, listening, stop])
-  if (hidden) return busy ? <p className="hz-voice-ok">Распознаю речь… результат появится сам</p> : null
+  // по-арабски огласовки и буквы проверяет Gemini; если он не ответил (сбой, закончился баланс), проверены только слова — честно говорим об этом
+  const noVowels = cloud && lang === 'ar' && done && !listening && !busy && !!text && verify === null
+  const noVowelsNote = noVowels ? <p className="hz-voice-err">Огласовки в этот раз не проверены: сервис проверки огласовок не ответил. Проверены только слова и пропуски.</p> : null
+  if (hidden) return busy ? <p className="hz-voice-ok">Распознаю речь… результат появится сам</p> : noVowelsNote
 
   if (!supported) {
     return <p className="hz-tip">Проверка голосом пока недоступна в этом окне: распознавание речи не поддерживается. Попробуйте открыть приложение в обычном браузере.</p>
@@ -83,6 +86,7 @@ export function VoiceCheck({ onText, quran, hidden }: { onText: (text: string, v
       {busy && <p className="hz-voice-ok">Распознаю речь…</p>}
       {error && <p className="hz-voice-err">{error}</p>}
       {heard && <p className="hz-voice-ok"><Icon id="check" />Записано. Нажмите «Проверить себя» — увидите результат.</p>}
+      {noVowelsNote}
       {done && !listening && !busy && !text && !error && <p className="hz-voice-err">Ничего не услышал — попробуйте ещё раз.</p>}
       {pay && <VoicePaywall onClose={() => setPay(false)} />}
     </div>

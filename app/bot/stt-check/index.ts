@@ -108,7 +108,8 @@ const VERIFY_PROMPT = [
   '"vowel" - same consonants but a short vowel is different (a/u/i swapped, or doubling/shadda missing or added); put the vowel you heard in "heard";',
   '"letter" - a consonant is different or a different letter is pronounced; put what you heard in "heard";',
   '"missing" - a word inside the part that the student recites was skipped (do NOT report words that are outside the recited part).',
-  'Words that are pronounced correctly are NOT listed. Ignore the vowel on the very last letter of a word (pausing at the end of a phrase is allowed) and the first letter of words starting with alif-wasl.',
+  'Words that are pronounced correctly are NOT listed. Ignore the vowel of the first letter of words starting with alif-wasl.',
+  'Word endings: the student may DROP the final vowel when pausing (sukun at a stop) - that is NOT an error. But a DIFFERENT final vowel IS an error ("vowel"): for example -a or -o or -i instead of -u (al-ardu said as al-arda / al-ardo), -i instead of -a, or a missing/added tanween when the student does not pause.',
   'Answer ONLY with JSON: [{"i":2,"status":"vowel","heard":"..."}] - or [] if everything is correct.',
   'REFERENCE:',
 ].join('\n')
