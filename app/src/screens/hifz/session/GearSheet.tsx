@@ -2,6 +2,7 @@ import { Sheet, SheetHead } from '../../../components/ui'
 import { haptic } from '../../../lib/telegram'
 import { useStore } from '../../../store/settings'
 import { type Settings } from '../../../types/settings'
+import { VoiceSettings } from '../VoiceSettings'
 import { RatePick } from './RatePick'
 import { RepeatPick } from './RepeatPick'
 
@@ -51,6 +52,8 @@ export function GearSheet({ onClose }: { onClose: () => void }) {
           <div className="qh-set-l">Весь отрывок при прослушивании<small>Сколько раз подряд прослушать все аяты отрывка целиком</small></div>
           <RepeatPick value={st.qhRepeatAll} onChange={(v) => st.set({ qhRepeatAll: v })} />
         </div>
+        <div className="qh-set-l">Проверка голосом<small>Кнопка «Сказать вслух» в упражнении «По памяти»: читаете отрывок по-арабски, приложение показывает ошибки в словах</small></div>
+        <VoiceSettings lang="ar" />
         {sw(st.qhChain, 'Слушать цепочкой', 'Последний аят прошлого отрывка переносится в новый: вчера 1–5, сегодня 5, 6–10. Так новое связывается с выученным', () => st.set({ qhChain: !st.qhChain }))}
       </div>
     </Sheet>
