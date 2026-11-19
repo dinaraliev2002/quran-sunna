@@ -8,5 +8,5 @@ export function useVoice(forced?: 'ru' | 'ar') {
   const lang = useStore((s) => forced ?? s.hzVoiceLang)
   const sys = useSpeech(lang === 'ar' ? 'ar-SA' : 'ru-RU')
   const cloud = useRecorder(forced)
-  return engine === 'cloud' ? { ...cloud, engine } : { ...sys, busy: false, paywall: false, engine }
+  return engine === 'cloud' ? { ...cloud, engine } : { ...sys, busy: false, paywall: false, vowels: '', engine }
 }

@@ -6,7 +6,9 @@ const ENDPOINT = 'https://ynqbnqkihojqlawhhiqg.supabase.co/functions/v1/stt-chec
 
 /** Голос → текст */
 /** rec — номер записи: у длинной записи несколько частей, а проверка считается одна */
-export async function transcribe(blob: Blob, model = 'whisper-large-v3', lang: 'ru' | 'ar' = 'ru', rec = ''): Promise<string> {
+/** Что услышали: text — слова (Groq), vowels — тот же текст с огласовками (Gemini; только по-арабски, может быть пустым) */
+export interface Heard { text: string; vowels: string }
+export async function transcribe(blob: Blob, model = 'whisper-large-v3', lang: 'ru' | 'ar' = 'ru', rec = ''): Promise<Heard> {
   const ext = blob.type.includes('wav') ? 'wav' : blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm'
   const form = new FormData()
   form.append('audio', blob, `rec.${ext}`)
@@ -17,14 +19,14 @@ export async function transcribe(blob: Blob, model = 'whisper-large-v3', lang: '
   const r = await fetch(ENDPOINT, { method: 'POST', body: form })
   const j = await r.json().catch(() => ({}))
   if (!r.ok) throw Object.assign(new Error(j.error || `Ошибка ${r.status}`), { limit: !!j.limit, paywall: !!j.paywall })
-  return String(j.text ?? '')
+  return { text: String(j.text ?? ''), vowels: String(j.vowels ?? '') }
 }
 
 /** Голос → текст; длинная запись — по частям, все части сразу (так Whisper не теряет куски) */
-export async function transcribeLong(blob: Blob, model?: string, lang: 'ru' | 'ar' = 'ru', rec = newRec()): Promise<string> {
+export async function transcribeLong(blob: Blob, model?: string, lang: 'ru' | 'ar' = 'ru', rec = newRec()): Promise<Heard> {
   const parts = await splitAudio(blob)
-  const texts = await Promise.all(parts.map((p) => transcribe(p, model, lang, rec)))
-  return texts.map((t) => t.trim()).filter(Boolean).join(' ')
+  const heard = await Promise.all(parts.map((p) => transcribe(p, model, lang, rec)))
+  return joinHeard(heard)
 }
 
 /** Ссылка на счёт в звёздах Telegram за тариф (только внутри Telegram: сервер проверяет подпись) */
@@ -36,6 +38,12 @@ export async function createInvoice(plan: string): Promise<string> {
   if (!r.ok || !j.url) throw new Error(j.error || `Ошибка ${r.status}`)
   return String(j.url)
 }
+
+/** Склеить распознанные части записи по порядку */
+export const joinHeard = (h: Heard[]): Heard => ({
+  text: h.map((x) => x.text.trim()).filter(Boolean).join(' '),
+  vowels: h.map((x) => x.vowels.trim()).filter(Boolean).join(' '),
+})
 
 /** Номер новой записи */
 export const newRec = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36))

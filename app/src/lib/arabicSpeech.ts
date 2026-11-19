@@ -88,7 +88,7 @@ export function hasVowels(text: string): boolean {
 
 /**
  * Отличается ли произнесённое слово от эталона огласовкой. Слова уже совпали по буквам.
- * Не считаем ошибкой: первую букву (алиф-васль, ассимиляция на стыке слов), последнюю (остановка — вакф),
+ * Не считаем ошибкой: огласовку алифа в начале (алиф-васль), удвоение у первой буквы (слияние слов), последнюю букву (остановка — вакф),
  * гласную, которую не написали (нет — не значит ошибка), и слова, где у эталона нет огласовок.
  */
 export function vowelDiff(refWord: string, saidWord: string): boolean {
@@ -96,9 +96,11 @@ export function vowelDiff(refWord: string, saidWord: string): boolean {
   const b = vowelSig(saidWord)
   if (a.length !== b.length || a.some((x, i) => x.l !== b[i].l)) return false
   if (a.filter((x) => x.m).length < a.length / 2) return false // эталон без огласовок
-  for (let i = 1; i < a.length - 1; i++) {
+  for (let i = 0; i < a.length - 1; i++) {
+    if (i === 0 && a[0].l === 'ا') continue // алиф в начале (хамзат-васль): его огласовка зависит от предыдущего слова
     const x = a[i].v, y = b[i].v
-    if ((x.includes(SHADDA)) !== (y.includes(SHADDA))) return true // удвоение есть там, где не нужно, или нет там, где нужно
+    // удвоение сверяем не у первой буквы: «مِّن جُوعٍ» — шадда там от слияния с предыдущим словом
+    if (i > 0 && (x.includes(SHADDA)) !== (y.includes(SHADDA))) return true // удвоение есть там, где не нужно, или нет там, где нужно
     const vx = x.replace(SHADDA, ''), vy = y.replace(SHADDA, '')
     if (vx && vy && vx !== vy) return true // другая гласная
   }

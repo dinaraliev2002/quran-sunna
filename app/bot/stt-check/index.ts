@@ -95,7 +95,7 @@ async function canListen(w: Who) {
   if (me.sec >= (w.tg ? LIMIT.tg : LIMIT.web)) throw new Limit(w.tg ? 'Дневной лимит проверок голосом исчерпан — продолжим завтра.' : 'Дневной лимит проверок в браузере исчерпан. В приложении в Telegram лимит больше.')
 }
 
-/** Арабский распознаёт Gemini, если включён секретом VOICE_AR_ENGINE=gemini (иначе, как раньше, Groq). Модель — секрет GEMINI_MODEL. */
+/** Огласовки по-арабски пишет Gemini, если включён секретом VOICE_AR_ENGINE=gemini (иначе только Groq, без огласовок). Модель — секрет GEMINI_MODEL. */
 const GEM_MODEL = Deno.env.get('GEMINI_MODEL')?.trim() || 'gemini-3.8-flash'
 const GEM_THINK = Deno.env.get('VOICE_GEM_THINK')?.trim() || 'low' // уровень «размышлений»: low — без трат (при стандартных размышлениях проверка в 9 раз дороже и втрое медленнее, точность та же)
 const AR_GEMINI = (Deno.env.get('VOICE_AR_ENGINE') ?? '').trim() === 'gemini' && !!GEMINI
@@ -128,18 +128,7 @@ async function transcribeGemini(file: File) {
 }
 
 /** Голос → текст через Groq (Whisper; без подсказки — с ней он повторял её вместо речи) */
-async function transcribe(form: FormData, w: Who) {
-  await canListen(w)
-  const file = form.get('audio')
-  if (!(file instanceof File)) throw new Error('нет записи')
-  if (file.size > MAX_AUDIO) throw new Error('запись слишком длинная')
-  if (AR_GEMINI && String(form.get('lang') ?? '') === 'ar') {
-    try {
-      const g = await transcribeGemini(file)
-      await Promise.all([add(w.key, g.sec, 1, 0), add('*', g.sec, 1, 0)])
-      return { text: g.text, engine: 'gemini' }
-    } catch (e) { console.error('gemini → groq:', String((e as Error).message ?? e)) } // не вышло (лимит, формат, сбой) — запасной Groq
-  }
+async function transcribeGroq(file: File, form: FormData) {
   if (!GROQ) throw new Error('нет GROQ_API_KEY')
   const out = new FormData()
   out.append('file', file, file.name || 'rec.webm')
@@ -155,11 +144,33 @@ async function transcribe(form: FormData, w: Who) {
   if (!r.ok) throw new Error(`Groq ${r.status}: ${(await r.text()).slice(0, 200)}`)
   const j = await r.json()
   const sec = Number(j.duration) || file.size / 6000 // если длительности нет — грубо по размеру
-  await Promise.all([add(w.key, sec, 1, 0), add('*', sec, 1, 0)])
   // куски, где модели почти уверена, что речи нет, — это её «додумки» в тишине («شكرا», «موسيقى», «Продолжение следует…»)
   const segs: Any[] = Array.isArray(j.segments) ? j.segments : []
   const text = segs.length ? segs.filter((g) => !(Number(g.no_speech_prob) > 0.8)).map((g) => String(g.text ?? '')).join('') : String(j.text ?? '')
-  return { text: text.trim(), engine: 'groq' }
+  return { text: text.trim(), sec }
+}
+
+/** Голос → текст. По-арабски (если подключён Gemini) слушают обе модели: Groq — слова и буквы (Gemini «исправляет» ошибки на знакомый текст),
+ *  Gemini — огласовки (Whisper их не пишет). Приложение получает text (Groq) и vowels (Gemini, с огласовками). */
+async function transcribe(form: FormData, w: Who) {
+  await canListen(w)
+  const file = form.get('audio')
+  if (!(file instanceof File)) throw new Error('нет записи')
+  if (file.size > MAX_AUDIO) throw new Error('запись слишком длинная')
+  const count = (sec: number) => Promise.all([add(w.key, sec, 1, 0), add('*', sec, 1, 0)])
+  if (AR_GEMINI && String(form.get('lang') ?? '') === 'ar') {
+    const [q, g] = await Promise.allSettled([transcribeGroq(file, form), transcribeGemini(file)])
+    if (g.status === 'rejected') console.error('gemini:', String((g.reason as Error)?.message ?? g.reason))
+    if (q.status === 'fulfilled') {
+      await count(q.value.sec)
+      return { text: q.value.text, ...(g.status === 'fulfilled' ? { vowels: g.value.text } : {}), engine: g.status === 'fulfilled' ? 'groq+gemini' : 'groq' }
+    }
+    if (g.status === 'fulfilled') { await count(g.value.sec); return { text: g.value.text, engine: 'gemini' } } // Groq не ответил — хотя бы Gemini
+    throw q.reason
+  }
+  const r = await transcribeGroq(file, form)
+  await count(r.sec)
+  return { text: r.text, engine: 'groq' }
 }
 
 /** Какие спорные слова эталона можно засчитать */

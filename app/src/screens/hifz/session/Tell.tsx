@@ -17,8 +17,9 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
   const current = usePlayer((s) => s.current)
   const [open, setOpen] = useState<Set<number>>(new Set())
   const [spoken, setSpoken] = useState('') // что сказали вслух (проверка голосом)
+  const [voweled, setVoweled] = useState('') // то же с огласовками (если пришло)
   const ref = useMemo(() => quranRef(item).text, [item])
-  const { r: res, checking } = useVoiceCheck(ref, 'ar', spoken)
+  const { r: res, checking } = useVoiceCheck(ref, 'ar', spoken, voweled)
   const mark = useMemo(() => quranMarks(item, res?.relevant ? res.words : undefined), [item, res])
   const all = open.size === item.ayahs.length
   const reveal = (n: number) => {
@@ -45,7 +46,7 @@ export function Tell({ item, review, children }: { item: QItem; review?: boolean
           </div>
         ))}
       </div>
-      <VoiceCheck quran onText={setSpoken} hidden={all} />
+      <VoiceCheck quran onText={(t, v) => { setSpoken(t); setVoweled(v ?? '') }} hidden={all} />
       {all && res && (
         <div className="hz-card">
           <VoiceScore r={res} checking={checking} />

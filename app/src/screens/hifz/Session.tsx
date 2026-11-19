@@ -167,8 +167,9 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
   const [hint, setHint] = useState(false)
   const [open, setOpen] = useState(false)
   const [spoken, setSpoken] = useState('') // что сказали вслух (проверка голосом)
+  const [voweled, setVoweled] = useState('') // то же с огласовками (если пришло)
   const [sel, setSel] = useState<number | null>(null) // слово, на которое нажали в результате
-  const { r: res, checking } = useVoiceResult(item, spoken)
+  const { r: res, checking } = useVoiceResult(item, spoken, voweled)
   const withNarr = useStore((s) => s.hzVoiceNarr)
   const vLang = useStore((s) => s.hzVoiceLang)
   return (
@@ -194,7 +195,7 @@ function Tell({ item, showAr, review, children }: { item: HifzItem; showAr: bool
           </>
         )}
       </div>
-      <VoiceCheck key={item.key} onText={setSpoken} hidden={open} />
+      <VoiceCheck key={item.key} onText={(t, v) => { setSpoken(t); setVoweled(v ?? '') }} hidden={open} />
       {open ? children : (
         <div className="hz-act">
           <button className="bigbtn" onClick={() => { haptic.tap(); setOpen(true) }}><Icon id="open" />Проверить себя</button>

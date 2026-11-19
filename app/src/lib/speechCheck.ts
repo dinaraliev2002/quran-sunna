@@ -78,8 +78,23 @@ export function sameWord(ref: string, said: string, strict: boolean) {
 
 const EXTRA = 0.25 // цена лишнего слова (оговорки не должны сильно ронять результат)
 
-/** Сверка. strict — без поблажек на неточное распознавание (по умолчанию выключено); в арабском поблажек нет всегда: буква — это ошибка */
-export function checkSpeech(reference: string, spoken: string, strict = false, lang: VoiceLang = 'ru', vowels = false): CheckResult {
+/**
+ * Сверка. strict — без поблажек на неточное распознавание (по умолчанию выключено); в арабском поблажек нет всегда: буква — это ошибка.
+ * voweled — тот же ответ с огласовками от другой модели (по-арабски): слова и буквы сверяются по spoken, огласовки — по voweled
+ * (так «исправление» ошибки знакомым текстом в одной модели не скрывает ошибку, найденную другой).
+ */
+export function checkSpeech(reference: string, spoken: string, strict = false, lang: VoiceLang = 'ru', vowels = false, voweled = ''): CheckResult {
+  const base = checkCore(reference, spoken, strict, lang, vowels && !voweled)
+  if (lang !== 'ar' || !vowels || !voweled.trim()) return base
+  const v = checkCore(reference, voweled, true, lang, true)
+  if (v.words.length !== base.words.length) return base
+  const words = base.words.map((x, i) => (x.state === 'ok' && v.words[i].vowel ? v.words[i] : x))
+  const ok = words.filter((x) => x.state === 'ok').length
+  const wrong = words.filter((x) => x.state === 'wrong').length
+  return { ...base, words, ok, wrong, missed: words.length - ok - wrong, percent: words.length ? Math.round((ok / words.length) * 100) : 0 }
+}
+
+function checkCore(reference: string, spoken: string, strict: boolean, lang: VoiceLang, vowels: boolean): CheckResult {
   if (lang === 'ar') strict = true
   const R = refWords(reference, lang)
   // огласовки сверяем, только если их просили и распознавание их написало (Gemini; Whisper пишет без них)
