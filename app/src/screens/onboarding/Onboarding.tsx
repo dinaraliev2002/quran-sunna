@@ -44,7 +44,7 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState(st.profName)
   const [photo, setPhoto] = useState(st.profPhoto)
   const [tajweed, setTajweed] = useState(isIos)
-  const [audio, setAudio] = useState<'j30' | 'plan' | 'none'>('j30')
+  const [audio, setAudio] = useState<'j30' | 'plan' | 'all' | 'none'>('j30')
   const [rec, setRec] = useState(false)
   const [bukhari, setBukhari] = useState<'main' | 'sharkasi'>(st.hdBukhari)
   const [knownOpen, setKnownOpen] = useState(false)
@@ -68,9 +68,9 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
     if (known.length) jobs.push(() => knownCards(known).then((c) => st.qhMarkKnown(known, c)))
     if (tajweed) jobs.push(() => downloadFonts(fontVariant(true, theme)))
     if (audio !== 'none' && meta) {
-      const ids = new Set(audio === 'j30' ? meta.surahs.filter((s) => s.id >= 78).map((s) => s.id) : plan.flatMap((p) => p.surahs ?? []))
+      const ids = new Set(audio === 'all' ? meta.surahs.map((s) => s.id) : audio === 'j30' ? meta.surahs.filter((s) => s.id >= 78).map((s) => s.id) : plan.flatMap((p) => p.surahs ?? []))
       const list = meta.surahs.filter((s) => ids.has(s.id))
-      if (list.length) jobs.push(() => downloadAudio(st.reciter, list, 'Аудио из плана'))
+      if (list.length) jobs.push(() => downloadAudio(st.reciter, list, audio === 'all' ? 'Весь Коран' : 'Аудио из плана'))
     }
     jobs.reduce((p, j) => p.then(j).catch(() => {}), Promise.resolve<unknown>(undefined))
     onClose()
@@ -199,11 +199,11 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
                 </div>
                 <div className="ob-label">Аудио для этого чтеца</div>
                 <div className="ob-pills">
-                  {([['j30', 'Джуз 30'], ['plan', 'Суры из плана'], ['none', 'Не нужно']] as const).map(([k, l]) => (
+                  {([['j30', 'Джуз 30'], ['plan', 'Суры из плана'], ['all', 'Весь Коран'], ['none', 'Не нужно']] as const).map(([k, l]) => (
                     <button key={k} className={audio === k ? 'on' : ''} onClick={() => { haptic.tap(); setAudio(k) }}>{l}</button>
                   ))}
                 </div>
-                <p className="ob-note">Лучше скачивать по Wi‑Fi. Прогресс виден в Настройки → Загрузки.</p>
+                <p className="ob-note">{audio === 'all' ? 'Весь Коран — это много места (сотни МБ), лучше по Wi‑Fi. ' : 'Лучше скачивать по Wi‑Fi. '} Прогресс виден в Настройки → Загрузки.</p>
               </>
             )}
             {step === 'bukhari' && (
@@ -212,7 +212,7 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
                 <p className="ob-p">Это про «Сахих» аль-Бухари. Поменять можно в любой момент: Настройки → Переводы и источники.</p>
                 <div className="ob-opts">
                   <Opt icon={<Icon id="scroll" />} title="Основная версия" sub="Полный перевод, 97 книг, с цепочками передатчиков" on={bukhari === 'main'} onClick={() => setBukhari('main')} />
-                  <Opt icon={<Icon id="book" />} title="Абу Ислам аш-Шаркаси" sub="«Достоверный сборник»: пока первые 47 книг из 97" on={bukhari === 'sharkasi'} onClick={() => setBukhari('sharkasi')} />
+                  <Opt icon={<Icon id="book" />} title="Абу Ислам аш-Шаркаси" sub="«Достоверный сборник»" on={bukhari === 'sharkasi'} onClick={() => setBukhari('sharkasi')} />
                 </div>
               </>
             )}

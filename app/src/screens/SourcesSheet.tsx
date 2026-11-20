@@ -25,7 +25,7 @@ export function SourcesSheet({ onClose }: { onClose: () => void }) {
         {row('tf', true, 'Ас-Саади', 'Пока единственный; другие появятся позже', () => {})}
         <div className="group-t">Хадисы · «Сахих» аль-Бухари</div>
         {row('bm', st.hdBukhari === 'main', BUKHARI.main, 'Полный перевод, 97 книг, с цепочками передатчиков', () => st.set({ hdBukhari: 'main' }))}
-        {row('bs', st.hdBukhari === 'sharkasi', BUKHARI.sharkasi, '«Достоверный сборник»: пока первые 47 книг из 97', () => st.set({ hdBukhari: 'sharkasi' }))}
+        {row('bs', st.hdBukhari === 'sharkasi', BUKHARI.sharkasi, '«Достоверный сборник»', () => st.set({ hdBukhari: 'sharkasi' }))}
       </div>
     </Sheet>
   )

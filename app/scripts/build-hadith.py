@@ -282,6 +282,9 @@ def hadith_numbers(items):
 
 
 # ---------- HadeethEnc: темы ----------
+from topics_ru_fix import TITLE_RU
+
+
 def build_topics():
     cats = get(ENC + 'categories/list/?language=ru', True)
     cat_list = [{'id': int(x['id']), 'title': x['title'].strip(), 'parent': int(x['parent_id']) if x['parent_id'] else 0} for x in cats]
@@ -340,7 +343,7 @@ def build_topics():
             continue
         sub = below(c['id'])
         own = [i for i in c['ids'] if i not in sub]
-        topics.append({'id': c['id'], 'title': c['title'], 'parent': c['parent'], 'count': len(set(c['ids'])), 'ids': own})
+        topics.append({'id': c['id'], 'title': TITLE_RU.get(c['title'], c['title']), 'parent': c['parent'], 'count': len(set(c['ids'])), 'ids': own})
     assert all(t['parent'] == 0 or t['parent'] in by_id for t in topics)
     json.dump({'topics': topics, 'hadiths': index}, open(os.path.join(OUT, 'topics.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     return hadiths

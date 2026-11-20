@@ -1,5 +1,6 @@
 import { Icon } from '../Icon'
 import { surahGlyph } from '../../lib/data'
+import { glyphScale } from '../../lib/surahGlyphScale'
 import { plural } from '../../lib/plural'
 import type { Surah } from '../../types/quran'
 
@@ -12,7 +13,7 @@ export function SurahRow({ s, sort, current, learned, onClick, onPlay }: { s: Su
         <span>{sort === 'rev' ? `${s.rev}-я по ниспосланию` : s.meaning} · {s.ayahs} {plural(s.ayahs, 'аят', 'аята', 'аятов')}</span>
       </div>
       <div className="r">
-        <span className="sname">{surahGlyph(s.id)}</span>
+        <span className="sname" style={{ fontSize: `${(34 * glyphScale(s.id)).toFixed(1)}px` }}>{surahGlyph(s.id)}</span>
         <span className={'tag ' + (s.mk ? 'mk' : 'md')}>{s.mk ? 'Мекканская' : 'Мединская'}</span>
       </div>
       {onPlay && <button className="srow-play" onClick={(e) => { e.stopPropagation(); onPlay() }} aria-label={`Слушать суру ${s.name}`}><Icon id="play" /></button>}
