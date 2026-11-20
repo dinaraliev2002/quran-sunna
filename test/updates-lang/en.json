@@ -1,0 +1,78 @@
+{
+ "2026-11-20-1": {
+  "date": "20 November 2026", "title": "App update",
+  "intro": "A new translation of Sahih al-Bukhari, tidier hadith pages, word memorisation and more accurately timed reciters.",
+  "cards": [
+   { "title": "New translation of Sahih al-Bukhari", "text": "We added a second Russian translation of Sahih al-Bukhari, by Abu Islam ash-Sharkasi (“The Authentic Collection”). For now it covers the first 47 of the 97 books, with the Arabic text and chains of narrators. You can choose which translation to read in Settings.", "tip": "Settings → Translations and sources." },
+   { "title": "Order in the hadiths", "text": "We tidied up the hadiths of al-Bukhari and Muslim: the chapter title, verses and the hadith itself now sit together on one card. It is much easier to read." },
+   { "title": "Memorising words", "text": "Memorisation has a new “Words” section: the most frequent words of the Quran in order, reviewed at the same intervals as hadiths and surahs. You can choose from 5 to 20 new words a day. The section is also available in the memorisation window on the home screen.", "tip": "Memorisation → Words." },
+   { "title": "Memorisation is more convenient", "text": "We improved memorisation: in the lesson settings you can choose the exercise, the reciter’s speed and the number of repetitions. Repetitions and speed are chosen with a smoothly turning wheel, with a soft sound and light vibration. You can now choose up to 33 repetitions. When memorising hadiths, the Arabic text is split into parts together with the translation, and you can choose the Arabic font." },
+   { "title": "Reciters sound more accurate", "text": "We improved how reciters sound: the recordings now match the highlighting on screen more closely, and verses and words change exactly at the moment of the sound. We removed the echo from Mishary al-Afasy." }
+  ]
+ },
+ "2026-11-11-1": {
+  "date": "11 November 2026", "title": "App update",
+  "intro": "The app looks nicer: we added smooth animations and improved the design.",
+  "cards": [
+   { "title": "A better look", "text": "Screens now change smoothly, bottom sheets open and close gently, and the player is more convenient: it collapses into a narrow bar and into a circle, and swiping it to the right closes it. The blessing on the Prophet ﷺ is now written with a single symbol everywhere. Small visual flaws were fixed." }
+  ]
+ },
+ "2026-11-06-1": {
+  "date": "6 November 2026", "title": "App update",
+  "intro": "We added a questionnaire that helps build a personal plan: what to study and in what order (Quran, hadiths, words). You can take it in Settings → Personal plan. In this update we simplified reviewing what you have memorised (intervals longer than 30 days), added highlighted terms with explanations in commentaries and tafsir, a gear in the verse window and a shared list of memorised surahs.",
+  "introWeb": "We added a questionnaire that helps build a personal plan: what to study and in what order (Quran, hadiths, words). You can take it in Settings → Personal plan. In this update we deepened the study of the Quran: “Quran words” and “Meaning of the Quran” appeared — the most frequent words, grammar search, the role of a word in the sentence, topics and concepts. Memorisation has a new “Words” tab. Reviews of memorised material now continue after 60 days, and highlighted terms explain unfamiliar words.",
+  "cards": [
+   { "title": "Word analysis", "text": "Double-tap an Arabic word: a window opens with the translation, root, part of speech, verb forms and verbal noun. The “Role” tab shows the role the word plays in the sentence (subject, object, attribute…) and what it depends on. “Elsewhere” lists all verses with this root, “Forms” shows the forms of words from this root.", "tip": "In “Page” and “Surah” modes — double-tap a word. In “Word by word” — a single tap." },
+   { "title": "Quran words", "text": "The most frequent words of the Quran with translation: a hundred words cover more than half of the text. Mark the ones you know and see what share of the Quran you already understand. There is also a grammar search: for example, all Form IV verbs in the past tense.", "tip": "Settings → Quran words." },
+   { "title": "Meaning of the Quran", "text": "What the Quran speaks about. “Topics” are sections and subtopics: fasting, patience, divorce, major sins, supplications, parables, the attributes of Allah — each with verses and translation. “Concepts” are the prophets, peoples, places, animals, plants and objects mentioned in the Quran.", "tip": "Settings → Meaning of the Quran. In any verse window — the “Topics of the verse” block." },
+   { "title": "Memorising words", "text": "Memorisation has a new “Words” tab: the most frequent words in order, reviewed at the same intervals as hadiths and surahs. You can choose from 5 to 20 new words a day. The questionnaire now has the goal “Arabic words”.", "tip": "Memorisation → Words." },
+   { "title": "What to show in the verse window", "text": "The verse window now has a gear next to the arrows and the close button. In it you can choose what to see under the text: topics of the verse, “Who and what it is about”, the story of the verse, commentary. The translation and tafsir are always shown.", "tip": "Open any verse → the gear at the top right." },
+   { "title": "Highlighted terms", "text": "Arabic and Islamic terms in commentaries, tafsir and stories are marked with a golden dotted line. Tap a word to see a short explanation, then open the dictionary. The dictionary now includes general terms: salah, shirk, tawhid, iman, taqwa, sabr and others.", "tip": "Turn off in Settings → Reading → Highlight terms." },
+   { "title": "Reviews beyond 30 days", "text": "Before, after 60 days memorised material was reviewed every 60 days. Now the intervals keep growing: 90 and 180 days, and after that a review every six months." },
+   { "title": "Memorised surahs", "text": "If you already know some surahs, mark them in “Memorisation → Quran” or in the questionnaire (“I’ll choose myself”). They will return for review at the usual intervals. Your profile shows how many surahs and verses you have memorised.", "tip": "Profile → “Quran memorisation”." },
+   { "title": "Reminders", "text": "The app can remind you: time to review, morning and evening adhkar, Friday, your study streak. It works without internet and you choose the time. All reminders are off until you turn them on.", "tip": "Settings → Reminders." },
+   { "title": "Word highlighting while listening", "text": "While a verse is being recited, the word the reciter is reading is highlighted in “Page”, “Surah” and “Mushaf”. It works for reciters with precise word timing." }
+  ],
+  "fixes": ["The word analysis window now scrolls", "“Back” from “Meaning of the Quran” returns to the same verse", "Minor improvements and fixes"]
+ },
+ "2026-11-03-1": {
+  "date": "3 November 2026", "title": "App update",
+  "cards": [
+   { "title": "Quran memorisation", "text": "Memorisation now has two tabs: “Hadiths” and “Quran”. The app gives you a few new verses a day and brings memorised ones back for review: the better you remember, the less often. The lesson: listen and read, then read with some words hidden, then from memory — only the translation is visible.", "tip": "Quran → the “Memorise” button at the top, next to search. Or tap “Memorise” in any verse window." },
+   { "title": "Word-by-word translation", "text": "Under every Arabic word is its meaning. It works when reading in “Page” and “Surah” modes, and in the Quran memorisation lesson.", "tip": "While reading, tap the menu icon at the bottom right and turn on “Word-by-word translation”." },
+   { "title": "Lesson settings", "text": "The gear in the lesson: how many words to hide (every second, every third, both in turn, or no exercises), the “Continue the verse” exercise, word-by-word translation, reciter speed from 0.5× to 1.5×, repeating each verse and listening in a chain: verse 1, then 1–2, then 1–3.", "tip": "Open a lesson and tap the gear at the top right." },
+   { "title": "Sets, goals and weak spots", "text": "Choose what to learn with cards: Juz 30, surahs for prayer, Ayat al-Kursi, the start of al-Kahf, al-Mulk and other sets, or any surah. You can set a goal, for example to learn a set in a month: the app calculates how many pages and verses you need per day. “Recently learned” is under the main card, and passages where you made mistakes are collected in “Weak spots”.", "tip": "Memorisation → Quran → “What to learn”." },
+   { "title": "New player", "text": "You can listen to a surah from anywhere: the ▶ button is next to every surah in the list and on the home screen beside “Continue reading”. A player appears at the bottom: pause, previous and next verse, and previous and next surah at the edges. Verses play one after another with no gaps.", "tip": "Tap ▶ next to any surah. Close the player with the cross at the top right." },
+   { "title": "Narrow player", "text": "The arrow next to the cross collapses the player into one narrow bar: the surahs, verses and pause stay at hand while the page is hardly covered. Tap the arrow again and the player is big again.", "tip": "Arrow down — collapse, arrow up — expand." },
+   { "title": "Sleep timer and speed", "text": "The moon icon turns on the sleep timer: the player stops by itself after 15–90 minutes or after a chosen number of surahs. Playback speed (0.75×–1.5×) is chosen with the “1×” button in the player.", "tip": "Set the time or number of surahs in the player settings (gear), turn it on with the moon." },
+   { "title": "Player settings", "text": "Reciter and quality, what to do at the end of a surah (stop, play the next or repeat), the pause between verses, turning mushaf pages along with the sound and resuming from where you stopped.", "tip": "The gear in the player or Settings → Player." }
+  ],
+  "fixes": ["Minor improvements and fixes"]
+ },
+ "2026-11-01-1": {
+  "date": "1 November 2026", "title": "App update",
+  "cards": [
+   { "title": "Narrators of hadith", "text": "In the hadiths of Bukhari, Muslim, an-Nawawi and Riyad as-Salihin you can open the chain of narrators: each has a name, a grading and what scholars said about them. For an-Nawawi and Riyad there is both the Companion and the full chain from the original source.", "tip": "Open a hadith and tap “Chain” or “Companion”." },
+   { "title": "Commentary on verses", "text": "Explanations of verses are now right in the verse window, in the “Commentary” block. And at the start of a surah there is an introduction, “About the surah”.", "tip": "Tap the verse window icon at any verse." },
+   { "title": "Stories: menu, search, bookmarks", "text": "The “Stories” section has a menu: search across all stories and commentaries, a surah table of contents and bookmarks on passages.", "tip": "Hold the “Stories” tab to choose: everything together, only stories or only commentaries." },
+   { "title": "Prostrations of recitation", "text": "A list of all the places, a supplication with vowel marks and a hint at the verses themselves.", "tip": "Reading menu → “Prostrations”." },
+   { "title": "Dictionary of Arabic terms", "text": "Meanings of the words found in the translation and commentaries.", "tip": "Reading menu → “Glossary of terms”." },
+   { "title": "More accurate “Continue reading”", "text": "The app remembers the verse where you stopped and highlights it for a second. It also works with the translation and tafsir window." },
+   { "title": "Share as a picture", "text": "“Verse of the day” and “Hadith of the day” have a new “As a picture” button." },
+   { "title": "Audio quality", "text": "For reciters you can choose 64 or 128 kbps: 64 takes half the space when downloaded. A new reciter — Ayman Suwayd.", "tip": "Settings → Reciter: the numbers to the right of the name." }
+  ],
+  "fixes": ["Minor errors fixed"]
+ },
+ "2026-10-24-1": {
+  "date": "24 October 2026", "title": "App update",
+  "cards": [
+   { "title": "Story of a verse", "text": "Reasons of revelation from four books with an assessment of reliability. The “Story of a verse” icon appears at verses it is known for." },
+   { "title": "“Stories” tab", "text": "In the “Quran” section you can read only the stories of verses, one after another." },
+   { "title": "Search by mushaf page", "text": "Enter a page number and you are on it." },
+   { "title": "Mushaf in landscape", "text": "The page fits the width of the screen. New reciters added." },
+   { "title": "Adhkar", "text": "Verses of the Quran in the adhkar are written in the mushaf text." },
+   { "title": "Memorisation and profile", "text": "Interval review of memorised material, a profile and hints for each section on first entry." },
+   { "title": "Contact the author", "text": "In Settings: “Write to the author” and “Support the project”." }
+  ]
+ }
+}

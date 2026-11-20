@@ -1,0 +1,78 @@
+{
+ "2026-11-20-1": {
+  "date": "20 Kasım 2026", "title": "Uygulama güncellemesi",
+  "intro": "Sahîh-i Buhârî’nin yeni bir çevirisi, düzenli hadis sayfaları, kelime ezberi ve daha isabetli okuyucu sesleri.",
+  "cards": [
+   { "title": "Sahîh-i Buhârî’nin yeni çevirisi", "text": "Sahîh-i Buhârî’nin Ebû İslam eş-Şerkasî tarafından yapılan ikinci bir Rusça çevirisini ekledik (“Sahih Derleme”). Şimdilik 97 kitaptan ilk 47’sini içeriyor; Arapça metin ve râvi zincirleri de var. Hangi çevirinin okunacağını ayarlardan seçebilirsiniz.", "tip": "Ayarlar → Çeviriler ve kaynaklar." },
+   { "title": "Hadislerde düzen", "text": "Buhârî ve Müslim hadislerini düzenledik: bölüm başlığı, âyetler ve hadisin kendisi artık tek kartta. Okumak çok daha kolay." },
+   { "title": "Kelime ezberi", "text": "Ezberde yeni bir “Kelimeler” bölümü var: Kur’an’ın en sık geçen kelimeleri sırayla, hadisler ve sûrelerle aynı aralıklarla tekrar edilir. Günde 5 ile 20 arası yeni kelime seçebilirsiniz. Bölüm ana ekrandaki ezber penceresinde de var.", "tip": "Ezber → Kelimeler." },
+   { "title": "Ezber daha rahat", "text": "Ezberi geliştirdik: ders ayarlarında alıştırmayı, okuyucunun hızını ve tekrar sayısını seçebilirsiniz. Tekrar ve hız, yumuşak bir ses ve hafif titreşimle yavaşça dönen bir çarkla seçilir. Tekrar sayısı artık 33’e kadar seçilebilir. Hadis ezberinde Arapça metin, çeviriyle birlikte bölümlere ayrılır ve Arapça yazı tipini seçebilirsiniz." },
+   { "title": "Okuyucular daha isabetli", "text": "Okuyucuların sesini iyileştirdik: kayıtlar artık ekrandaki vurgulamayla daha iyi eşleşiyor, âyetler ve kelimeler tam sesin olduğu anda değişiyor. Mişarî el-Afasî’nin sesindeki yankıyı kaldırdık." }
+  ]
+ },
+ "2026-11-11-1": {
+  "date": "11 Kasım 2026", "title": "Uygulama güncellemesi",
+  "intro": "Uygulama daha güzel göründü: akıcı animasyonlar ekledik ve tasarımı iyileştirdik.",
+  "cards": [
+   { "title": "Daha güzel görünüm", "text": "Ekranlar artık yumuşakça değişiyor, alt pencereler nazikçe açılıp kapanıyor, oynatıcı da daha rahat: dar bir şeride ve daireye küçülüyor, sağa kaydırınca kapanıyor. Peygamber ﷺ’e salavat artık her yerde tek bir simgeyle yazılıyor. Küçük görünüm kusurları giderildi." }
+  ]
+ },
+ "2026-11-06-1": {
+  "date": "6 Kasım 2026", "title": "Uygulama güncellemesi",
+  "intro": "Kişisel plan çıkarmaya yardım eden bir anket ekledik: ne öğrenilecek ve hangi sırayla (Kur’an, hadisler, kelimeler). Ankete “Ayarlar → Kişisel plan”dan ulaşabilirsiniz. Bu güncellemede ezberlediklerinizin tekrarını kolaylaştırdık (30 günden uzun aralıklar), yorum ve tefsirlerde açıklamalı terim vurgusu, âyet penceresine bir çark ve ezberlenen sûrelerin ortak listesini ekledik.",
+  "introWeb": "Kişisel plan çıkarmaya yardım eden bir anket ekledik: ne öğrenilecek ve hangi sırayla (Kur’an, hadisler, kelimeler). Ankete “Ayarlar → Kişisel plan”dan ulaşabilirsiniz. Bu güncellemede Kur’an incelemesini derinleştirdik: “Kur’an kelimeleri” ve “Kur’an’ın anlamı” geldi — en sık geçen kelimeler, dilbilgisi araması, kelimenin cümledeki rolü, konular ve kavramlar. Ezberde yeni bir “Kelimeler” sekmesi var. Ezberlenenlerin tekrarı artık 60 günden sonra da sürüyor, terim vurgusu da anlaşılmayan kelimeleri açıklıyor.",
+  "cards": [
+   { "title": "Kelime çözümlemesi", "text": "Arapça bir kelimeye iki kez dokunun: çeviri, kök, kelime türü, fiil bâbları ve mastarla bir pencere açılır. “Rol” sekmesi kelimenin cümlede hangi rolü oynadığını (özne, nesne, sıfat…) ve neye bağlı olduğunu gösterir. “Başka nerede” bu kökün geçtiği tüm âyetleri, “Biçimler” bu kökten türeyen kelime biçimlerini verir.", "tip": "“Sayfa” ve “Sûre” kiplerinde kelimeye iki kez dokunun. “Kelime kelime çeviri”de tek dokunuş yeter." },
+   { "title": "Kur’an kelimeleri", "text": "Kur’an’ın en sık geçen kelimeleri çevirisiyle: yüz kelime metnin yarısından fazlasını kapsar. Bildiklerinizi işaretleyin ve Kur’an’ın ne kadarını anladığınızı görün. Bir de dilbilgisi araması var: örneğin geçmiş zamandaki tüm IV. bâb fiilleri.", "tip": "Ayarlar → Kur’an kelimeleri." },
+   { "title": "Kur’an’ın anlamı", "text": "Kur’an neyi anlatır. “Konular” bölümler ve alt konulardır: oruç, sabır, boşanma, büyük günahlar, dualar, misaller, Allah’ın sıfatları — her birinde çevirisiyle âyetler var. “Kavramlar” Kur’an’da anılan peygamberler, kavimler, yerler, hayvanlar, bitkiler ve nesnelerdir.", "tip": "Ayarlar → Kur’an’ın anlamı. Her âyet penceresinde “Âyetin konuları” bölümü." },
+   { "title": "Kelime ezberi", "text": "Ezberde yeni bir “Kelimeler” sekmesi var: en sık geçen kelimeler sırayla, hadisler ve sûrelerle aynı aralıklarla tekrar edilir. Günde 5 ile 20 arası yeni kelime seçebilirsiniz. Ankette “Arapça kelimeler” hedefi eklendi.", "tip": "Ezber → Kelimeler." },
+   { "title": "Âyet penceresinde ne gösterilsin", "text": "Âyet penceresinde oklarla kapatma düğmesinin yanında bir çark belirdi. Metnin altında neyi görmek istediğinizi seçebilirsiniz: âyetin konuları, “Kim ve ne hakkında”, âyetin hikâyesi, yorum. Çeviri ve tefsir her zaman gösterilir.", "tip": "Herhangi bir âyeti açın → sağ üstteki çark." },
+   { "title": "Terim vurgusu", "text": "Yorumlardaki, tefsirdeki ve hikâyelerdeki Arapça ve İslami terimler altın noktalı çizgiyle işaretlenir. Kısa açıklamayı görmek için kelimeye dokunun, ardından sözlüğü açın. Sözlüğe namaz, şirk, tevhid, iman, takva, sabır gibi genel terimler eklendi.", "tip": "Ayarlar → Okuma → Terimleri vurgula bölümünden kapatılır." },
+   { "title": "30 günden uzun tekrarlar", "text": "Eskiden 60 günden sonra ezber her 60 günde bir tekrar edilirdi. Şimdi aralıklar uzamaya devam ediyor: 90 ve 180 gün, sonrasında altı ayda bir." },
+   { "title": "Ezberlenen sûreler", "text": "Bazı sûreleri zaten biliyorsanız, “Ezber → Kur’an”da ya da ankette (“Kendim seçeceğim”) işaretleyin. Aralıklarla kendiliğinden tekrara gelirler. Profilde kaç sûre ve âyet ezberlediğiniz görünür.", "tip": "Profil → “Kur’an ezberi”." },
+   { "title": "Hatırlatmalar", "text": "Uygulama size hatırlatabilir: tekrar zamanı, sabah ve akşam zikirleri, cuma, ders serisi. İnternetsiz çalışır, saati siz seçersiniz. Siz açmadıkça tüm hatırlatmalar kapalıdır.", "tip": "Ayarlar → Hatırlatmalar." },
+   { "title": "Sesli okurken kelime vurgusu", "text": "Bir âyet okunurken, okuyucunun okuduğu kelime “Sayfa”, “Sûre” ve “Mushaf”ta vurgulanır. Kelime zamanlaması hassas olan okuyucularda çalışır." }
+  ],
+  "fixes": ["Kelime çözümleme penceresi artık kaydırılıyor", "“Kur’an’ın anlamı”ndan “Geri” aynı âyete döndürüyor", "Küçük iyileştirmeler ve düzeltmeler"]
+ },
+ "2026-11-03-1": {
+  "date": "3 Kasım 2026", "title": "Uygulama güncellemesi",
+  "cards": [
+   { "title": "Kur’an ezberi", "text": "Ezberde artık iki sekme var: “Hadisler” ve “Kur’an”. Uygulama günde birkaç yeni âyet verir, ezberlenenleri tekrara getirir: ne kadar iyi hatırlarsanız o kadar seyrek. Ders: dinleyin ve okuyun, sonra bazı kelimeler gizli okuyun, sonra ezberden — yalnızca çeviri görünür.", "tip": "Kur’an → üstte aramanın yanındaki “Ezberle” düğmesi. Ya da herhangi bir âyet penceresinde “Ezberle”ye dokunun." },
+   { "title": "Kelime kelime çeviri", "text": "Her Arapça kelimenin altında anlamı yer alır. “Sayfa” ve “Sûre” kiplerinde okurken ve Kur’an ezber dersinde çalışır.", "tip": "Okurken sağ alttaki menü simgesine dokunup “Kelime kelime çeviri”yi açın." },
+   { "title": "Ders ayarları", "text": "Derste çark: kaç kelime gizlensin (birer atlayarak, ikişer atlayarak, ikisi sırayla ya da alıştırmasız), “Âyete devam et” alıştırması, kelime kelime çeviri, okuyucu hızı 0,5×–1,5×, her âyeti tekrar ve zincirleme dinleme: âyet 1, sonra 1–2, sonra 1–3.", "tip": "Bir ders açın ve sağ üstteki çarka dokunun." },
+   { "title": "Seçkiler, hedefler ve zayıf yerler", "text": "Ne öğreneceğinizi kartlarla seçin: 30. cüz, namaz sûreleri, Âyetü’l-Kürsî, Kehf’in başı, Mülk ve diğer seçkiler ya da herhangi bir sûre. Hedef koyabilirsiniz, örneğin bir seçkiyi bir ayda öğrenmek: uygulama günde kaç sayfa ve âyet gerektiğini hesaplar. “Yakında öğrenilenler” ana kartın altındadır, hata yaptığınız bölümler “Zayıf yerler”de toplanır.", "tip": "Ezber → Kur’an → “Ne öğrenilecek”." },
+   { "title": "Yeni oynatıcı", "text": "Bir sûreyi her yerden dinleyebilirsiniz: ▶ düğmesi listedeki her sûrenin yanında ve ana ekranda “Okumaya devam”ın yanında. Altta bir oynatıcı belirir: duraklat, önceki ve sonraki âyet, kenarlarda önceki ve sonraki sûre. Âyetler aralıksız art arda çalar.", "tip": "Herhangi bir sûrenin yanındaki ▶’a dokunun. Oynatıcıyı sağ üstteki çarpıyla kapatın." },
+   { "title": "Dar oynatıcı", "text": "Çarpının yanındaki ok oynatıcıyı tek bir dar şeride küçültür: sûreler, âyetler ve duraklatma elinizin altında kalır, sayfa neredeyse kapanmaz. Oka tekrar dokunursanız oynatıcı yine büyür.", "tip": "Ok aşağı — küçült, ok yukarı — büyüt." },
+   { "title": "Uyku zamanlayıcısı ve hız", "text": "Ay simgesi uyku zamanlayıcısını açar: oynatıcı 15–90 dakika sonra ya da seçilen sayıda sûreden sonra kendiliğinden durur. Okuma hızı (0,75×–1,5×) oynatıcıdaki “1×” düğmesiyle seçilir.", "tip": "Süre ya da sûre sayısı oynatıcı ayarlarında (çark) belirlenir, ayla açılır." },
+   { "title": "Oynatıcı ayarları", "text": "Okuyucu ve kalite, sûre bitince ne yapılacağı (dur, sonrakini çal ya da tekrarla), âyetler arası duraklama, mushafta sesle birlikte sayfa çevirme ve kalınan yerden devam.", "tip": "Oynatıcıdaki çark ya da Ayarlar → Oynatıcı." }
+  ],
+  "fixes": ["Küçük iyileştirmeler ve düzeltmeler"]
+ },
+ "2026-11-01-1": {
+  "date": "1 Kasım 2026", "title": "Uygulama güncellemesi",
+  "cards": [
+   { "title": "Hadis râvileri", "text": "Buhârî, Müslim, Nevevî ve Riyâzü’s-Sâlihîn hadislerinde râvi zincirini açabilirsiniz: her râvinin adı, derecesi ve âlimlerin onun hakkındaki sözleri var. Nevevî ve Riyâz’da hem sahâbî hem de asıl kaynaktan tam zincir bulunur.", "tip": "Bir hadis açın ve “Zincir” ya da “Sahâbî”ye dokunun." },
+   { "title": "Âyetlere yorumlar", "text": "Âyet açıklamaları artık doğrudan âyet penceresinde, “Yorum” bölümünde. Sûrenin başında ise “Sûre hakkında” girişi var.", "tip": "Herhangi bir âyette âyet penceresi simgesine dokunun." },
+   { "title": "Hikâyeler: menü, arama, yer imleri", "text": "“Hikâyeler” bölümünde menü belirdi: tüm hikâye ve yorumlarda arama, sûre içindekiler ve bölümlere yer imleri.", "tip": "Seçmek için “Hikâyeler” sekmesine basılı tutun: hepsi bir arada, yalnızca hikâyeler ya da yalnızca yorumlar." },
+   { "title": "Tilavet secdeleri", "text": "Tüm yerlerin listesi, harekeli dua ve âyetlerin kendisinde ipucu.", "tip": "Okuma menüsü → “Tilavet secdeleri”." },
+   { "title": "Arapça terimler sözlüğü", "text": "Çeviride ve yorumlarda geçen kelimelerin anlamları.", "tip": "Okuma menüsü → “Terimler sözlüğü”." },
+   { "title": "Daha isabetli “Okumaya devam”", "text": "Uygulama kaldığınız âyeti hatırlar ve bir saniye vurgular. Çeviri ve tefsir penceresiyle de çalışır." },
+   { "title": "Resim olarak paylaş", "text": "“Günün âyeti” ve “Günün hadisi”nde yeni bir “Resim olarak” düğmesi var." },
+   { "title": "Ses kalitesi", "text": "Okuyucular için 64 ya da 128 kbps seçilebilir: 64 indirirken yarı yarıya az yer kaplar. Yeni okuyucu — Eymen Süveyd.", "tip": "Ayarlar → Okuyucu: adın sağındaki rakamlar." }
+  ],
+  "fixes": ["Küçük hatalar giderildi"]
+ },
+ "2026-10-24-1": {
+  "date": "24 Ekim 2026", "title": "Uygulama güncellemesi",
+  "cards": [
+   { "title": "Âyetin hikâyesi", "text": "Dört kitaptan nüzûl sebepleri, sahihlik değerlendirmesiyle. “Âyetin hikâyesi” simgesi, bilindiği âyetlerde durur." },
+   { "title": "“Hikâyeler” sekmesi", "text": "“Kur’an” bölümünde yalnızca âyetlerin hikâyelerini art arda okuyabilirsiniz." },
+   { "title": "Mushaf sayfasında arama", "text": "Sayfa numarasını yazın, o sayfadasınız." },
+   { "title": "Yatay mushaf", "text": "Sayfa ekran genişliğine yayılır. Yeni okuyucular eklendi." },
+   { "title": "Zikirler", "text": "Zikirlerdeki Kur’an âyetleri mushaf metniyle yazıldı." },
+   { "title": "Ezber ve profil", "text": "Ezberlenenlerin aralıklı tekrarı, profil ve ilk girişte bölüm ipuçları." },
+   { "title": "Yazara ulaşın", "text": "Ayarlarda: “Yazara yaz” ve “Projeyi destekle”." }
+  ]
+ }
+}
